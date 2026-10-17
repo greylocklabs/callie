@@ -3,6 +3,14 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- The installer adds the Greylock Labs repository at <https://packages.greylocklabs.org>, which
+  carries Callie and Jot, in place of Callie's own, and removes the old one. Machines that already
+  have Callie's repository keep getting updates from it.
+
 ## 0.5.7 - 2026-10-17
 
 ### Changed

@@ -25,26 +25,27 @@ It finds the latest [GitHub release](https://github.com/greylocklabs/callie/rele
 package against the checksum GitHub records for it, and installs it with `dnf` or `apt`. On any
 other system it stops before changing anything. Run again, it updates Callie, or says it is up to
 date. `sh -s -- --dry-run` shows what it would do, `--version 0.2.1` installs that version, older
-ones included, and `--force` installs it again. It also adds Callie's own repository, so later
-updates come with `dnf upgrade` or `apt upgrade`.
+ones included, and `--force` installs it again. It also adds the
+[Greylock Labs repository](https://packages.greylocklabs.org), which carries Callie and Jot, so
+later updates come with `dnf upgrade` or `apt upgrade`.
 
 To add the repository yourself instead, on Fedora:
 
 ```sh
-sudo curl -fsSLo /etc/yum.repos.d/callie.repo https://callieapp.org/rpm/callie.repo
+sudo curl -fsSLo /etc/yum.repos.d/greylocklabs.repo https://packages.greylocklabs.org/rpm/greylocklabs.repo
 sudo dnf install callie
 ```
 
 And on Debian:
 
 ```sh
-sudo curl -fsSLo /usr/share/keyrings/callie.asc https://callieapp.org/callie.asc
-sudo curl -fsSLo /etc/apt/sources.list.d/callie.sources https://callieapp.org/deb/callie.sources
+sudo curl -fsSLo /usr/share/keyrings/greylocklabs.asc https://packages.greylocklabs.org/greylocklabs.asc
+sudo curl -fsSLo /etc/apt/sources.list.d/greylocklabs.sources https://packages.greylocklabs.org/deb/greylocklabs.sources
 sudo apt update && sudo apt install callie
 ```
 
-On Ubuntu, the same with `callie-ubuntu.sources` in place of `callie.sources`, for the packages
-built against Ubuntu's own libraries.
+On Ubuntu, the same with `greylocklabs-ubuntu.sources` in place of `greylocklabs.sources`, for the
+packages built against Ubuntu's own libraries.
 
 The packages can also be downloaded from the release and installed by hand.
 

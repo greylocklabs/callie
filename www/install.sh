@@ -8,8 +8,8 @@
 # the systems Callie ships packages for: Fedora 44 or later, Debian 13 (trixie)
 # or later, and Ubuntu 26.04 or later, on x86_64. Anything else stops before changing anything.
 # Run again, it updates Callie, or says it is up to date without downloading.
-# It also adds Callie's own dnf or apt repository, so later updates come with
-# the system's.
+# It also adds the Greylock Labs dnf or apt repository, so later updates come
+# with the system's.
 set -eu
 
 repo="greylocklabs/callie"
@@ -24,7 +24,7 @@ installed_override="${CALLIE_INSTALL_INSTALLED-}"
 installed_overridden="${CALLIE_INSTALL_INSTALLED+yes}"
 # Prefixed to the system's repository files.
 root="${CALLIE_INSTALL_ROOT:-}"
-site="https://callieapp.org"
+packages="https://packages.greylocklabs.org"
 
 say() { printf 'callie: %s\n' "$*"; }
 fail() {
@@ -51,7 +51,7 @@ while [ $# -gt 0 ]; do
     -h | --help)
         printf '%s\n' "usage: install.sh [--dry-run] [--force] [--version X.Y.Z]" \
             "Installs or updates Callie from its GitHub release with dnf or apt, and" \
-            "adds Callie's repository so later updates come with the system's." \
+            "adds the Greylock Labs repository so later updates come with the system's." \
             "--version installs that release, older ones included; --force installs" \
             "it again when it is the one installed."
         exit 0
@@ -173,42 +173,56 @@ else
     installed="${installed%%-*}"
 fi
 
-# Callie's repository, added once; failing to add it leaves Callie installed.
+# The Greylock Labs repository, added once; failing to add it leaves Callie
+# installed. It replaces the Callie-only repository older installers added.
 case "$kind" in
-rpm) repo_files="/etc/yum.repos.d/callie.repo" ;;
-deb) repo_files="/usr/share/keyrings/callie.asc /etc/apt/sources.list.d/callie.sources" ;;
+rpm)
+    repo_files="/etc/yum.repos.d/greylocklabs.repo"
+    old_files="/etc/yum.repos.d/callie.repo"
+    ;;
+deb)
+    repo_files="/usr/share/keyrings/greylocklabs.asc /etc/apt/sources.list.d/greylocklabs.sources"
+    old_files="/usr/share/keyrings/callie.asc /etc/apt/sources.list.d/callie.sources"
+    ;;
 esac
 # Ubuntu's section of the apt repository holds the debs built for it.
-sources=callie.sources
-[ "$ID" != ubuntu ] || sources=callie-ubuntu.sources
+sources=greylocklabs.sources
+[ "$ID" != ubuntu ] || sources=greylocklabs-ubuntu.sources
 add_repo() {
     present=1
     for file in $repo_files; do
         [ -e "$root$file" ] || present=0
     done
     [ "$present" -eq 0 ] || return 0
+    old=""
+    for file in $old_files; do
+        [ ! -e "$root$file" ] || old="$old $root$file"
+    done
     if [ "$dry_run" -eq 1 ]; then
-        from="$site/rpm/callie.repo"
-        [ "$kind" = rpm ] || from="$site/callie.asc and $site/deb/$sources"
-        say "would add Callie's repository: $repo_files, from $from"
+        from="$packages/rpm/greylocklabs.repo"
+        [ "$kind" = rpm ] || from="$packages/greylocklabs.asc and $packages/deb/$sources"
+        say "would add the Greylock Labs repository: $repo_files, from $from"
+        [ -z "$old" ] || say "and remove the old Callie repository:$old"
         return 0
     fi
     if [ "$needs_root" -eq 1 ]; then
-        say "Callie's repository was not added: that needs root."
+        say "The Greylock Labs repository was not added: that needs root."
         return 0
     fi
     get="$sudo curl --proto =https --tlsv1.2 -fsSL"
     case "$kind" in
-    rpm) $get -o "$root/etc/yum.repos.d/callie.repo" "$site/rpm/callie.repo" ;;
+    rpm) $get -o "$root/etc/yum.repos.d/greylocklabs.repo" "$packages/rpm/greylocklabs.repo" ;;
     deb)
-        $get -o "$root/usr/share/keyrings/callie.asc" "$site/callie.asc" &&
-            $get -o "$root/etc/apt/sources.list.d/callie.sources" "$site/deb/$sources"
+        $get -o "$root/usr/share/keyrings/greylocklabs.asc" "$packages/greylocklabs.asc" &&
+            $get -o "$root/etc/apt/sources.list.d/greylocklabs.sources" "$packages/deb/$sources"
         ;;
     esac || {
-        say "Callie's repository could not be added; callie upgrade still updates Callie."
+        say "The Greylock Labs repository could not be added; callie upgrade still updates Callie."
         return 0
     }
-    say "Added Callie's repository; updates now come with the system's."
+    # shellcheck disable=SC2086 # a list of paths without spaces
+    [ -z "$old" ] || $sudo rm -f $old
+    say "Added the Greylock Labs repository; updates now come with the system's."
 }
 
 # Whether version $1 comes before version $2.
