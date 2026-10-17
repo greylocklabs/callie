@@ -73,7 +73,7 @@ expect_status fedora 0
 expect fedora "/v0.2.1/callie-0.2.1-1.fc44.x86_64.rpm"
 expect fedora "sha256 350e52621a778c23e0946ffef28b7e718442db280b9ea2888fc22d4892f8c345"
 expect fedora "dnf install -y ./callie-0.2.1-1.fc44.x86_64.rpm"
-expect fedora "would add Callie's repository: /etc/yum.repos.d/callie.repo"
+expect fedora "would add the Greylock Labs repository: /etc/yum.repos.d/greylocklabs.repo"
 
 # Debian gets the deb, not the debug symbols, after refreshing apt's lists.
 installs_on ID=debian VERSION_ID=13 'PRETTY_NAME="Debian GNU/Linux 13 (trixie)"'
@@ -81,7 +81,7 @@ expect_status debian 0
 expect debian "/v0.2.1/callie_0.2.1-1_amd64.deb"
 expect debian "apt-get update"
 expect debian "apt-get install -y ./callie_0.2.1-1_amd64.deb"
-expect debian "would add Callie's repository: /usr/share/keyrings/callie.asc /etc/apt/sources.list.d/callie.sources"
+expect debian "would add the Greylock Labs repository: /usr/share/keyrings/greylocklabs.asc /etc/apt/sources.list.d/greylocklabs.sources"
 
 # Ubuntu 26.04 gets the deb built for it, and its own part of the apt repository;
 # Debian keeps its own deb, though Ubuntu's comes first in the release.
@@ -90,10 +90,10 @@ expect_status ubuntu 0
 expect ubuntu "/v0.2.1/callie-ubuntu_0.2.1-1~ubuntu26.04_amd64.deb"
 expect ubuntu "sha256 7777777777777777777777777777777777777777777777777777777777777777"
 expect ubuntu "apt-get install -y ./callie-ubuntu_0.2.1-1~ubuntu26.04_amd64.deb"
-expect ubuntu "from https://callieapp.org/callie.asc and https://callieapp.org/deb/callie-ubuntu.sources"
+expect ubuntu "from https://packages.greylocklabs.org/greylocklabs.asc and https://packages.greylocklabs.org/deb/greylocklabs-ubuntu.sources"
 installs_on ID=debian VERSION_ID=13 'PRETTY_NAME="Debian GNU/Linux 13 (trixie)"'
 refuse "debian deb" "ubuntu"
-expect "debian sources" "https://callieapp.org/deb/callie.sources"
+expect "debian sources" "https://packages.greylocklabs.org/deb/greylocklabs.sources"
 
 # Testing and unstable carry no version; they are newer than trixie.
 installs_on ID=debian 'PRETTY_NAME="Debian GNU/Linux forky/sid"'
@@ -139,7 +139,7 @@ expect_status current 0
 expect current "Callie 0.2.1 is installed and up to date."
 refuse current "package:"
 # One installed before the repository existed gets it on running this again.
-expect current "would add Callie's repository"
+expect current "would add the Greylock Labs repository"
 options=--force
 installs_on ID=debian VERSION_ID=13 "$debian"
 expect "forced" "installing Callie 0.2.1 again"
@@ -164,11 +164,22 @@ unset options installed
 
 # The repository is added once: not again when its files are all there.
 mkdir -p "$tmp/root/etc/yum.repos.d" "$tmp/root/usr/share/keyrings"
-touch "$tmp/root/etc/yum.repos.d/callie.repo" "$tmp/root/usr/share/keyrings/callie.asc"
+touch "$tmp/root/etc/yum.repos.d/greylocklabs.repo" "$tmp/root/usr/share/keyrings/greylocklabs.asc"
 installs_on ID=fedora VERSION_ID=44 "$fedora"
-refuse "rpm repo added" "would add Callie's repository"
+refuse "rpm repo added" "would add the Greylock Labs repository"
 installs_on ID=debian VERSION_ID=13 "$debian"
-expect "deb repo half added" "would add Callie's repository"
+expect "deb repo half added" "would add the Greylock Labs repository"
+rm -rf "$tmp/root"
+
+# It replaces the Callie-only repository older installers added.
+mkdir -p "$tmp/root/etc/yum.repos.d" "$tmp/root/usr/share/keyrings" "$tmp/root/etc/apt/sources.list.d"
+touch "$tmp/root/etc/yum.repos.d/callie.repo" "$tmp/root/usr/share/keyrings/callie.asc" \
+    "$tmp/root/etc/apt/sources.list.d/callie.sources"
+installs_on ID=fedora VERSION_ID=44 "$fedora"
+expect "rpm old repo" "would add the Greylock Labs repository"
+expect "rpm old repo" "and remove the old Callie repository: $tmp/root/etc/yum.repos.d/callie.repo"
+installs_on ID=debian VERSION_ID=13 "$debian"
+expect "deb old repo" "and remove the old Callie repository: $tmp/root/usr/share/keyrings/callie.asc $tmp/root/etc/apt/sources.list.d/callie.sources"
 rm -rf "$tmp/root"
 
 # The installed version comes from rpm or dpkg-query, without the packaging's
