@@ -1,0 +1,130 @@
+#include "FakeHttpServer.h"
+
+#include "callie/ProblemReport.h"
+
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QTest>
+
+using namespace callie;
+using namespace Qt::StringLiterals;
+
+class TestProblemReport : public QObject
+{
+    Q_OBJECT
+
+private Q_SLOTS:
+    void payloadCarriesTheReport();
+    void longDiagnosticsKeepTheirEnd();
+    void sendsAndReturnsTheIssue();
+    void explainsWhyAReportWasNotFiled();
+    void theServiceCanBeOverridden();
+
+private:
+    struct Result
+    {
+        QUrl issue;
+        QString error;
+        bool done = false;
+    };
+    static Result send(const QUrl &service, const problemreport::Report &report);
+};
+
+TestProblemReport::Result TestProblemReport::send(const QUrl &service,
+                                                  const problemreport::Report &report)
+{
+    QNetworkAccessManager network;
+    Result result;
+    problemreport::send(
+        network, service, report,
+        [&result](const QUrl &issue, const QString &error) { result = {issue, error, true}; });
+    [&] { QTRY_VERIFY_WITH_TIMEOUT(result.done, 10000); }();
+    return result;
+}
+
+void TestProblemReport::payloadCarriesTheReport()
+{
+    const QJsonObject body =
+        QJsonDocument::fromJson(problemreport::payload({false, u"  Week view skips a day  "_s,
+                                                        u" "_s, u"Callie 0.5.8"_s},
+                                                       u"0.5.8"_s, u"Fedora Linux 44"_s))
+            .object();
+    QCOMPARE(body[u"app"_s].toString(), u"callie"_s);
+    QCOMPARE(body[u"kind"_s].toString(), u"bug"_s);
+    QCOMPARE(body[u"summary"_s].toString(), u"Week view skips a day"_s);
+    QVERIFY2(!body.contains(u"note"_s), "a blank note is left out");
+    QCOMPARE(body[u"logs"_s].toString(), u"Callie 0.5.8"_s);
+    QCOMPARE(body[u"appVersion"_s].toString(), u"0.5.8"_s);
+    QCOMPARE(body[u"platform"_s].toString(), u"Fedora Linux 44"_s);
+
+    const QJsonObject idea =
+        QJsonDocument::fromJson(
+            problemreport::payload({true, u"Week numbers"_s, u"In the month view"_s, {}},
+                                   u"0.5.8"_s, u"Debian"_s))
+            .object();
+    QCOMPARE(idea[u"kind"_s].toString(), u"idea"_s);
+    QCOMPARE(idea[u"note"_s].toString(), u"In the month view"_s);
+    QVERIFY2(!idea.contains(u"logs"_s), "no diagnostics, no logs");
+}
+
+void TestProblemReport::longDiagnosticsKeepTheirEnd()
+{
+    const QString diagnostics = u"first line\n"_s + QString(20000, u'x') + u"\nthe failure"_s;
+    const QString logs =
+        QJsonDocument::fromJson(
+            problemreport::payload({false, u"s"_s, {}, diagnostics}, u"1"_s, u"p"_s))
+            .object()[u"logs"_s]
+            .toString();
+    QVERIFY(logs.size() <= 16000);
+    QVERIFY(logs.startsWith(u"[earlier lines left out]"_s));
+    QVERIFY(logs.endsWith(u"the failure"_s));
+}
+
+void TestProblemReport::sendsAndReturnsTheIssue()
+{
+    FakeHttpServer service;
+    service.respond(201, R"({"number":7,"url":"https://github.com/greylocklabs/callie/issues/7"})");
+    const Result result = send(service.url(u"/report"_s), {false, u"Broken"_s, u"It broke"_s, {}});
+    QCOMPARE(result.error, QString());
+    QCOMPARE(result.issue, QUrl(u"https://github.com/greylocklabs/callie/issues/7"_s));
+
+    QCOMPARE(service.requests.size(), 1);
+    const FakeHttpServer::Request &request = service.requests.first();
+    QCOMPARE(request.method, "POST");
+    QCOMPARE(request.target, "/report");
+    QVERIFY(request.headers.value("content-type").startsWith("application/json"));
+    QCOMPARE(QJsonDocument::fromJson(request.body).object()[u"note"_s].toString(), u"It broke"_s);
+}
+
+void TestProblemReport::explainsWhyAReportWasNotFiled()
+{
+    FakeHttpServer service;
+    service.respond(429, R"({"error":"too many reports; try again in a minute"})");
+    Result result = send(service.url(u"/report"_s), {false, u"s"_s, {}, {}});
+    QVERIFY(result.issue.isEmpty());
+    QVERIFY2(result.error.contains(u"Too many reports"_s), qPrintable(result.error));
+
+    service.respond(400, R"({"error":"missing or overlong summary"})");
+    result = send(service.url(u"/report"_s), {false, u"s"_s, {}, {}});
+    QVERIFY2(result.error.contains(u"missing or overlong summary"_s), qPrintable(result.error));
+
+    // A port nothing listens on.
+    QTcpServer closed;
+    QVERIFY(closed.listen(QHostAddress::LocalHost, 0));
+    const quint16 port = closed.serverPort();
+    closed.close();
+    result = send(QUrl(u"http://127.0.0.1:%1/report"_s.arg(port)), {false, u"s"_s, {}, {}});
+    QVERIFY2(result.error.startsWith(u"Could not reach the report service"_s),
+             qPrintable(result.error));
+}
+
+void TestProblemReport::theServiceCanBeOverridden()
+{
+    QVERIFY(problemreport::serviceUrl().toString().startsWith(u"https://"_s));
+    qputenv("CALLIE_REPORT_SERVICE", "http://127.0.0.1:1/report");
+    QCOMPARE(problemreport::serviceUrl(), QUrl(u"http://127.0.0.1:1/report"_s));
+    qunsetenv("CALLIE_REPORT_SERVICE");
+}
+
+QTEST_GUILESS_MAIN(TestProblemReport)
+#include "tst_problemreport.moc"

@@ -777,8 +777,8 @@ ApplicationWindow {
                                 onTriggered: Support.openLogs()
                             }
                             MenuEntry {
-                                text: qsTr("Report a bug...")
-                                onTriggered: Support.reportBug()
+                                text: qsTr("Report a problem...")
+                                onTriggered: reportDialog.open()
                             }
                             MenuSeparator {
                                 contentItem: Rectangle {
@@ -1013,6 +1013,11 @@ ApplicationWindow {
     LazyPopup {
         id: subscribeDialog
         sourceComponent: SubscribeDialog {}
+    }
+
+    LazyPopup {
+        id: reportDialog
+        sourceComponent: ReportDialog {}
     }
 
     /// Opens the .ics files among `urls`, from a drop or the file manager, and
