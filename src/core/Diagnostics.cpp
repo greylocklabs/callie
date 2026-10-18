@@ -28,8 +28,6 @@ namespace callie::diagnostics {
 namespace {
 
 constexpr int kLogLines = 30;
-// GitHub rejects longer new-issue URLs, and a log tail is the part to trim.
-constexpr qsizetype kMaxUrlLength = 8000;
 
 QString lastLines(const QString &path, int count)
 {
@@ -191,28 +189,38 @@ void collect(TokenStore &tokens, const QString &extra, std::function<void(QStrin
     }
 }
 
-QUrl issueUrl(const QString &report)
+QString shortenedMark()
 {
-    const auto build = [](const QString &body) {
-        QUrl url(QStringLiteral("https://github.com/greylocklabs/callie/issues/new"));
-        QUrlQuery query;
-        query.addQueryItem(QStringLiteral("template"), QStringLiteral("bug_report.yml"));
-        query.addQueryItem(QStringLiteral("diagnostics"), body);
-        url.setQuery(query);
-        return url;
-    };
-    const QString note = QStringLiteral("\n[shortened; run `callie doctor` for the rest]");
+    return QStringLiteral("\n[shortened; run `callie doctor` for the rest]");
+}
 
+QUrl fitIssueUrl(const std::function<QUrl(const QString &)> &build, const QString &text,
+                 const QString &mark)
+{
     // The limit is on the encoded URL, where a space or newline takes three
-    // characters, so the report is cut until the encoded form fits.
-    QUrl url = build(report);
-    QString body = report;
-    while (url.toString(QUrl::FullyEncoded).size() > kMaxUrlLength && !body.isEmpty()) {
-        const qsizetype over = url.toString(QUrl::FullyEncoded).size() - kMaxUrlLength;
+    // characters, so the text is cut until the encoded form fits.
+    QUrl url = build(text);
+    QString body = text;
+    while (url.toString(QUrl::FullyEncoded).size() > kMaxIssueUrlLength && !body.isEmpty()) {
+        const qsizetype over = url.toString(QUrl::FullyEncoded).size() - kMaxIssueUrlLength;
         body.chop(std::max<qsizetype>(over / 3, 64));
-        url = build(body + note);
+        url = build(body + mark);
     }
     return url;
+}
+
+QUrl issueUrl(const QString &report)
+{
+    return fitIssueUrl(
+        [](const QString &body) {
+            QUrl url(QStringLiteral("https://github.com/greylocklabs/callie/issues/new"));
+            QUrlQuery query;
+            query.addQueryItem(QStringLiteral("template"), QStringLiteral("bug_report.yml"));
+            query.addQueryItem(QStringLiteral("diagnostics"), body);
+            url.setQuery(query);
+            return url;
+        },
+        report, shortenedMark());
 }
 
 } // namespace callie::diagnostics
