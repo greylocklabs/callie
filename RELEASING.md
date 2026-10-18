@@ -21,10 +21,7 @@ to `main`, which repository admins may do.
 Pushing the tag runs the release workflow. It checks the versions again, builds the source tarball
 and the `.deb` and `.rpm` packages, and publishes a GitHub release with the notes from
 `CHANGELOG.md`. The [Greylock Labs repository](https://github.com/greylocklabs/packages) picks the
-packages up within the hour. The release also starts the site's deploy, which builds the same
-repository at `callieapp.org/rpm` and `callieapp.org/deb` under its old `callie` names, for machines
-that added it before, signed with the key in the `GREYLOCK_REPO_SIGNING_KEY` organization secret.
-Without that secret, the site goes out without them.
+packages up within the hour.
 
 The packages take the Google OAuth client from the repository's `CALLIE_GOOGLE_CLIENT_ID` and
 `CALLIE_GOOGLE_CLIENT_SECRET` Actions secrets, so the installed app can sign in. A tag build without
