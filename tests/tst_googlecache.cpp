@@ -59,7 +59,6 @@ private Q_SLOTS:
     void rangeReadSkipsDistantEvents();
     void rangeReadKeepsEdgeCases();
     void rangeReadSkipsEndedSeries();
-    void schemaSixGainsSeriesEnds();
     void permissionsSurviveTheCache();
     void remindersSurviveTheCache();
     void syncTokenIsStoredWithChanges();
@@ -392,41 +391,6 @@ void TestGoogleCache::rangeReadSkipsEndedSeries()
                                  QDateTime(QDate(2026, 10, 7), QTime(0, 0), QTimeZone::UTC),
                                  QDateTime(QDate(2026, 10, 12), QTime(0, 0), QTimeZone::UTC))),
              QStringList{u"birthday"_s});
-}
-
-void TestGoogleCache::schemaSixGainsSeriesEnds()
-{
-    apply({parsed(R"({"id":"ended","start":{"dateTime":"2020-01-06T10:00:00Z"},
-                      "end":{"dateTime":"2020-01-06T11:00:00Z"},
-                      "recurrence":["RRULE:FREQ=WEEKLY;UNTIL=20201231T000000Z"]})"),
-           parsed(R"({"id":"weekly","start":{"dateTime":"2020-01-06T10:00:00Z"},
-                      "end":{"dateTime":"2020-01-06T11:00:00Z"},
-                      "recurrence":["RRULE:FREQ=WEEKLY"]})")},
-          true, u"tok"_s);
-    m_cache.reset();
-    // As 0.2 left it: no column for when series end.
-    {
-        QSqlDatabase db = QSqlDatabase::addDatabase(u"QSQLITE"_s, u"old"_s);
-        db.setDatabaseName(path());
-        QVERIFY(db.open());
-        QSqlQuery query(db);
-        QVERIFY(query.exec(u"ALTER TABLE events DROP COLUMN series_end"_s));
-        QVERIFY(query.exec(u"PRAGMA user_version = 6"_s));
-        db.close();
-    }
-    QSqlDatabase::removeDatabase(u"old"_s);
-
-    m_cache = std::make_unique<GoogleCache>(path());
-    QVERIFY2(m_cache->open(), qPrintable(m_cache->errorString()));
-    // Kept, sync token and all, rather than synced again from the start.
-    QCOMPARE(m_cache->syncToken(kAccount, kCalendar), u"tok"_s);
-    QCOMPARE(m_cache->events(kAccount, kCalendar).size(), 2);
-    QCOMPARE(ids(m_cache->events(kAccount, kCalendar,
-                                 QDateTime(QDate(2026, 10, 5), QTime(0, 0), QTimeZone::UTC),
-                                 QDateTime(QDate(2026, 10, 12), QTime(0, 0), QTimeZone::UTC))),
-             QStringList{u"weekly"_s});
-    GoogleCache reader(path());
-    QVERIFY2(reader.openForReading(), qPrintable(reader.errorString()));
 }
 
 void TestGoogleCache::outdatedSchemaIsRebuilt()

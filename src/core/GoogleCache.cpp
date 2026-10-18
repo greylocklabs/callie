@@ -21,8 +21,7 @@ namespace callie {
 
 namespace {
 
-// Bump when the tables change. Older caches are dropped and fully re-synced,
-// unless open() knows how to bring them up to date.
+// Bump when the tables change. Older caches are dropped and fully re-synced.
 constexpr int kSchemaVersion = 7;
 
 const char *const kSchema[] = {
@@ -160,17 +159,6 @@ bool GoogleCache::open()
     version.finish();
     if (found == kSchemaVersion)
         return exec(QStringLiteral("PRAGMA journal_mode=WAL"));
-    // Schema 6 lacks only when each series ends, which its rows can tell.
-    if (found == 6) {
-        if (!db.transaction())
-            return fail(db.lastError().text());
-        if (!addSeriesEnds() ||
-            !exec(QStringLiteral("PRAGMA user_version = %1").arg(kSchemaVersion)) || !db.commit()) {
-            db.rollback();
-            return false;
-        }
-        return exec(QStringLiteral("PRAGMA journal_mode=WAL"));
-    }
 
     if (found != 0)
         qCInfo(lcSync) << "cache schema" << found << "is outdated, starting over";
@@ -187,35 +175,6 @@ bool GoogleCache::open()
         return ok ? fail(db.lastError().text()) : false;
     }
     return exec(QStringLiteral("PRAGMA journal_mode=WAL"));
-}
-
-bool GoogleCache::addSeriesEnds()
-{
-    QSqlDatabase db = QSqlDatabase::database(m_connection);
-    if (!exec(QStringLiteral("ALTER TABLE events ADD COLUMN series_end TEXT")))
-        return false;
-    const QString series = QStringLiteral(" FROM events WHERE IFNULL(recurrence, '') <> '' AND "
-                                          "IFNULL(recurring_event_id, '') = '' ORDER BY rowid");
-    QSqlQuery rows(db);
-    if (!rows.exec(u"SELECT rowid"_s + series))
-        return fail(rows.lastError().text());
-    QList<qint64> ids;
-    while (rows.next())
-        ids.append(rows.value(0).toLongLong());
-    QSqlQuery read(db);
-    read.prepare(u"SELECT *"_s + series);
-    const QList<GoogleEvent> events = readEvents(read);
-    if (events.size() != ids.size())
-        return fail(QObject::tr("the cache changed while being updated"));
-    QSqlQuery update(db);
-    update.prepare(QStringLiteral("UPDATE events SET series_end = ? WHERE rowid = ?"));
-    for (qsizetype i = 0; i < ids.size(); ++i) {
-        update.addBindValue(seriesEndValue(events.at(i)));
-        update.addBindValue(ids.at(i));
-        if (!update.exec())
-            return fail(update.lastError().text());
-    }
-    return true;
 }
 
 bool GoogleCache::openForReading()

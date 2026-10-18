@@ -39,7 +39,7 @@ public:
     /// Opens or creates the database. Every other call fails until this succeeds.
     bool open();
 
-    /// Opens an existing cache without creating or migrating it, for looking
+    /// Opens an existing cache without creating or rebuilding it, for looking
     /// only. Fails when the file is missing or written in another schema.
     bool openForReading();
     [[nodiscard]] QString errorString() const { return m_error; }
@@ -95,8 +95,6 @@ private:
     bool writeEvents(const QString &key, const QString &calendarId,
                      const QList<GoogleEvent> &events);
     bool exec(const QString &statement);
-    /// Brings a schema 6 cache up to date by noting when each series ends.
-    bool addSeriesEnds();
     bool fail(const QString &message);
 
     QString m_path;

@@ -1,8 +1,6 @@
 #include "callie/Settings.h"
 
-#include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -285,19 +283,10 @@ void TestSettings::placeSettingsSurviveARealRestart()
 {
     // QSettings caches a file within a process, so a reopen here would read the
     // cache; what a restart reads is the file's own text.
-    QDir().mkpath(QFileInfo(path()).absolutePath());
-    {
-        // As Callie 0.2 left it: the group written as [%General], twice.
-        QFile old(path());
-        QVERIFY(old.open(QIODevice::WriteOnly));
-        old.write("[%General]\nmapApp=google\n\n[view]\ncurrent=week\n\n"
-                  "[%General]\nsearchPlacesOnline=false\n");
-    }
     {
         Settings settings(path());
-        QCOMPARE(settings.mapApp(), u"google"_s);
-        QVERIFY(!settings.searchPlacesOnline());
         settings.setMapApp(u"apple"_s);
+        settings.setSearchPlacesOnline(false);
     }
     QFile saved(path());
     QVERIFY(saved.open(QIODevice::ReadOnly));
