@@ -98,6 +98,17 @@
   <code>callie downgrade</code> download a release from GitHub only when you run them.
 </p>
 
+<h2>Package updates</h2>
+<p>
+  If you install Callie with its installer, it adds the Greylock Labs package repository to
+  your system, so your package manager, dnf or apt, then checks
+  <code>packages.greylocklabs.org</code> for updates on its own schedule, as it does every
+  repository it knows. That site is static files on GitHub Pages: it receives your package
+  manager's requests and, like any website, your IP address, and nothing from Callie itself.
+  Removing the repository's file from <code>/etc/yum.repos.d</code> or
+  <code>/etc/apt/sources.list.d</code> stops it.
+</p>
+
 <h2>Where information is stored</h2>
 <ul>
   <li>Calendar data is cached in your user directory, so the app works offline: Google calendars in a local database, and Outlook and CalDAV calendars, subscriptions and calendars on this computer as .ics files.</li>
