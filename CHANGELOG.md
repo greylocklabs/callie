@@ -10,6 +10,12 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - "Report a problem" in the ? menu files a bug or an idea as a public GitHub issue without a GitHub
   account, and shows the diagnostics it includes before you send them.
 
+### Removed
+
+- Callie's own package repository at callieapp.org, which the Greylock Labs repository replaced in
+  0.5.8. If `/etc/yum.repos.d/callie.repo` or `/etc/apt/sources.list.d/callie.sources` is still
+  there, remove it and run the installer again to add the Greylock Labs repository.
+
 ## 0.5.8 - 2026-10-17
 
 ### Changed

@@ -1,8 +1,6 @@
 name: pages
 
-# The site, with the Greylock Labs dnf and apt repository built from Callie's
-# and Jot's releases under its old callie names. A release starts this once it
-# is published.
+# The site, callieapp.org.
 on:
   push:
     branches: [main]
@@ -20,79 +18,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  repo:
-    runs-on: ubuntu-latest
-    container: debian:trixie
-    steps:
-      # A clone, as the archive checkout falls back to leaves out export-ignored scripts/.
-      - name: Install git
-        run: apt-get update -qq && apt-get install -y -qq --no-install-recommends ca-certificates git
-
-      - uses: actions/checkout@v4
-
-      # The Greylock Labs repository's scripts, which build the same repository here.
-      # Pinned to a commit, as they run beside the signing key; this is its v1 tag.
-      - uses: actions/checkout@v4
-        with:
-          repository: greylocklabs/packages
-          ref: 70348281ed55e1f9f5aaa292fba33182293ae014
-          path: packages-repo
-
-      - name: Build the package repositories
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SIGNING_KEY: ${{ secrets.GREYLOCK_REPO_SIGNING_KEY }}
-          SIGNING_PASSPHRASE: ${{ secrets.GREYLOCK_REPO_SIGNING_PASSPHRASE }}
-        run: |
-          mkdir -p repo
-          if [ -z "$SIGNING_KEY" ]; then
-            echo "::notice::No GREYLOCK_REPO_SIGNING_KEY secret; the site goes out without package repositories."
-            exit 0
-          fi
-          apt-get update -qq
-          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-            ca-certificates gh gnupg rpm createrepo-c apt-utils >/dev/null
-          GNUPGHOME="$(mktemp -d)"
-          export GNUPGHOME
-          # The passphrase goes to this runner's agent up front, so signing never asks.
-          echo allow-preset-passphrase > "$GNUPGHOME/gpg-agent.conf"
-          printf '%s\n' "$SIGNING_KEY" | gpg --batch --quiet --import
-          for keygrip in $(gpg --list-secret-keys --with-keygrip --with-colons |
-              awk -F: '/^grp/ { print $10 }'); do
-            printf '%s' "$SIGNING_PASSPHRASE" |
-              "$(gpgconf --list-dirs libexecdir)/gpg-preset-passphrase" --preset "$keygrip"
-          done
-          fingerprint="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr/ { print $10; exit }')"
-          if ! echo check | gpg --batch --pinentry-mode error --local-user "$fingerprint" \
-              --clearsign >/dev/null; then
-            echo "::error::Could not sign with GREYLOCK_REPO_SIGNING_KEY; GREYLOCK_REPO_SIGNING_PASSPHRASE may be wrong, see gpg's error above."
-            exit 1
-          fi
-          bash packages-repo/scripts/fetch-packages.sh packages callie jot
-          # The names, origin and address machines that added it from here already know;
-          # apt refuses updates from a repository whose origin changes.
-          REPO_NAME=callie REPO_TITLE=Callie REPO_URL=https://callieapp.org \
-            bash packages-repo/scripts/build-repo.sh packages repo "$fingerprint"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: repo
-          path: repo
-          if-no-files-found: ignore
-
   deploy:
-    needs: repo
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: repo
-          path: www
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
