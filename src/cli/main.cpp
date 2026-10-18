@@ -20,6 +20,7 @@
 #include "callie/MicrosoftSource.h"
 #include "callie/MicrosoftTokenProvider.h"
 #include "callie/QueuedSource.h"
+#include "callie/Releases.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
 #include "callie/Subscriptions.h"
@@ -129,6 +130,7 @@ const QList<std::pair<QString, QString>> kCommands = {
     {u"logs"_s, u"Show, follow (-f) or open (--open) the log files"_s},
     {u"status"_s, u"Sync state, keyring and configuration"_s},
     {u"doctor"_s, u"Details for a bug report; --report opens a new issue"_s},
+    {u"donate"_s, u"Support Callie on Ko-fi: opens the page, or --print prints its link"_s},
     {u"sync"_s, u"Refresh all accounts now"_s},
     {u"upgrade"_s, u"Install the latest release, or the one given: callie upgrade 0.3.1"_s},
     {u"downgrade"_s, u"Go back to the release before this one, or the one given"_s},
@@ -484,6 +486,20 @@ int runDoctor(QCoreApplication &app, bool report)
         });
     });
     return app.exec();
+}
+
+/// Prints where to support Callie, and opens it unless `print`.
+int runDonate(bool print)
+{
+    const QString url = releases::supportPage().toString();
+    // Over SSH or without a desktop nothing opens, so the link is always shown.
+    if (!print)
+        err << (QProcess::startDetached(QStringLiteral("xdg-open"), {url})
+                    ? QObject::tr("Opening Ko-fi in your browser. Thank you!")
+                    : QObject::tr("Could not open a browser. To support Callie, visit:"))
+            << "\n";
+    out << url << "\n";
+    return 0;
 }
 
 /// The log files, one path per line, newest first; or follows or opens them.
@@ -1186,6 +1202,10 @@ int main(int argc, char *argv[])
     QCommandLineOption reportOption(QStringLiteral("report"),
                                     QStringLiteral("With doctor: open a new GitHub issue."));
     addOption(reportOption);
+    QCommandLineOption printOption(
+        QStringLiteral("print"),
+        QStringLiteral("With donate: print the link, without opening it."));
+    addOption(printOption);
     QCommandLineOption forceOption(
         QStringLiteral("force"),
         QStringLiteral("With upgrade: install the release even when it is the one installed."));
@@ -1356,6 +1376,9 @@ int main(int argc, char *argv[])
 
     if (command == QLatin1String("doctor") && args.size() == 1)
         return runDoctor(app, parser.isSet(reportOption));
+
+    if (command == QLatin1String("donate") && args.size() == 1)
+        return runDonate(parser.isSet(printOption));
 
     if (command == QLatin1String("status") && args.size() == 1)
         return runStatus(app);

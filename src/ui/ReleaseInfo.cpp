@@ -5,6 +5,7 @@
 #include "EventModelForeign.h"
 
 #include "callie/ReleaseNotes.h"
+#include "callie/Releases.h"
 #include "callie/Settings.h"
 #include "callie/UpdateCheck.h"
 
@@ -88,7 +89,7 @@ QUrl ReleaseInfo::source() const
 
 QUrl ReleaseInfo::support() const
 {
-    return QUrl(u"https://ko-fi.com/sayonara_lara"_s);
+    return releases::supportPage();
 }
 
 QUrl ReleaseInfo::history() const

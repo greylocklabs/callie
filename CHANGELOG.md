@@ -9,6 +9,7 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - "Report a problem" in the ? menu files a bug or an idea as a public GitHub issue without a GitHub
   account, and shows the diagnostics it includes before you send them.
+- `callie donate` opens Callie's Ko-fi page, and `--print` prints its link instead.
 
 ### Removed
 
