@@ -1,0 +1,37 @@
+#pragma once
+
+#include <QByteArray>
+#include <QNetworkAccessManager>
+#include <QString>
+#include <QUrl>
+
+#include <functional>
+
+namespace callie::problemreport {
+
+/// What a person sends from "Report a problem": a bug or an idea, a one-line
+/// summary, what happened in their words, and the diagnostics they chose to
+/// include.
+struct Report
+{
+    bool idea = false;
+    QString summary;
+    QString note;
+    QString diagnostics;
+};
+
+/// The shared Greylock Labs report service, which files a report as a public
+/// issue in greylocklabs/callie. CALLIE_REPORT_SERVICE overrides it, for tests.
+[[nodiscard]] QUrl serviceUrl();
+
+/// The report as the service takes it, with Callie's version and the system it
+/// runs on. Longer fields are cut to what the service accepts.
+[[nodiscard]] QByteArray payload(const Report &report, const QString &appVersion,
+                                 const QString &platform);
+
+/// Sends the report, then calls `done` with the new issue's address, or with
+/// an error to show when it could not be filed.
+void send(QNetworkAccessManager &network, const QUrl &service, const Report &report,
+          std::function<void(const QUrl &issue, const QString &error)> done);
+
+} // namespace callie::problemreport

@@ -105,6 +105,7 @@ qt_add_qml_module(callieui
         CalDavCalendarList.qml
         CalDavForm.qml
         ImportDialog.qml
+        ReportDialog.qml
         SubscribeDialog.qml
         SubscriptionsSection.qml
         DatePicker.qml

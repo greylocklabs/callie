@@ -29,8 +29,8 @@ void TestPopups::opensAndClosesWithItsButton_data()
     // Each one opens as the window opens it, made the first time by a LazyPopup.
     for (const char *popup :
          {"AboutDialog { }", "ImportDialog { }", "KeyHelp { actions: [] }", "LookEditor { }",
-          "MoveChoice { }", "SearchPopup { }", "SubscribeDialog { }", "ThemeEditor { }",
-          "SettingsDialog { }", "UpdateDialog { }", "WhatsNewDialog { }"})
+          "MoveChoice { }", "ReportDialog { }", "SearchPopup { }", "SubscribeDialog { }",
+          "ThemeEditor { }", "SettingsDialog { }", "UpdateDialog { }", "WhatsNewDialog { }"})
         QTest::newRow(popup) << QString::fromLatin1(popup);
 }
 

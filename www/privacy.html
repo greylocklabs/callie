@@ -32,7 +32,7 @@
   choose to connect, and nowhere else. Two things reach other services, and you can turn
   either off: place search, which sends what you type as an event's place to a map search
   service, and a daily check for a new release, which asks GitHub for Callie's latest
-  version.
+  version. A problem report reaches one only when you send it.
 </p>
 
 <h2>What Callie accesses</h2>
@@ -98,6 +98,22 @@
   <code>callie downgrade</code> download a release from GitHub only when you run them.
 </p>
 
+<h2>Problem reports</h2>
+<p>
+  "Report a problem" in the ? menu sends what you write, and the diagnostics if you leave them
+  included, to the Greylock Labs report service, which files it as a public issue in
+  <a href="https://github.com/greylocklabs/callie/issues">Callie's GitHub repository</a>, where
+  anyone can read it. Nothing is sent until you press Send, and "Show what is sent" shows the
+  diagnostics first. They hold Callie's version, your system, your accounts' kinds and sync
+  state, and the end of Callie's logs, with email addresses and your home folder's name masked;
+  logs hold event details only while "Log debug details" is on. The service runs on Cloudflare,
+  which receives the request and, like any website, your IP address. The service stores no
+  copy of the report beyond the issue it files, Cloudflare keeps its usual short-lived request
+  logs, and it allows a few reports a minute from one address. With
+  <code>callie doctor --report</code>, or if sending fails, the report opens on GitHub in your
+  browser instead, for you to check and submit yourself.
+</p>
+
 <h2>Package updates</h2>
 <p>
   If you install Callie with its installer, it adds the Greylock Labs package repository to
@@ -146,7 +162,10 @@
   use it to build profiles, does not use it to develop, improve or train generalized AI or
   machine learning models, and does not allow humans to read it. The only exception is the
   place of an event you are editing, which place search sends to Photon while you type so
-  it can suggest places, and which you can turn off, as described under Place search.
+  it can suggest places, and which you can turn off, as described under Place search; and
+  a problem report you choose to send, which goes to a public GitHub issue with what you see
+  before sending, as described under Problem reports. Its diagnostics carry no event or
+  contact details unless "Log debug details" is on.
 </p>
 
 <h2>Removing access</h2>

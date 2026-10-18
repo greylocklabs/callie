@@ -3,6 +3,7 @@
 #include "callie/Diagnostics.h"
 #include "callie/GoogleCache.h"
 #include "callie/LogFile.h"
+#include "callie/ProblemReport.h"
 #include "callie/QueuedSource.h"
 #include "callie/Settings.h"
 
@@ -58,6 +59,25 @@ void SupportActions::reportBug()
 {
     collect(
         [](const QString &report) { QDesktopServices::openUrl(diagnostics::issueUrl(report)); });
+}
+
+void SupportActions::gatherDiagnostics()
+{
+    collect([this](const QString &report) { Q_EMIT diagnosticsReady(report); });
+}
+
+void SupportActions::sendReport(bool idea, const QString &summary, const QString &note,
+                                const QString &diagnostics)
+{
+    problemreport::send(m_network, problemreport::serviceUrl(), {idea, summary, note, diagnostics},
+                        [self = QPointer(this)](const QUrl &issue, const QString &error) {
+                            if (!self)
+                                return;
+                            if (error.isEmpty())
+                                Q_EMIT self->reportSent(issue);
+                            else
+                                Q_EMIT self->reportFailed(error);
+                        });
 }
 
 } // namespace callie
