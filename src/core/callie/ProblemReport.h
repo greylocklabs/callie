@@ -29,8 +29,14 @@ struct Report
 [[nodiscard]] QByteArray payload(const Report &report, const QString &appVersion,
                                  const QString &platform);
 
+/// The report as a new issue on GitHub, for when the service cannot take it.
+/// A bug fills in the bug report form; diagnostics too long for the address
+/// keep their end.
+[[nodiscard]] QUrl issueUrl(const Report &report);
+
 /// Sends the report, then calls `done` with the new issue's address, or with
-/// an error to show when it could not be filed.
+/// an error to show when it could not be filed. Only an issue in
+/// greylocklabs/callie counts as filed.
 void send(QNetworkAccessManager &network, const QUrl &service, const Report &report,
           std::function<void(const QUrl &issue, const QString &error)> done);
 

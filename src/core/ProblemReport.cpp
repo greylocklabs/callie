@@ -6,6 +6,9 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QSysInfo>
+#include <QUrlQuery>
+
+#include <algorithm>
 
 using namespace Qt::StringLiterals;
 
@@ -17,6 +20,10 @@ namespace {
 constexpr qsizetype kSummary = 100;
 constexpr qsizetype kNote = 4000;
 constexpr qsizetype kLogs = 16000;
+// GitHub refuses longer new-issue addresses.
+constexpr qsizetype kMaxUrlLength = 8000;
+
+const QString kIssues = u"https://github.com/greylocklabs/callie/issues"_s;
 
 /// Logs keep their end, where the failure usually is.
 QString lastPart(const QString &text, qsizetype max)
@@ -25,6 +32,12 @@ QString lastPart(const QString &text, qsizetype max)
         return text;
     const QString mark = u"[earlier lines left out]\n"_s;
     return mark + text.right(max - mark.size());
+}
+
+bool isOurIssue(const QUrl &url)
+{
+    return url.scheme() == u"https"_s && url.host() == u"github.com"_s &&
+           url.path().startsWith(u"/greylocklabs/callie/issues/"_s);
 }
 
 } // namespace
@@ -53,6 +66,44 @@ QByteArray payload(const Report &report, const QString &appVersion, const QStrin
     return QJsonDocument(body).toJson(QJsonDocument::Compact);
 }
 
+QUrl issueUrl(const Report &report)
+{
+    const QString summary = report.summary.trimmed().left(kSummary);
+    const QString note = report.note.trimmed().left(kNote);
+    const auto build = [&](const QString &diagnostics) {
+        QUrlQuery query;
+        query.addQueryItem(u"title"_s, summary);
+        if (report.idea) {
+            QString body = note;
+            if (!diagnostics.isEmpty())
+                body += u"\n\n```text\n"_s + diagnostics + u"\n```"_s;
+            query.addQueryItem(u"body"_s, body.trimmed());
+        } else {
+            query.addQueryItem(u"template"_s, u"bug_report.yml"_s);
+            query.addQueryItem(u"what"_s, note);
+            if (!diagnostics.isEmpty())
+                query.addQueryItem(u"diagnostics"_s, diagnostics);
+        }
+        QUrl url(kIssues + u"/new"_s);
+        url.setQuery(query);
+        return url;
+    };
+
+    // The limit is on the encoded address, where a space or newline takes
+    // three characters, so the diagnostics shrink until it fits.
+    const QString diagnostics = report.diagnostics.trimmed();
+    qsizetype keep = diagnostics.size();
+    QUrl url = build(diagnostics);
+    while (url.toString(QUrl::FullyEncoded).size() > kMaxUrlLength && keep > 0) {
+        const qsizetype over = url.toString(QUrl::FullyEncoded).size() - kMaxUrlLength;
+        keep -= std::max<qsizetype>(over / 3, 64);
+        if (keep < 64)
+            keep = 0;
+        url = build(keep > 0 ? lastPart(diagnostics, keep) : QString());
+    }
+    return url;
+}
+
 void send(QNetworkAccessManager &network, const QUrl &service, const Report &report,
           std::function<void(const QUrl &issue, const QString &error)> done)
 {
@@ -69,8 +120,14 @@ void send(QNetworkAccessManager &network, const QUrl &service, const Report &rep
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
         const QUrl issue(answer.value(u"url"_s).toString());
-        if (status == 201 && issue.isValid() && !issue.isEmpty()) {
+        if (status == 201 && isOurIssue(issue)) {
             done(issue, {});
+            return;
+        }
+        if (status == 201) {
+            done({},
+                 QCoreApplication::translate(
+                     "ProblemReport", "The report service answered with an unexpected address."));
             return;
         }
         if (status == 429) {
