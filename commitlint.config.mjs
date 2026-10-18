@@ -47,6 +47,7 @@ export default {
         "site", // callieapp.org under www/
         "ci",
         "deps",
+        "deps-dev", // Dependabot's updates to development dependencies
       ],
     ],
     "scope-empty": [0], // cross-cutting commits may omit a scope
