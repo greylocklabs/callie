@@ -46,6 +46,8 @@ expect "callie --sample calendars hide Fo" "Focus"
 expect "callie -d 3 ag" "agenda"
 expect "callie --he" "--help"
 expect "callie --ver" "--version"
+expect "callie don" "donate"
+expect "callie donate --pr" "--print"
 
 # Escaped and quoted spaces, against a stand-in callie offering one name.
 callie() { printf '%s\n' "$candidate"; }
