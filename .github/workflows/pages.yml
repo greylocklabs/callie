@@ -31,10 +31,11 @@ jobs:
       - uses: actions/checkout@v4
 
       # The Greylock Labs repository's scripts, which build the same repository here.
+      # Pinned to a commit, as they run beside the signing key; this is its v1 tag.
       - uses: actions/checkout@v4
         with:
           repository: greylocklabs/packages
-          ref: v1
+          ref: 70348281ed55e1f9f5aaa292fba33182293ae014
           path: packages-repo
 
       - name: Build the package repositories
