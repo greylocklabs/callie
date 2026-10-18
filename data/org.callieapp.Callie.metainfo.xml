@@ -42,6 +42,13 @@
   </categories>
 
   <releases>
+    <release version="0.5.8" date="2026-10-17">
+      <description>
+        <ul>
+          <li>The installer adds the Greylock Labs repository at &lt;https://packages.greylocklabs.org&gt;, which carries Callie and Jot, in place of Callie's own, and removes the old one. Machines that already have Callie's repository keep getting updates from it.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.7" date="2026-10-17">
       <description>
         <ul>
