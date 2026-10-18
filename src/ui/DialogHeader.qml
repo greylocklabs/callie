@@ -10,6 +10,7 @@ Item {
     property int titleSize: Theme.textXl
     /// The display face for a dialog's title; small popups ask in the text face.
     property bool display: true
+    property bool closable: true
 
     signal closeRequested
 
@@ -43,6 +44,7 @@ Item {
     CloseButton {
         id: close
         anchors.right: parent.right
+        enabled: root.closable
         onClicked: root.closeRequested()
     }
 }

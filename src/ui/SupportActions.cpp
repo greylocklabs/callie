@@ -55,10 +55,10 @@ void SupportActions::copyText(const QString &text)
     Q_EMIT copied();
 }
 
-void SupportActions::reportBug()
+void SupportActions::reportOnGitHub(bool idea, const QString &summary, const QString &note,
+                                    const QString &diagnostics)
 {
-    collect(
-        [](const QString &report) { QDesktopServices::openUrl(diagnostics::issueUrl(report)); });
+    QDesktopServices::openUrl(problemreport::issueUrl({idea, summary, note, diagnostics}));
 }
 
 void SupportActions::gatherDiagnostics()

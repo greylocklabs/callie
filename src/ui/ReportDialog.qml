@@ -19,7 +19,9 @@ Popup {
     padding: Theme.space6
     modal: true
     focus: true
-    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    // Closing mid-send would lose the answer, and a resend files a second issue.
+    closePolicy: phase === "sending" ? Popup.NoAutoClose : (Popup.CloseOnEscape
+                                                            | Popup.CloseOnPressOutside)
 
     Overlay.modal: Scrim {}
 
@@ -77,6 +79,7 @@ Popup {
         DialogHeader {
             title: qsTr("Report a problem")
             subtitle: qsTr("It becomes a public issue on GitHub, in greylocklabs/callie.")
+            closable: root.phase !== "sending"
             onCloseRequested: root.close()
         }
 
@@ -189,12 +192,14 @@ Popup {
                     visible: root.phase === "failed"
                     text: qsTr("Open on GitHub instead")
                     onClicked: {
-                        Support.reportBug()
+                        Support.reportOnGitHub(root.idea, summary.text, note.text, include.checked
+                                               ? root.diagnostics : "")
                         root.close()
                     }
                 }
                 StickerButton {
                     text: qsTr("Cancel")
+                    enabled: root.phase !== "sending"
                     onClicked: root.close()
                 }
                 StickerButton {

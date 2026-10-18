@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTest>
+#include <QUrlQuery>
 
 using namespace callie;
 using namespace Qt::StringLiterals;
@@ -18,6 +19,9 @@ private Q_SLOTS:
     void longDiagnosticsKeepTheirEnd();
     void sendsAndReturnsTheIssue();
     void explainsWhyAReportWasNotFiled();
+    void onlyAnIssueHereCountsAsFiled();
+    void issueUrlFillsInTheForm();
+    void issueUrlFitsLongDiagnostics();
     void theServiceCanBeOverridden();
 
 private:
@@ -116,6 +120,49 @@ void TestProblemReport::explainsWhyAReportWasNotFiled()
     result = send(QUrl(u"http://127.0.0.1:%1/report"_s.arg(port)), {false, u"s"_s, {}, {}});
     QVERIFY2(result.error.startsWith(u"Could not reach the report service"_s),
              qPrintable(result.error));
+}
+
+void TestProblemReport::onlyAnIssueHereCountsAsFiled()
+{
+    FakeHttpServer service;
+    for (const char *url :
+         {"file:///etc/passwd", "https://example.org/greylocklabs/callie/issues/7",
+          "https://github.com/someone/else/issues/7"}) {
+        service.respond(201, QByteArray(R"({"url":")") + url + R"("})");
+        const Result result = send(service.url(u"/report"_s), {false, u"s"_s, {}, {}});
+        QVERIFY2(result.issue.isEmpty(), url);
+        QVERIFY2(result.error.contains(u"unexpected address"_s), qPrintable(result.error));
+    }
+}
+
+void TestProblemReport::issueUrlFillsInTheForm()
+{
+    const QUrlQuery bug(
+        problemreport::issueUrl({false, u" Broken "_s, u"It broke"_s, u"Callie 0.5.8"_s}));
+    QCOMPARE(bug.queryItemValue(u"template"_s), u"bug_report.yml"_s);
+    QCOMPARE(bug.queryItemValue(u"title"_s), u"Broken"_s);
+    QCOMPARE(bug.queryItemValue(u"what"_s), u"It broke"_s);
+    QCOMPARE(bug.queryItemValue(u"diagnostics"_s), u"Callie 0.5.8"_s);
+
+    const QUrlQuery without(problemreport::issueUrl({false, u"Broken"_s, {}, {}}));
+    QVERIFY2(!without.hasQueryItem(u"diagnostics"_s), "diagnostics left out stay out");
+
+    const QUrl idea = problemreport::issueUrl({true, u"Week numbers"_s, u"In the month"_s, {}});
+    QCOMPARE(idea.host(), u"github.com"_s);
+    QCOMPARE(idea.path(), u"/greylocklabs/callie/issues/new"_s);
+    const QUrlQuery ideaQuery(idea);
+    QVERIFY2(!ideaQuery.hasQueryItem(u"template"_s), "an idea is not a bug report");
+    QCOMPARE(ideaQuery.queryItemValue(u"body"_s), u"In the month"_s);
+}
+
+void TestProblemReport::issueUrlFitsLongDiagnostics()
+{
+    const QString diagnostics = u"first line\n"_s + QString(20000, u' ') + u"\nthe failure"_s;
+    const QUrl url = problemreport::issueUrl({false, u"s"_s, u"n"_s, diagnostics});
+    QVERIFY(url.toString(QUrl::FullyEncoded).size() <= 8000);
+    const QString kept = QUrlQuery(url).queryItemValue(u"diagnostics"_s, QUrl::FullyDecoded);
+    QVERIFY(kept.startsWith(u"[earlier lines left out]"_s));
+    QVERIFY(kept.endsWith(u"the failure"_s));
 }
 
 void TestProblemReport::theServiceCanBeOverridden()

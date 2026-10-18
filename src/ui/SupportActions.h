@@ -28,8 +28,9 @@ public:
     Q_INVOKABLE void openFolder(const QString &which);
     /// Puts `text` on the clipboard, then emits copied().
     Q_INVOKABLE void copyText(const QString &text);
-    /// Opens a new GitHub issue with the report filled in.
-    Q_INVOKABLE void reportBug();
+    /// Opens the report as a new GitHub issue, for the person to submit there.
+    Q_INVOKABLE void reportOnGitHub(bool idea, const QString &summary, const QString &note,
+                                    const QString &diagnostics);
     /// Gathers the `callie doctor` report for "Report a problem" to show, then
     /// emits diagnosticsReady().
     Q_INVOKABLE void gatherDiagnostics();
