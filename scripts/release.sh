@@ -14,6 +14,11 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
+app="$(sed -n 's/^project(\([a-z0-9-]*\).*/\1/p' CMakeLists.txt | head -1)"
+app_id="$(sed -n 's/^set([A-Z_]*_APP_ID "\([^"]*\)".*/\1/p' CMakeLists.txt | head -1)"
+name="${app^}"
+spec="packaging/rpm/$app.spec"
+metainfo="data/$app_id.metainfo.xml"
 
 level=""
 dry=0
@@ -54,7 +59,7 @@ esac
 ! git rev-parse -q --verify "refs/tags/v$next" >/dev/null || fail "v$next is tagged already"
 
 today="$(date +%F)"
-echo "Callie $current to $next, dated $today"
+echo "$name $current to $next, dated $today"
 
 # The notes: the Unreleased section, else a draft to write up.
 if grep -q '^## Unreleased *$' CHANGELOG.md; then
@@ -104,15 +109,15 @@ else
 fi
 notes="$(scripts/release-notes.sh "$next")"
 
-# The maintainer as the Debian packaging names them.
-maintainer="$(sed -n 's/^Maintainer: *//p' packaging/debian/control)"
+# The maintainer as the packaging names them already.
+maintainer="$(sed -n 's/^ -- \(.*>\)  .*/\1/p' packaging/debian/changelog | head -1)"
 
 sed -i "s/^\( *VERSION \)$current\$/\1$next/" CMakeLists.txt
-sed -i "s/^\(Version: *\)$current\$/\1$next/" packaging/rpm/callie.spec
+sed -i "s/^\(Version: *\)$current\$/\1$next/" "$spec"
 spec_entry="* $(LC_ALL=C date '+%a %b %d %Y') $maintainer - $next-1\n- Update to $next\n"
-sed -i "s/^%changelog\$/%changelog\n$spec_entry/" packaging/rpm/callie.spec
+sed -i "s/^%changelog\$/%changelog\n$spec_entry/" "$spec"
 {
-    printf 'callie (%s-1) unstable; urgency=medium\n\n  * New upstream release.\n\n' "$next"
+    printf '%s (%s-1) unstable; urgency=medium\n\n  * New upstream release.\n\n' "$app" "$next"
     printf ' -- %s  %s\n\n' "$maintainer" "$(LC_ALL=C date -R)"
     cat packaging/debian/changelog
 } >packaging/debian/changelog.new
@@ -135,20 +140,24 @@ $items
         </ul>
       </description>
     </release>"
-awk -v release="$release" '!done && /<release version=/ { print release; done = 1 } { print }' \
-    data/org.callieapp.Callie.metainfo.xml >metainfo.new
-mv metainfo.new data/org.callieapp.Callie.metainfo.xml
+# The first release also opens the list, as an empty one does not validate.
+grep -q '<releases>' "$metainfo" || release="  <releases>
+$release
+  </releases>"
+awk -v release="$release" '!done && /<release version=|<\/component>/ { print release; done = 1 } { print }' \
+    "$metainfo" >metainfo.new
+mv metainfo.new "$metainfo"
 
-scripts/check-version.sh "$next"
 # The tests read the dated notes, so they run on the release as it will be tagged.
 if ! make check; then
     sed -i "s/^## $next - $today\$/## Unreleased/" CHANGELOG.md
-    git checkout -- CMakeLists.txt packaging/rpm/callie.spec packaging/debian/changelog \
-        data/org.callieapp.Callie.metainfo.xml
+    git checkout -- CMakeLists.txt "$spec" packaging/debian/changelog "$metainfo"
     [ "$drafted" = 0 ] || fail "make check failed on $next; the notes written up are left under" \
         "## Unreleased, to commit and push before releasing again"
     fail "make check failed on $next; the notes are left under ## Unreleased"
 fi
+
+scripts/check-version.sh "$next"
 git --no-pager diff --stat
 if [ "${RELEASE_YES:-0}" != 1 ]; then
     printf 'Commit, tag v%s and push to origin? [y/N] ' "$next"
@@ -161,11 +170,11 @@ if [ "${RELEASE_YES:-0}" != 1 ]; then
         ;;
     esac
 fi
-git add CHANGELOG.md CMakeLists.txt packaging/rpm/callie.spec packaging/debian/changelog \
-    data/org.callieapp.Callie.metainfo.xml
+git add CHANGELOG.md CMakeLists.txt "$spec" packaging/debian/changelog \
+    "$metainfo"
 git commit --quiet -m "chore: release $next"
 # Annotated, as --follow-tags pushes only annotated tags; atomic, so a refused
 # main leaves no tag behind to start a release.
-git tag -a "v$next" -m "Callie $next"
+git tag -a "v$next" -m "$name $next"
 git push --atomic --follow-tags origin main
 echo "Released v$next; the release workflow builds and publishes it."
