@@ -17,11 +17,15 @@ permissions:
 jobs:
   commitlint:
     uses: greylocklabs/.github/.github/workflows/commitlint.yml@v1
+    with:
+      submodules: true
 
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - uses: actions/setup-node@v7
         with:
@@ -37,13 +41,12 @@ jobs:
         run: npm run format:md:check
 
       - name: Check that every file names the same version
-        run: scripts/check-version.sh
+        run: core/tooling/check-version.sh
 
       # The runner image ships shellcheck.
       - name: Lint the installer
         run: |
           shellcheck -s sh www/install.sh www/jot/install.sh tests/install_test.sh tests/package_smoke.sh
-          shellcheck -s bash scripts/release.sh scripts/check-version.sh scripts/release-notes.sh
 
   format:
     # Needs clang-format and qmlformat, so it runs where Qt is packaged.
@@ -56,13 +59,15 @@ jobs:
           git diffutils clang-tools-extra qt6-qtdeclarative-devel
 
       - uses: actions/checkout@v7
+        with:
+          submodules: true
 
       # checkout only trusts the workspace for its own step, and this container
       # user does not own it, so git would refuse to list files.
       - name: Check C++ and QML formatting
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          ./scripts/format.sh check
+          ./core/tooling/format.sh check
 
   build:
     strategy:
@@ -101,6 +106,8 @@ jobs:
             libkf6calendarcore-dev libftxui-dev dbus-daemon radicale
 
       - uses: actions/checkout@v7
+        with:
+          submodules: true
 
       # One command covers configure, build, qmllint and ctest. The preset
       # turns compiler warnings into errors. The CalDAV test against Radicale

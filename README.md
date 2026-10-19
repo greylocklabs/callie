@@ -191,12 +191,13 @@ opens one in your browser. Both fill in the details with email addresses masked.
 
 ## Development
 
-Callie is C++20 and Qt 6, with the interface in QML. Everyday tasks go through `make`. Run it on
-its own to list every command.
+Callie is C++20 and Qt 6, with the interface in QML. Clone it with `git clone --recurse-submodules`,
+since the release and format tooling comes from the `core/` submodule. Everyday tasks go through
+`make`. Run it on its own to list every command.
 
 ```sh
 make deps     # install build dependencies on Fedora or Debian (uses sudo)
-make setup    # dev tooling, git hooks, and the first configure
+make setup    # core, dev tooling, git hooks, and the first configure
 make run      # build and launch the app, with logs in the terminal
 ```
 
