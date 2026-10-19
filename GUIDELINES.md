@@ -13,7 +13,8 @@ MIT licensed. App ID `org.callieapp.Callie`, homepage `callieapp.org`.
 | `src/cli/`     | `callie`, the command-line interface over the same core.                              |
 | `src/gallery/` | `callie-gallery`, a development tool that renders a theme's tokens and components.    |
 | `tests/`       | Qt Test cases run by ctest. See `tst_eventmodel.cpp` for the fake-source pattern.     |
-| `scripts/`     | `format.sh`, the single formatter entry point used by CMake and CI.                   |
+| `core/`        | Submodule: release and format scripts and lint configs from greylocklabs/core.        |
+| `scripts/`     | `flatpak-devel.sh`, which prints the Callie Devel Flatpak manifest.                   |
 | `themes/`      | Built-in theme files. `callie.toml` is the default every other theme inherits from.   |
 | `data/`        | Desktop entry and AppStream metainfo.                                                 |
 | `assets/`      | Logo, also installed as the application icon.                                         |

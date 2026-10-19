@@ -10,8 +10,8 @@ on:
   pull_request:
     paths:
       - packaging/**
-      - scripts/check-version.sh
-      - scripts/release-notes.sh
+      - core
+      - .gitmodules
       - tests/package_smoke.sh
       - CHANGELOG.md
       - .github/workflows/release.yml
@@ -32,6 +32,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Work out the version
         id: version
@@ -44,12 +46,12 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Check every file names that version
-        run: scripts/check-version.sh "${{ steps.version.outputs.version }}"
+        run: core/tooling/check-version.sh "${{ steps.version.outputs.version }}"
 
       - name: Write the notes and the source tarball
         run: |
           version="${{ steps.version.outputs.version }}"
-          scripts/release-notes.sh "$version" > notes.md
+          core/tooling/release-notes.sh "$version" > notes.md
           git archive --prefix="callie-$version/" HEAD | xz -9 > "callie-$version.tar.xz"
 
       - uses: actions/upload-artifact@v7

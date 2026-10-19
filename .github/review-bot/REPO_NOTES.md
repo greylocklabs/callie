@@ -58,7 +58,7 @@ Judge the code that is there. An absent subsystem is on the roadmap in `README.m
 
 ## What CI already covers, so never mention it
 
-On every PR: `clang-format` and `qmlformat` via `scripts/format.sh check`, `qmllint` over the whole
+On every PR: `clang-format` and `qmlformat` via `core/tooling/format.sh check`, `qmllint` over the whole
 QML module, a Fedora and a Debian build with `-Wall -Wextra -Wpedantic -Werror`, `ctest`,
 `markdownlint`, `prettier --check`, and `commitlint`. Formatting, compiler warnings, lint rules and
 commit message shape are not your findings.
