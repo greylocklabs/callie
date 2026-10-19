@@ -31,7 +31,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Work out the version
         id: version
@@ -52,7 +52,7 @@ jobs:
           scripts/release-notes.sh "$version" > notes.md
           git archive --prefix="callie-$version/" HEAD | xz -9 > "callie-$version.tar.xz"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: source
           path: |
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     container: fedora:44
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source
 
@@ -90,7 +90,7 @@ jobs:
           rpmbuild -ba --define "_topdir $PWD/rpmbuild" "$@" \
             "callie-$version/packaging/rpm/callie.spec"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: rpm
           path: |
@@ -113,7 +113,7 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source
 
@@ -146,7 +146,7 @@ jobs:
             for deb in ../callie_*.deb; do mv "$deb" "../callie-ubuntu_${deb#../callie_}"; done
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: "*.deb"
@@ -159,9 +159,9 @@ jobs:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: source
 
@@ -191,7 +191,7 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
       options: --privileged
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
@@ -219,9 +219,9 @@ jobs:
     runs-on: ubuntu-latest
     container: ${{ matrix.image }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ matrix.package }}
           path: packages
@@ -243,7 +243,7 @@ jobs:
       - name: Run what was installed
         run: tests/package_smoke.sh shots
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: installed-${{ matrix.name }}
           path: shots/
@@ -257,7 +257,7 @@ jobs:
       contents: write
       actions: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
