@@ -5,21 +5,20 @@ MIT licensed. App ID `org.callieapp.Callie`, homepage `callieapp.org`.
 
 ## Layout
 
-| Path           | What                                                                                  |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `src/core/`    | `libcalliecore`: event model, accounts, Google OAuth and API. No UI and no QML types. |
-| `src/ui/`      | The QML module `Callie.Ui`: views, components, and the `Theme` singleton.             |
-| `src/gui/`     | `callie-gui` entry point. `main.cpp` only.                                            |
-| `src/cli/`     | `callie`, the command-line interface over the same core.                              |
-| `src/gallery/` | `callie-gallery`, a development tool that renders a theme's tokens and components.    |
-| `tests/`       | Qt Test cases run by ctest. See `tst_eventmodel.cpp` for the fake-source pattern.     |
-| `core/`        | Submodule: release and format scripts and lint configs from greylocklabs/core.        |
-| `scripts/`     | `flatpak-devel.sh`, which prints the Callie Devel Flatpak manifest.                   |
-| `themes/`      | Built-in theme files. `callie.toml` is the default every other theme inherits from.   |
-| `data/`        | Desktop entry and AppStream metainfo.                                                 |
-| `assets/`      | Logo, also installed as the application icon.                                         |
-| `packaging/`   | Hand-written `rpm/callie.spec` and `debian/`, at distro-review quality.               |
-| `www/`         | The callieapp.org site, deployed to GitHub Pages. Excluded from release tarballs.     |
+| Path           | What                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| `src/core/`    | `libcalliecore`: event model, accounts, Google OAuth and API. No UI and no QML types.                |
+| `src/ui/`      | The QML module `Callie.Ui`: views, components, and the `Theme` singleton.                            |
+| `src/gui/`     | `callie-gui` entry point. `main.cpp` only.                                                           |
+| `src/cli/`     | `callie`, the command-line interface over the same core.                                             |
+| `src/gallery/` | `callie-gallery`, a development tool that renders a theme's tokens and components.                   |
+| `tests/`       | Qt Test cases run by ctest. See `tst_eventmodel.cpp` for the fake-source pattern.                    |
+| `core/`        | Submodule from greylocklabs/core: the built-in themes, release and format scripts, and lint configs. |
+| `scripts/`     | `flatpak-devel.sh`, which prints the Callie Devel Flatpak manifest.                                  |
+| `data/`        | Desktop entry and AppStream metainfo.                                                                |
+| `assets/`      | Logo, also installed as the application icon.                                                        |
+| `packaging/`   | Hand-written `rpm/callie.spec` and `debian/`, at distro-review quality.                              |
+| `www/`         | The callieapp.org site, deployed to GitHub Pages. Excluded from release tarballs.                    |
 
 ## Conventions
 
@@ -31,7 +30,7 @@ changing anything visual or any CLI output. In short:
 - Comments are one or two sentences and explain why, not what. No em dashes anywhere in
   comments, docs, or commit messages.
 - Every visual value in QML reads from the `Theme` singleton, whose values come from
-  `themes/*.toml`. `DESIGN.md` says what each token is for.
+  `core/themes/*.toml`. `DESIGN.md` says what each token is for.
 - Date and layout arithmetic belongs in C++ models, not QML.
 - Qt 6.8 (Debian trixie) cannot add a bare `u"..."` literal to a `QString`; use `QStringLiteral` or
   the `_s` suffix. Newer Qt accepts it, so only the Debian build catches it.

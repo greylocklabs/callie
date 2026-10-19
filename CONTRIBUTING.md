@@ -128,7 +128,7 @@ values must pin `TZ`, as `tests/CMakeLists.txt` does.
 Beyond formatting:
 
 - Every visual value in QML reads from the `Theme` singleton, whose values come from the
-  theme files in `themes/`. Do not hard-code colors, spacing, radii, or durations.
+  theme files in `core/themes/`. Do not hard-code colors, spacing, radii, or durations.
   `DESIGN.md` explains what each token is for and when it may change.
 - Visual and CLI-output decisions live in `DESIGN.md`. Read it before changing how
   anything looks or prints, and record what you settle there.

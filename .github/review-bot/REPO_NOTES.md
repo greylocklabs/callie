@@ -86,7 +86,7 @@ Also yours: model correctness and role plumbing, the C++ and QML boundary, and c
 
 - **The `Theme` singleton is the only source of visual values.** A literal colour, spacing number,
   radius or animation duration in a `.qml` file is a finding. Point at the token that should have
-  been used, or say that a new token is needed. Theme-driven values come from `themes/*.toml`;
+  been used, or say that a new token is needed. Theme-driven values come from `core/themes/*.toml`;
   spacing, type sizes and grid metrics are constants in `ThemeController`, by design.
 - **Theme bindings.** QML cannot see what a C++ call reads, so a binding that calls a `Theme`
   function must also pass the theme state it depends on, as in

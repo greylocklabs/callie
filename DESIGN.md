@@ -6,7 +6,7 @@
 
 ---
 
-Token _values_ live in theme files under `themes/`, with `themes/callie.toml` as the default.
+Token _values_ live in theme files under `core/themes/`, with `core/themes/callie.toml` as the default.
 This document holds the reasoning behind them.
 
 Things marked `TODO(lara)` items are the ones only Lara should answer as the primary

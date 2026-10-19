@@ -52,7 +52,7 @@ jobs:
         run: |
           version="${{ steps.version.outputs.version }}"
           core/tooling/release-notes.sh "$version" > notes.md
-          git archive --prefix="callie-$version/" HEAD | xz -9 > "callie-$version.tar.xz"
+          core/tooling/source-tarball.sh "$version"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -194,6 +194,8 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
         with:
