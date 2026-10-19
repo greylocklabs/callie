@@ -18,13 +18,23 @@ makedepends=(cmake git ninja)
 provides=(callie)
 conflicts=(callie)
 source=("git+https://github.com/greylocklabs/callie.git"
+        "git+https://github.com/greylocklabs/core.git"
         "ftxui-$_ftxui.tar.gz::https://github.com/ArthurSonzogni/FTXUI/archive/refs/tags/v$_ftxui.tar.gz")
 sha256sums=('SKIP'
+            'SKIP'
             'e7c62ffe19009759821b4f0f8df7f2a6fb83784c3a9f1477d81f56d3ee723c88')
 
 pkgver() {
   cd callie
   git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+# The built-in themes come from the core submodule, fetched above.
+prepare() {
+  cd callie
+  git submodule init
+  git config submodule.core.url "$srcdir/core"
+  git -c protocol.file.allow=always submodule update
 }
 
 build() {

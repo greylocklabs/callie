@@ -203,16 +203,16 @@ make run      # build and launch the app, with logs in the terminal
 
 Day to day:
 
-| Command                                 | What it does                                          |
-| --------------------------------------- | ----------------------------------------------------- |
-| `make watch`                            | Reload QML on save, rebuild and restart on C++ edits  |
-| `make cli ARGS="accounts"`              | Run the CLI with arguments                            |
-| `make logs`                             | Follow the app's and the CLI's log files              |
-| `make gallery THEME=themes/callie.toml` | Preview a theme; edits to the file appear immediately |
-| `make screenshots`                      | Render the app and gallery for every built-in theme   |
-| `make test`                             | Run the test suite                                    |
-| `make format`                           | Fix formatting                                        |
-| `make check`                            | Run everything CI runs, before you push               |
+| Command                                      | What it does                                          |
+| -------------------------------------------- | ----------------------------------------------------- |
+| `make watch`                                 | Reload QML on save, rebuild and restart on C++ edits  |
+| `make cli ARGS="accounts"`                   | Run the CLI with arguments                            |
+| `make logs`                                  | Follow the app's and the CLI's log files              |
+| `make gallery THEME=core/themes/callie.toml` | Preview a theme; edits to the file appear immediately |
+| `make screenshots`                           | Render the app and gallery for every built-in theme   |
+| `make test`                                  | Run the test suite                                    |
+| `make format`                                | Fix formatting                                        |
+| `make check`                                 | Run everything CI runs, before you push               |
 
 `make run` and `make watch` print the app's logs with timestamps. That includes Callie's own
 `callie.auth`, `callie.accounts`, `callie.sync`, `callie.theme` and `callie.ui` categories, and

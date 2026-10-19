@@ -96,7 +96,7 @@ SHOT_APP := --sample --now 2026-03-18T10:40 --size 1280x840
 
 screenshots: build ## Render the app and gallery for every built-in theme
 	@mkdir -p $(SHOTS)
-	@for theme in $(basename $(notdir $(wildcard themes/*.toml))); do \
+	@for theme in $(basename $(notdir $(wildcard core/themes/*.toml))); do \
 		QT_QPA_PLATFORM=offscreen $(GUI) $(SHOT_APP) --theme $$theme \
 			--screenshot $(SHOTS)/week-$$theme.png && \
 		QT_QPA_PLATFORM=offscreen $(GALLERY) --theme $$theme \
