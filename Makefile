@@ -25,7 +25,9 @@ DEBIAN_DEPS := build-essential cmake ninja-build qt6-base-dev qt6-declarative-de
 
 # Files whose change should rebuild and restart the app under `make watch`. QML is left
 # out because --live-qml reloads it in place.
-WATCHED := git ls-files --cached --others --exclude-standard -- src themes CMakeLists.txt ':!:*.qml'
+# The themes sit in the core submodule, whose files git ls-files does not list.
+WATCHED := { git ls-files --cached --others --exclude-standard -- src CMakeLists.txt ':!:*.qml'; \
+	printf '%s\n' core/themes/*.toml; }
 
 # Rebuilds target $(1) and restarts $(2) on every save. Quitting the app or Ctrl-C
 # ends the watch; a failed build or a crash waits for the next save instead. entr -d
