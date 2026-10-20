@@ -47,7 +47,8 @@ Do not re-litigate these without being asked:
 
 ## Build
 
-Run `make` to list the commands; `make check` runs what CI runs. The Makefile wraps CMake presets,
+Run `make` to list the commands; `make check` runs what CI runs. The Makefile sets the app's values
+and includes core's `core/tooling/common.mk`, whose targets wrap CMake presets,
 which work directly too: `cmake --workflow --preset ci` is CI's build, lint and test.
 
 `tst_radicale` syncs with a real CalDAV server. It runs when `python3` can import Radicale, or the
