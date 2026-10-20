@@ -1,7 +1,7 @@
 #include "ThemeController.h"
 
-#include "callie/Color.h"
-#include "callie/ThemeLoader.h"
+#include "greylock/Color.h"
+#include "greylock/ThemeLoader.h"
 
 #include <QDir>
 #include <QFile>
@@ -44,7 +44,7 @@ private Q_SLOTS:
 
 void TestThemeController::startsWithDefaultTheme()
 {
-    QCOMPARE(ThemeController::instance()->name(), ThemeLoader::defaultTheme().name);
+    QCOMPARE(ThemeController::instance()->name(), greylock::ThemeLoader::defaultTheme().name);
 }
 
 void TestThemeController::loadsAFileAndReloadsOnEdit()
@@ -116,16 +116,19 @@ void TestThemeController::stickerColorsShareTheCalendarHue()
     ThemeController *theme = ThemeController::instance();
     const QColor source(QStringLiteral("#5B8DEF"));
     const QVariantMap calendar = theme->calendar();
-    const color::Oklch fill = color::toOklch(theme->calendarColor(source, calendar));
-    const color::Oklch ink = color::toOklch(theme->calendarInk(source, calendar));
-    const color::Oklch edge = color::toOklch(theme->calendarEdge(source, calendar));
+    const greylock::color::Oklch fill =
+        greylock::color::toOklch(theme->calendarColor(source, calendar));
+    const greylock::color::Oklch ink =
+        greylock::color::toOklch(theme->calendarInk(source, calendar));
+    const greylock::color::Oklch edge =
+        greylock::color::toOklch(theme->calendarEdge(source, calendar));
 
     QVERIFY(ink.lightness < edge.lightness);
     QVERIFY(edge.lightness < fill.lightness);
     QVERIFY(std::abs(ink.hue - fill.hue) < 6);
     QVERIFY(std::abs(edge.hue - fill.hue) < 6);
-    QVERIFY(color::contrastRatio(theme->calendarInk(source, calendar),
-                                 theme->calendarColor(source, calendar)) >= 4.5);
+    QVERIFY(greylock::color::contrastRatio(theme->calendarInk(source, calendar),
+                                           theme->calendarColor(source, calendar)) >= 4.5);
 }
 
 void TestThemeController::unfittedInkPicksTheReadableOne()
@@ -144,13 +147,14 @@ void TestThemeController::unfittedInkPicksTheReadableOne()
 void TestThemeController::everyBuiltInThemeReads()
 {
     ThemeController *theme = ThemeController::instance();
-    for (const QString &id : ThemeLoader::builtInIds()) {
+    for (const QString &id : greylock::ThemeLoader::builtInIds()) {
         QVERIFY2(theme->load(id).isEmpty(), qPrintable(id));
         // Text, accents and sticker ink all meet the contrast Callie asks of any theme.
         QVERIFY2(theme->warnings().isEmpty(),
                  qPrintable(id + u": "_s + theme->warnings().join(u"; "_s)));
         // A filled red button's label reads as body text does.
-        QVERIFY2(color::contrastRatio(theme->dangerText(), theme->danger()) >= 4.5, qPrintable(id));
+        QVERIFY2(greylock::color::contrastRatio(theme->dangerText(), theme->danger()) >= 4.5,
+                 qPrintable(id));
         QCOMPARE(theme->dangerText() == theme->text() || theme->dangerText() == theme->bg(), true);
     }
     QVERIFY(theme->load(QStringLiteral("callie")).isEmpty());

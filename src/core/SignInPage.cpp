@@ -35,7 +35,7 @@ QString bundledFonts()
 
 } // namespace
 
-QString signInPage(const ThemeSpec &theme)
+QString signInPage(const greylock::ThemeSpec &theme)
 {
     QFile logo(u":/callie/assets/logo.svg"_s);
     const QString svg =

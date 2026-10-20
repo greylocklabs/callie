@@ -45,7 +45,7 @@ struct Look
     const Settings &settings;
     /// The terminal's width, in cells.
     int width = 80;
-    const ThemeSpec::Colors &c = palette.colors();
+    const greylock::ThemeSpec::Colors &c = palette.colors();
 };
 
 QString when(const Event &event, const Look &look)
