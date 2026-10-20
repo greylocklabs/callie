@@ -2,7 +2,7 @@
 
 #include "callie/GoogleAuth.h"
 #include "callie/GoogleClientConfig.h"
-#include "callie/ThemeLoader.h"
+#include "greylock/ThemeLoader.h"
 
 #include <QCryptographicHash>
 #include <QNetworkAccessManager>
@@ -162,7 +162,7 @@ void TestGoogleAuth::callbackPageIsThemed()
 
     // Markup must reach the browser as markup, in the default theme's colors.
     QVERIFY2(page.contains(u"<style>"_s), qPrintable(page.left(200)));
-    QVERIFY(page.contains(ThemeLoader::defaultTheme().colors.background.name()));
+    QVERIFY(page.contains(greylock::ThemeLoader::defaultTheme().colors.background.name()));
     QVERIFY(page.contains(u"<svg"_s));
     QVERIFY(page.contains(u"All done here"_s));
     // The tab has a name and the logo, not the loopback address.

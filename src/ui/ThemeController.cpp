@@ -1,8 +1,8 @@
 #include "ThemeController.h"
 
-#include "callie/Color.h"
 #include "callie/Logging.h"
-#include "callie/ThemeLoader.h"
+#include "greylock/Color.h"
+#include "greylock/ThemeLoader.h"
 
 #include <QCoreApplication>
 #include <QFileInfo>
@@ -13,7 +13,8 @@
 namespace callie {
 
 ThemeController::ThemeController(QObject *parent)
-    : QObject(parent), m_spec(ThemeLoader::defaultTheme()), m_watcher(new QFileSystemWatcher(this))
+    : QObject(parent), m_spec(greylock::ThemeLoader::defaultTheme()),
+      m_watcher(new QFileSystemWatcher(this))
 {
     // Bundled so the default theme looks the same everywhere; a theme may still
     // name any installed family.
@@ -44,14 +45,14 @@ ThemeController *ThemeController::create(QQmlEngine *, QJSEngine *)
 
 QStringList ThemeController::load(const QString &idOrPath)
 {
-    const ThemeLoadResult result = ThemeLoader::load(idOrPath);
+    const greylock::ThemeLoadResult result = greylock::ThemeLoader::load(idOrPath);
     if (!result.ok())
         return result.errors;
 
     if (!m_watchedPath.isEmpty())
         m_watcher->removePath(m_watchedPath);
-    m_watchedPath =
-        ThemeLoader::isPath(idOrPath) ? QFileInfo(idOrPath).absoluteFilePath() : QString();
+    m_watchedPath = greylock::ThemeLoader::isPath(idOrPath) ? QFileInfo(idOrPath).absoluteFilePath()
+                                                            : QString();
     if (!m_watchedPath.isEmpty())
         m_watcher->addPath(m_watchedPath);
 
@@ -71,8 +72,8 @@ void ThemeController::reloadWatchedFile()
     if (!m_watcher->files().contains(m_watchedPath) && QFileInfo::exists(m_watchedPath))
         m_watcher->addPath(m_watchedPath);
 
-    const ThemeLoadResult result =
-        ThemeLoader::loadFile(m_watchedPath, ThemeLoader::defaultTheme());
+    const greylock::ThemeLoadResult result =
+        greylock::ThemeLoader::loadFile(m_watchedPath, greylock::ThemeLoader::defaultTheme());
     if (!result.ok()) {
         // A half-typed edit should not wipe the look; keep the last good theme.
         for (const QString &error : result.errors)
@@ -96,8 +97,9 @@ QColor ThemeController::calendarColor(const QColor &source, const QVariantMap &c
 {
     if (!calendar.value(QStringLiteral("harmonize")).toBool())
         return source;
-    return color::harmonize(source, calendar.value(QStringLiteral("lightness")).toDouble(),
-                            calendar.value(QStringLiteral("chroma")).toDouble());
+    return greylock::color::harmonize(source,
+                                      calendar.value(QStringLiteral("lightness")).toDouble(),
+                                      calendar.value(QStringLiteral("chroma")).toDouble());
 }
 
 QColor ThemeController::calendarInk(const QColor &source, const QVariantMap &calendar) const
@@ -106,24 +108,28 @@ QColor ThemeController::calendarInk(const QColor &source, const QVariantMap &cal
         // An unfitted color can be anything, so pick whichever of black and
         // white reads better on it.
         const QColor black(0, 0, 0), white(255, 255, 255);
-        return color::contrastRatio(black, source) >= color::contrastRatio(white, source) ? black
-                                                                                          : white;
+        return greylock::color::contrastRatio(black, source) >=
+                       greylock::color::contrastRatio(white, source)
+                   ? black
+                   : white;
     }
-    return color::harmonize(source, calendar.value(QStringLiteral("inkLightness")).toDouble(),
-                            calendar.value(QStringLiteral("inkChroma")).toDouble());
+    return greylock::color::harmonize(source,
+                                      calendar.value(QStringLiteral("inkLightness")).toDouble(),
+                                      calendar.value(QStringLiteral("inkChroma")).toDouble());
 }
 
 QColor ThemeController::calendarEdge(const QColor &source, const QVariantMap &calendar) const
 {
     if (!calendar.value(QStringLiteral("harmonize")).toBool())
         return source.darker(150);
-    return color::harmonize(source, calendar.value(QStringLiteral("edgeLightness")).toDouble(),
-                            calendar.value(QStringLiteral("edgeChroma")).toDouble());
+    return greylock::color::harmonize(source,
+                                      calendar.value(QStringLiteral("edgeLightness")).toDouble(),
+                                      calendar.value(QStringLiteral("edgeChroma")).toDouble());
 }
 
 QVariantMap ThemeController::calendar() const
 {
-    const ThemeSpec::Calendar &c = m_spec.calendar;
+    const greylock::ThemeSpec::Calendar &c = m_spec.calendar;
     return {{QStringLiteral("harmonize"), c.harmonize},
             {QStringLiteral("lightness"), c.lightness},
             {QStringLiteral("chroma"), c.chroma},
@@ -148,7 +154,9 @@ QColor ThemeController::dangerText() const
     // Whichever of the theme's own text and background reads better on the red.
     const QColor &red = m_spec.colors.danger;
     const QColor &text = m_spec.colors.text, &ground = m_spec.colors.background;
-    return color::contrastRatio(text, red) >= color::contrastRatio(ground, red) ? text : ground;
+    return greylock::color::contrastRatio(text, red) >= greylock::color::contrastRatio(ground, red)
+               ? text
+               : ground;
 }
 
 QColor ThemeController::answerHover() const
@@ -171,12 +179,12 @@ QColor ThemeController::shadowColor() const
 
 double ThemeController::contrast(const QColor &a, const QColor &b) const
 {
-    return color::contrastRatio(a, b);
+    return greylock::color::contrastRatio(a, b);
 }
 
 QVariantList ThemeController::swatches() const
 {
-    const ThemeSpec::Colors &c = m_spec.colors;
+    const greylock::ThemeSpec::Colors &c = m_spec.colors;
     const std::pair<const char *, QColor> tokens[] = {
         {"background", c.background},  {"surface", c.surface},      {"surface-alt", c.surfaceAlt},
         {"hairline", c.hairline},      {"border", c.border},        {"text", c.text},

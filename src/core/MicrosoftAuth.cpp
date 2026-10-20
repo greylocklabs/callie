@@ -3,7 +3,7 @@
 #include "callie/Logging.h"
 #include "callie/OAuthReplyHandler.h"
 #include "callie/SignInPage.h"
-#include "callie/ThemeLoader.h"
+#include "greylock/ThemeLoader.h"
 
 #include <QHostAddress>
 #include <QJsonDocument>
@@ -111,7 +111,7 @@ void MicrosoftAuth::authorize()
         // Microsoft, like Google, recommends the IP literal over "localhost".
         m_handler->setCallbackHost(QStringLiteral("127.0.0.1"));
 #endif
-        m_handler->setCallbackText(signInPage(ThemeLoader::defaultTheme()));
+        m_handler->setCallbackText(signInPage(greylock::ThemeLoader::defaultTheme()));
         m_flow->setReplyHandler(m_handler);
     }
     if (!m_handler->isListening() && !m_handler->listen(QHostAddress::LocalHost, 0)) {

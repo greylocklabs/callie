@@ -175,13 +175,6 @@ add_library(calliecore STATIC
     GoogleRecurrence.cpp
     callie/GoogleSource.h
     GoogleSource.cpp
-    callie/Color.h
-    Color.cpp
-    callie/Base16.h
-    Base16.cpp
-    callie/ThemeSpec.h
-    callie/ThemeLoader.h
-    ThemeLoader.cpp
     callie/Settings.h
     Settings.cpp
     callie/SignInPage.h
@@ -200,21 +193,6 @@ add_library(calliecore STATIC
     QuickAdd.cpp
 )
 
-# Built-in themes are compiled in, so the app works uninstalled and a broken
-# install can never leave it without its default look. They come from core, and
-# keep their :/callie/themes/ paths.
-qt_add_resources(calliecore "callie_themes"
-    PREFIX "/callie"
-    BASE "${PROJECT_SOURCE_DIR}/core"
-    FILES
-        "${PROJECT_SOURCE_DIR}/core/themes/callie.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/callie-light.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/minimal.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/minimal-dark.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/paper.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/tomorrow.toml"
-        "${PROJECT_SOURCE_DIR}/core/themes/tomorrow-night.toml"
-)
 
 qt_add_resources(calliecore "callie_assets"
     PREFIX "/callie"
@@ -247,6 +225,7 @@ target_link_libraries(calliecore
     PUBLIC
         Qt6::Core
         Qt6::Gui
+        greylock::core
         Qt6::Network
         Qt6::Sql
         # Ics.h hands out KCalendarCore events.
