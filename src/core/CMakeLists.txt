@@ -1,5 +1,4 @@
 find_package(Qt6Keychain REQUIRED)
-find_package(tomlplusplus REQUIRED)
 find_package(KF6CalendarCore REQUIRED)
 
 # Google OAuth client. Explicit values win, then the CALLIE_GOOGLE_CLIENT_ID and
@@ -233,7 +232,6 @@ target_link_libraries(calliecore
     PRIVATE
         Qt6::NetworkAuth
         Qt6Keychain::Qt6Keychain
-        tomlplusplus::tomlplusplus
 )
 
 target_compile_definitions(calliecore PRIVATE
