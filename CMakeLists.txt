@@ -64,7 +64,12 @@ if(CALLIE_BUILD_TESTS)
     enable_testing()
 endif()
 
-# Shared code and the built-in themes, from greylocklabs/core.
+# Shared code and the built-in themes, from greylocklabs/core, built for Callie.
+set(GREYLOCK_APP_ID "${CALLIE_APP_ID}")
+set(GREYLOCK_APP_NAME "Callie")
+set(GREYLOCK_APP_DIR "callie")
+set(GREYLOCK_APP_ENV "CALLIE")
+set(GREYLOCK_APP_DEVEL ${CALLIE_DEVEL})
 add_subdirectory(core)
 add_subdirectory(src/core)
 add_subdirectory(src/ui)

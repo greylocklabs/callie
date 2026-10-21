@@ -1,7 +1,7 @@
 #include "callie/Subscriptions.h"
 
-#include "callie/Identity.h"
 #include "callie/Logging.h"
+#include "greylock/Identity.h"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -71,7 +71,7 @@ Subscriptions::Subscriptions(QString root, QNetworkAccessManager *network, QObje
 QString Subscriptions::defaultRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + u'/' +
-           identity::dirName() + u"/subscriptions"_s;
+           greylock::identity::dirName() + u"/subscriptions"_s;
 }
 
 QUrl Subscriptions::feedUrl(const QString &link)

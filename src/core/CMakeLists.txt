@@ -76,8 +76,6 @@ configure_file(MicrosoftBuildConfig.h.in
 # Deliberately not a QML module. The CLI links this, and pulling QtQml in would
 # cost it startup time for no benefit. QML exposure happens in src/ui.
 add_library(calliecore STATIC
-    callie/Identity.h
-    Identity.cpp
     callie/Event.h
     Event.cpp
     callie/Logging.h
@@ -182,8 +180,6 @@ add_library(calliecore STATIC
     TimeFormat.cpp
     callie/Times.h
     Times.cpp
-    callie/ThemeLibrary.h
-    ThemeLibrary.cpp
     callie/ReleaseNotes.h
     ReleaseNotes.cpp
     callie/ViewRange.h
@@ -234,7 +230,3 @@ target_link_libraries(calliecore
         Qt6Keychain::Qt6Keychain
 )
 
-target_compile_definitions(calliecore PRIVATE
-    CALLIE_APP_ID="${CALLIE_APP_ID}"
-    CALLIE_DEVEL_BUILD=$<BOOL:${CALLIE_DEVEL}>
-)

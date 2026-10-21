@@ -1,8 +1,8 @@
 #include "StartAtLogin.h"
 
 #include "callie/Autostart.h"
-#include "callie/Identity.h"
 #include "callie/Settings.h"
+#include "greylock/Identity.h"
 
 #include <QCoreApplication>
 #include <QDBusConnection>
@@ -65,7 +65,7 @@ void StartAtLogin::setEnabled(bool enabled)
     m_error = m_autostart->setEnabled(enabled) ? QString() : m_autostart->errorString();
     // In a Flatpak the entry stays in the sandbox, as the record of the setting,
     // and the Background portal starts Callie at login.
-    if (m_error.isEmpty() && identity::isFlatpak())
+    if (m_error.isEmpty() && greylock::identity::isFlatpak())
         requestBackground(enabled);
     Q_EMIT changed();
 }
@@ -90,7 +90,8 @@ void StartAtLogin::requestBackground(bool autostart)
         u"RequestBackground"_s);
     const QVariantMap options{
         {u"handle_token"_s, token},
-        {u"reason"_s, tr("Keeps %1 running for event reminders").arg(identity::displayName())},
+        {u"reason"_s,
+         tr("Keeps %1 running for event reminders").arg(greylock::identity::displayName())},
         {u"autostart"_s, autostart},
         {u"commandline"_s,
          QStringList{u"callie-gui"_s, u"--"_s + QString::fromLatin1(Autostart::kBackgroundOption)}},
@@ -113,7 +114,8 @@ void StartAtLogin::backgroundAnswered(uint response, const QVariantMap &results)
     m_request.clear();
     // 0 is yes; 1 is the user saying no, 2 anything else.
     if (m_requestedAutostart && (response != 0 || !results.value(u"autostart"_s).toBool()))
-        refused(tr("the desktop did not allow %1 to start at login").arg(identity::displayName()));
+        refused(tr("the desktop did not allow %1 to start at login")
+                    .arg(greylock::identity::displayName()));
 }
 
 void StartAtLogin::refused(const QString &why)

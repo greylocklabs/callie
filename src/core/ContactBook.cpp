@@ -1,5 +1,5 @@
 #include "callie/ContactBook.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QDir>
 #include <QFile>
@@ -80,7 +80,7 @@ ContactBook::ContactBook(QString path, QObject *parent) : QObject(parent), m_pat
 QString ContactBook::defaultPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + u'/' +
-           identity::dirName() + u"/contacts.json"_s;
+           greylock::identity::dirName() + u"/contacts.json"_s;
 }
 
 void ContactBook::setSource(CalendarSource *source)

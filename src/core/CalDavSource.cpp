@@ -1,9 +1,9 @@
 #include "callie/CalDavSource.h"
 
-#include "callie/Identity.h"
 #include "callie/Logging.h"
 #include "callie/Settings.h"
 #include "callie/TokenStore.h"
+#include "greylock/Identity.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -113,7 +113,7 @@ CalDavSource::~CalDavSource() = default;
 QString CalDavSource::defaultRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + u'/' +
-           identity::dirName() + u"/caldav"_s;
+           greylock::identity::dirName() + u"/caldav"_s;
 }
 
 QString CalDavSource::accountPath(const QString &accountId) const

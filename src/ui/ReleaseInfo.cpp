@@ -1,6 +1,6 @@
 #include "ReleaseInfo.h"
 
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include "EventModelForeign.h"
 
@@ -107,12 +107,12 @@ bool ReleaseInfo::takeUpdateNotice()
 
 bool ReleaseInfo::devel() const
 {
-    return identity::isDevel();
+    return greylock::identity::isDevel();
 }
 
 bool ReleaseInfo::flatpak() const
 {
-    return identity::isFlatpak();
+    return greylock::identity::isFlatpak();
 }
 
 } // namespace callie

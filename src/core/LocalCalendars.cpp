@@ -1,6 +1,6 @@
 #include "callie/LocalCalendars.h"
 
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QDir>
 #include <QRegularExpression>
@@ -32,7 +32,7 @@ LocalCalendars::LocalCalendars(QString root, QObject *parent)
 QString LocalCalendars::defaultRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + u'/' +
-           identity::dirName() + u"/calendars"_s;
+           greylock::identity::dirName() + u"/calendars"_s;
 }
 
 QString LocalCalendars::idFor(const QString &folderName)

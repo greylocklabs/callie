@@ -1,9 +1,9 @@
 #include "callie/MicrosoftSource.h"
 
 #include "callie/GraphEvents.h"
-#include "callie/Identity.h"
 #include "callie/Logging.h"
 #include "callie/MicrosoftTokenProvider.h"
+#include "greylock/Identity.h"
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -208,7 +208,7 @@ MicrosoftSource::~MicrosoftSource() = default;
 QString MicrosoftSource::defaultRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + u'/' +
-           identity::dirName() + u"/microsoft"_s;
+           greylock::identity::dirName() + u"/microsoft"_s;
 }
 
 QString MicrosoftSource::keyFor(const QString &address)

@@ -1,6 +1,6 @@
 #include "callie/GoogleCache.h"
 #include "callie/GoogleRecurrence.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include "callie/Logging.h"
 
@@ -136,7 +136,7 @@ GoogleCache::~GoogleCache()
 QString GoogleCache::defaultPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + u'/' +
-           identity::dirName() + QStringLiteral("/google.sqlite");
+           greylock::identity::dirName() + QStringLiteral("/google.sqlite");
 }
 
 bool GoogleCache::open()

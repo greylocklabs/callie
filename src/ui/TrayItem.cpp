@@ -1,7 +1,7 @@
 #include "TrayItem.h"
 
-#include "callie/Identity.h"
 #include "callie/Logging.h"
+#include "greylock/Identity.h"
 
 #include <QCoreApplication>
 #include <QDBusConnectionInterface>
@@ -139,20 +139,20 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, DBusTrayToolTip &
 
 TrayStatusItem::TrayStatusItem(QObject *parent) : QObject(parent)
 {
-    if (QIcon::hasThemeIcon(identity::appId()))
-        m_iconName = identity::appId();
+    if (QIcon::hasThemeIcon(greylock::identity::appId()))
+        m_iconName = greylock::identity::appId();
     else
         m_iconPixmap = logoImages();
 }
 
 QString TrayStatusItem::id() const
 {
-    return identity::dirName();
+    return greylock::identity::dirName();
 }
 
 QString TrayStatusItem::title() const
 {
-    return identity::displayName();
+    return greylock::identity::displayName();
 }
 
 DBusTrayToolTip TrayStatusItem::toolTip() const
@@ -242,7 +242,7 @@ TrayItem::TrayItem(const QDBusConnection &bus, const QString &watcher, QObject *
     : QObject(parent), m_bus(bus), m_watcher(watcher),
       // A Flatpak may not own the usual name, whose process id is the sandbox's
       // anyway, so it offers the entry under its connection's own name.
-      m_service(identity::isFlatpak()
+      m_service(greylock::identity::isFlatpak()
                     ? bus.baseService()
                     : u"org.kde.StatusNotifierItem-%1-1"_s.arg(QCoreApplication::applicationPid())),
       m_item(new TrayStatusItem(this)), m_menu(new TrayMenu(this)),
@@ -282,11 +282,11 @@ void TrayItem::setVisible(bool visible)
     if (visible) {
         m_bus.registerObject(kItemPath, m_item, exports);
         m_bus.registerObject(kMenuPath, m_menu, exports);
-        if (!identity::isFlatpak())
+        if (!greylock::identity::isFlatpak())
             m_bus.registerService(m_service);
         announce();
     } else {
-        if (!identity::isFlatpak())
+        if (!greylock::identity::isFlatpak())
             m_bus.unregisterService(m_service);
         m_bus.unregisterObject(kMenuPath);
         m_bus.unregisterObject(kItemPath);
