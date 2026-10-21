@@ -1,7 +1,7 @@
 #include "WindowButtons.h"
 
-#include "callie/Identity.h"
 #include "callie/Logging.h"
+#include "greylock/Identity.h"
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -55,7 +55,7 @@ WindowButtons::WindowButtons(QObject *parent) : QObject(parent), m_layout{{}, kK
         return;
     }
     // A Flatpak's config folder is its own; the host's kwinrc is shared at its own path.
-    const QString path = identity::isFlatpak()
+    const QString path = greylock::identity::isFlatpak()
                              ? QDir::homePath() + QStringLiteral("/.config/kwinrc")
                              : QStandardPaths::locate(QStandardPaths::GenericConfigLocation,
                                                       QStringLiteral("kwinrc"));
@@ -73,7 +73,7 @@ WindowButtons *WindowButtons::create(QQmlEngine *engine, QJSEngine *)
 
 void WindowButtons::readGnome()
 {
-    if (identity::isFlatpak()) {
+    if (greylock::identity::isFlatpak()) {
         readGnomeFromPortal();
         return;
     }

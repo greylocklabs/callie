@@ -1,7 +1,7 @@
 #include "callie/UpdateCheck.h"
 
-#include "callie/Identity.h"
 #include "callie/Logging.h"
+#include "greylock/Identity.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -16,19 +16,19 @@ namespace callie {
 
 UpdateCheck::UpdateCheck(QString path, QObject *parent)
     : QObject(parent), m_path(std::move(path)), m_api(releases::defaultApi()),
-      m_now([] { return QDateTime::currentDateTimeUtc(); }), m_devel(identity::isDevel())
+      m_now([] { return QDateTime::currentDateTimeUtc(); }), m_devel(greylock::identity::isDevel())
 {}
 
 QString UpdateCheck::defaultPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + u'/' +
-           identity::dirName() + u"/latest-release.json"_s;
+           greylock::identity::dirName() + u"/latest-release.json"_s;
 }
 
 bool UpdateCheck::wanted(bool setting) const
 {
     // Flathub keeps a Flatpak up to date.
-    return setting && !m_devel && !identity::isFlatpak() &&
+    return setting && !m_devel && !greylock::identity::isFlatpak() &&
            qEnvironmentVariableIsEmpty("CALLIE_NO_UPDATE_CHECK");
 }
 

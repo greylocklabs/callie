@@ -1,5 +1,5 @@
 #include "TrayItem.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QCoreApplication>
 #include <QDBusConnectionInterface>
@@ -73,7 +73,7 @@ void TestTrayItem::panelShowsAndDrivesTheEntry()
     };
     QCOMPARE(
         property(u"/StatusNotifierItem"_s, u"org.kde.StatusNotifierItem"_s, u"Title"_s).toString(),
-        identity::displayName());
+        greylock::identity::displayName());
     QCOMPARE(property(u"/StatusNotifierItem"_s, u"org.kde.StatusNotifierItem"_s, u"Menu"_s)
                  .value<QDBusObjectPath>()
                  .path(),
@@ -174,7 +174,7 @@ void TestTrayItem::aFlatpakOffersItsOwnConnectionName()
     QVERIFY(QTest::qWaitFor([&pending] { return pending.isFinished(); }));
     const QDBusReply<QDBusVariant> title = pending.reply();
     QVERIFY(title.isValid());
-    QCOMPARE(title.value().variant().toString(), identity::displayName());
+    QCOMPARE(title.value().variant().toString(), greylock::identity::displayName());
     tray.setVisible(false);
 }
 

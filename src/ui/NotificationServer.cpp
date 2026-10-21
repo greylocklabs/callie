@@ -1,6 +1,6 @@
 #include "NotificationServer.h"
 
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include "callie/Logging.h"
 
@@ -29,16 +29,16 @@ const QString kInterface = u"org.freedesktop.Notifications"_s;
 QString appIcon()
 {
     static const QString icon = [] {
-        if (QIcon::hasThemeIcon(identity::appId()))
-            return identity::appId();
+        if (QIcon::hasThemeIcon(greylock::identity::appId()))
+            return greylock::identity::appId();
         QFile logo(u":/callie/assets/logo.png"_s);
         if (!logo.open(QIODevice::ReadOnly))
-            return identity::appId();
+            return greylock::identity::appId();
         const QString path =
             cachedLogo(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) +
-                           u'/' + identity::dirName(),
+                           u'/' + greylock::identity::dirName(),
                        logo.readAll());
-        return path.isEmpty() ? identity::appId() : path;
+        return path.isEmpty() ? greylock::identity::appId() : path;
     }();
     return icon;
 }
@@ -73,13 +73,13 @@ void FreedesktopNotifications::show(const QString &title, const QString &body,
 {
     QDBusMessage call = QDBusMessage::createMethodCall(kService, kPath, kInterface, u"Notify"_s);
     const QVariantMap hints{
-        {u"desktop-entry"_s, identity::appId()},
+        {u"desktop-entry"_s, greylock::identity::appId()},
         {u"category"_s, u"x-gnome.calendar"_s},
         // Normal urgency; the daemon decides how long it stays.
         {u"urgency"_s, QVariant::fromValue(uchar(1))},
     };
-    call << identity::displayName() << uint(0) << appIcon() << title << body << actions << hints
-         << int(-1);
+    call << greylock::identity::displayName() << uint(0) << appIcon() << title << body << actions
+         << hints << int(-1);
     auto *watcher =
         new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(call), this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this,

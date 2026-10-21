@@ -1,5 +1,5 @@
 #include "callie/Settings.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QLocale>
 #include <QStandardPaths>
@@ -68,7 +68,7 @@ QStringList Settings::views()
 QString Settings::defaultPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u'/' +
-           identity::dirName() + u"/settings.ini"_s;
+           greylock::identity::dirName() + u"/settings.ini"_s;
 }
 
 void Settings::load()

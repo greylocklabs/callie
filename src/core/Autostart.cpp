@@ -1,6 +1,6 @@
 #include "callie/Autostart.h"
 
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QDir>
 #include <QFile>
@@ -81,7 +81,7 @@ bool Autostart::setEnabled(bool enabled)
                           u"NoDisplay=true\n"
                           u"X-GNOME-Autostart-enabled=true\n"_s.arg(
                               execArgument(m_program), QString::fromLatin1(kBackgroundOption),
-                              m_appId, identity::displayName());
+                              m_appId, greylock::identity::displayName());
     file.write(entry.toUtf8());
     if (!file.commit()) {
         m_error = file.errorString();

@@ -1,5 +1,5 @@
 #include "callie/Autostart.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <QFile>
 #include <QTemporaryDir>
@@ -37,7 +37,7 @@ void TestAutostart::entryStartsInTheBackground()
     QVERIFY(entry.contains(u"\nExec=/usr/bin/callie-gui --background\n"_s));
     QVERIFY(entry.contains(u"\nIcon=org.example.App\n"_s));
     // Named as the build is, so a development build's entry says so.
-    QVERIFY(entry.contains(u"\nName="_s + identity::displayName() + u'\n'));
+    QVERIFY(entry.contains(u"\nName="_s + greylock::identity::displayName() + u'\n'));
 }
 
 void TestAutostart::programWithSpacesIsQuoted()

@@ -1,5 +1,5 @@
 #include "callie/QueuedSource.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include "callie/Logging.h"
 #include "callie/Times.h"
@@ -292,7 +292,7 @@ QueuedSource::QueuedSource(CalendarSource &inner, QString path, QObject *parent)
 QString QueuedSource::defaultPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + u'/' +
-           identity::dirName() + u"/pending.json"_s;
+           greylock::identity::dirName() + u"/pending.json"_s;
 }
 
 QList<Event> QueuedSource::eventsBetween(const QDateTime &from, const QDateTime &to,

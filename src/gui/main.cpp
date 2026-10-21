@@ -27,7 +27,6 @@
 #include "callie/GoogleSync.h"
 #include "callie/GoogleTokenProvider.h"
 #include "callie/GraphApi.h"
-#include "callie/Identity.h"
 #include "callie/LocalCalendars.h"
 #include "callie/LogFile.h"
 #include "callie/Logging.h"
@@ -40,6 +39,7 @@
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
 #include "callie/UpdateCheck.h"
+#include "greylock/Identity.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -68,10 +68,10 @@ int main(int argc, char *argv[])
     app.setOrganizationName(QStringLiteral("Callie"));
     app.setApplicationVersion(QStringLiteral(CALLIE_VERSION));
     // Lets Wayland associate the window with the .desktop entry.
-    app.setDesktopFileName(callie::identity::appId());
+    app.setDesktopFileName(greylock::identity::appId());
     // Shown by desktops that read the window's own icon, such as KDE, even when
     // no desktop entry is installed; the built-in logo stands in for the theme's.
-    app.setWindowIcon(QIcon::fromTheme(callie::identity::appId(),
+    app.setWindowIcon(QIcon::fromTheme(greylock::identity::appId(),
                                        QIcon(QStringLiteral(":/callie/assets/logo.png"))));
 
     QCommandLineParser parser;
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     const bool useSample = parser.isSet(sampleOption);
     const QString screenshot = parser.value(screenshotOption);
     const bool standalone = useSample || !screenshot.isEmpty();
-    callie::SingleInstance single(callie::identity::appId(), QDBusConnection::sessionBus());
+    callie::SingleInstance single(greylock::identity::appId(), QDBusConnection::sessionBus());
     // As a file manager passes them: paths, or file:// URLs.
     QStringList opened;
     for (const QString &argument : parser.positionalArguments())
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
         microsoft->setAccounts(microsoftAccounts);
         microsoft->setPhotoFolder(
             QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + u'/' +
-            callie::identity::dirName() + QStringLiteral("/photos"));
+            greylock::identity::dirName() + QStringLiteral("/photos"));
     }
     callie::CombinedSource combined;
     combined.setSources(local ? QList<callie::CalendarSource *>{&google, &*microsoft, &*caldav,
@@ -368,7 +368,8 @@ int main(int argc, char *argv[])
         QObject::connect(&settings, &callie::Settings::keepRunningChanged, &app,
                          [&] { app.setQuitOnLastWindowClosed(!settings.keepRunning()); });
     }
-    callie::Autostart autostart(callie::identity::appId(), QCoreApplication::applicationFilePath());
+    callie::Autostart autostart(greylock::identity::appId(),
+                                QCoreApplication::applicationFilePath());
     if (!standalone)
         callie::StartAtLogin::instance()->setup(&autostart, &settings);
 

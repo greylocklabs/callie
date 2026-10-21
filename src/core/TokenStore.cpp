@@ -1,5 +1,5 @@
 #include "callie/TokenStore.h"
-#include "callie/Identity.h"
+#include "greylock/Identity.h"
 
 #include <qt6keychain/keychain.h>
 
@@ -15,7 +15,7 @@ QString keyFor(const Account &account)
 template<typename Job>
 Job *makeJob(const Account &account)
 {
-    auto *job = new Job(identity::appId());
+    auto *job = new Job(greylock::identity::appId());
     job->setAutoDelete(true);
     job->setInsecureFallback(false);
     job->setKey(keyFor(account));
