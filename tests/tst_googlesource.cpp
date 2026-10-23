@@ -1035,8 +1035,8 @@ void TestGoogleSource::aTimePickedLocallyMovesWithAZone()
 {
     QVERIFY(
         m_cache->storeEvents(kAccount, u"mine"_s, {parsed(R"({"id":"dentist","summary":"Dentist",
-                    "start":{"dateTime":"2026-10-06T09:00:00-04:00","timeZone":"America/New_York"},
-                    "end":{"dateTime":"2026-10-06T10:00:00-04:00","timeZone":"America/New_York"}})")}));
+                    "start":{"dateTime":"2026-10-06T22:00:00+09:00","timeZone":"Asia/Tokyo"},
+                    "end":{"dateTime":"2026-10-06T23:00:00+09:00","timeZone":"Asia/Tokyo"}})")}));
     SyncHarness harness(*m_cache);
     harness.store.secrets.insert(kAccount.id, u"rt"_s);
     harness.apiServer.handler = [](const FakeHttpServer::Request &) {
@@ -1058,8 +1058,9 @@ void TestGoogleSource::aTimePickedLocallyMovesWithAZone()
     QTRY_COMPARE_WITH_TIMEOUT(error, QString(), 5000);
     const QJsonObject body =
         QJsonDocument::fromJson(harness.apiServer.requests.last().body).object();
-    // It keeps its own zone, and Google gets the moment that was picked.
-    QCOMPARE(body[u"start"][u"timeZone"].toString(), u"America/New_York"_s);
+    // It keeps its own zone, which is neither UTC nor New York, the zones this test runs
+    // in, and Google gets the moment that was picked.
+    QCOMPARE(body[u"start"][u"timeZone"].toString(), u"Asia/Tokyo"_s);
     QCOMPARE(QDateTime::fromString(body[u"start"][u"dateTime"].toString(), Qt::ISODate), start);
 }
 
