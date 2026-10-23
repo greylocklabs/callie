@@ -9,6 +9,11 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - The date picker's month arrows go to the next and previous month again; west of UTC, Next stayed
   put and Previous skipped a month.
+- Copying or moving an event to a time you picked no longer fails on a Google calendar with
+  "Missing time zone definition for start time". New events on CalDAV and local calendars keep
+  this computer's time zone too, instead of floating to whoever opens them.
+- A change that a calendar turned down no longer leaves the sync status failed until the next
+  change; the next sync clears it.
 
 ## 0.6.0 - 2026-10-19
 

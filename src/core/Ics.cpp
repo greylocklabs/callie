@@ -724,8 +724,14 @@ KCalendarCore::Event::Ptr fromDraft(const EventDraft &draft, const QString &uid)
     event->setSummary(draft.summary);
     event->setLocation(draft.location);
     event->setDescription(draft.description);
-    event->setDtStart(draft.start);
-    setTimes(*event, draft.start, draft.end, draft.allDay);
+    // A time picked in QML is a local time; a new event goes on this computer's zone
+    // rather than floating, which would move it with whoever opens it.
+    const auto placed = [](const QDateTime &time) {
+        return time.timeSpec() == Qt::LocalTime ? time.toTimeZone(QTimeZone::systemTimeZone())
+                                                : time;
+    };
+    event->setDtStart(placed(draft.start));
+    setTimes(*event, placed(draft.start), placed(draft.end), draft.allDay);
     return event;
 }
 

@@ -28,6 +28,7 @@ class TestGoogleCalendarApi : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void aLocalTimeGoesOutWithAZone();
     void ownResponseIsKept();
     void onScreenRemindersAreKept();
     void draftBecomesRequestBody();
@@ -452,6 +453,24 @@ void TestGoogleCalendarApi::patchAndDeleteTellGuests()
     QTRY_VERIFY_WITH_TIMEOUT(done, 5000);
     QVERIFY(!error);
     QCOMPARE(m_server->requests.last().method, QByteArray("DELETE"));
+}
+
+void TestGoogleCalendarApi::aLocalTimeGoesOutWithAZone()
+{
+    // A time picked in QML is a local time, which Google rejects without a zone.
+    EventDraft copy;
+    copy.summary = QStringLiteral("Copy");
+    copy.start = QDateTime(QDate(2026, 10, 22), QTime(13, 0));
+    copy.end = copy.start.addSecs(4 * 3600);
+    QCOMPARE(copy.start.timeSpec(), Qt::LocalTime);
+    const QJsonObject json = googleEventJson(copy);
+    const QString zone = QString::fromUtf8(QTimeZone::systemTimeZone().id());
+    QCOMPARE(json[u"start"][u"timeZone"].toString(), zone);
+    QCOMPARE(json[u"end"][u"timeZone"].toString(), zone);
+    QCOMPARE(json[u"start"][u"dateTime"].toString(),
+             copy.start.toTimeZone(QTimeZone::systemTimeZone()).toString(Qt::ISODate));
+    // UTC says so too.
+    QCOMPARE(googleTime(copy.start.toUTC())[u"timeZone"].toString(), QStringLiteral("UTC"));
 }
 
 QTEST_GUILESS_MAIN(TestGoogleCalendarApi)

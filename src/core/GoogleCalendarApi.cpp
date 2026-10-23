@@ -122,15 +122,25 @@ QUrl GoogleCalendarApi::eventUrl(const QString &calendarId, const QString &event
     return url;
 }
 
+QJsonObject googleTime(const QDateTime &moment)
+{
+    const QDateTime at = moment.timeSpec() == Qt::LocalTime
+                             ? moment.toTimeZone(QTimeZone::systemTimeZone())
+                             : moment;
+    QJsonObject json{{u"dateTime"_s, at.toString(Qt::ISODate)}};
+    if (at.timeSpec() == Qt::TimeZone)
+        json.insert(u"timeZone"_s, QString::fromUtf8(at.timeZone().id()));
+    else if (at.timeSpec() == Qt::UTC)
+        json.insert(u"timeZone"_s, u"UTC"_s);
+    return json;
+}
+
 QJsonObject googleEventJson(const EventDraft &draft)
 {
     const auto time = [&draft](const QDateTime &moment) {
         if (draft.allDay)
             return QJsonObject{{u"date"_s, moment.date().toString(Qt::ISODate)}};
-        QJsonObject json{{u"dateTime"_s, moment.toString(Qt::ISODate)}};
-        if (moment.timeSpec() == Qt::TimeZone)
-            json.insert(u"timeZone"_s, QString::fromUtf8(moment.timeZone().id()));
-        return json;
+        return googleTime(moment);
     };
     QJsonObject json{{u"summary"_s, draft.summary},
                      {u"start"_s, time(draft.start)},

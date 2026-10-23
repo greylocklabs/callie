@@ -216,6 +216,10 @@ private:
 /// Parses one item of an events list. Exposed for tests.
 [[nodiscard]] GoogleEvent parseGoogleEvent(const QJsonObject &item);
 
+/// A timed start or end as Google takes it, always with a zone: a local time, as
+/// QML gives, goes on the system's zone, since Google rejects a time it cannot place.
+[[nodiscard]] QJsonObject googleTime(const QDateTime &moment);
+
 /// The request body that creates `draft`: dates for all-day events, otherwise
 /// times in the draft's own zone.
 [[nodiscard]] QJsonObject googleEventJson(const EventDraft &draft);
