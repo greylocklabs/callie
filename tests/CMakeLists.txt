@@ -73,11 +73,19 @@ callie_add_test(tst_accountstore)
 callie_add_test(tst_googleauth)
 callie_add_test(tst_accountmanager)
 callie_add_test(tst_googlecalendarapi)
+# A time picked in QML has no zone, so it is checked away from UTC too.
+add_test(NAME tst_googlecalendarapi_new_york COMMAND tst_googlecalendarapi aLocalTimeGoesOutWithAZone)
+set_tests_properties(tst_googlecalendarapi_new_york PROPERTIES ENVIRONMENT
+                     "TZ=America/New_York;QT_QPA_PLATFORM=offscreen;CALLIE_FLATPAK=0")
 callie_add_test(tst_googletokenprovider)
 callie_add_test(tst_googlecache)
 callie_add_test(tst_googlesync)
 callie_add_test(tst_googlerecurrence)
 callie_add_test(tst_googlesource)
+# A time picked in QML has no zone, so it is checked away from UTC too.
+add_test(NAME tst_googlesource_new_york COMMAND tst_googlesource aTimePickedLocallyMovesWithAZone)
+set_tests_properties(tst_googlesource_new_york PROPERTIES ENVIRONMENT
+                     "TZ=America/New_York;QT_QPA_PLATFORM=offscreen;CALLIE_FLATPAK=0")
 callie_add_test(tst_logfile)
 callie_add_test(tst_themecontroller)
 target_link_libraries(tst_themecontroller PRIVATE callieui)

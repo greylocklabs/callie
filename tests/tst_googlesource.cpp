@@ -86,6 +86,7 @@ private Q_SLOTS:
     void splitAllDaySeriesByDates();
     void splitMovesDeletedDaysToTheNewClock();
     void allDayMovesByDates();
+    void aTimePickedLocallyMovesWithAZone();
     void allDaySeriesMovesOneOrAll();
     void seriesMoveKeepsTheWallClockAcrossDst();
     void statusStartsFromTheCache();
@@ -1028,6 +1029,38 @@ void TestGoogleSource::splitMovesDeletedDaysToTheNewClock()
         std::find_if(harness.apiServer.requests.crbegin(), harness.apiServer.requests.crend(),
                      [](const FakeHttpServer::Request &r) { return r.method == "POST"; });
     QCOMPARE(QJsonDocument::fromJson(posted->body).object()[u"recurrence"].toArray(), QJsonArray());
+}
+
+void TestGoogleSource::aTimePickedLocallyMovesWithAZone()
+{
+    QVERIFY(
+        m_cache->storeEvents(kAccount, u"mine"_s, {parsed(R"({"id":"dentist","summary":"Dentist",
+                    "start":{"dateTime":"2026-10-06T09:00:00-04:00","timeZone":"America/New_York"},
+                    "end":{"dateTime":"2026-10-06T10:00:00-04:00","timeZone":"America/New_York"}})")}));
+    SyncHarness harness(*m_cache);
+    harness.store.secrets.insert(kAccount.id, u"rt"_s);
+    harness.apiServer.handler = [](const FakeHttpServer::Request &) {
+        return FakeHttpServer::Response(200, R"({"id":"dentist","status":"confirmed"})");
+    };
+    GoogleSource source(*m_cache, {kAccount});
+    source.setSync(&harness.sync);
+    const QDateTime from(QDate(2026, 10, 6), QTime(0, 0), kNewYork);
+    const QList<Event> events = source.eventsBetween(from, from.addDays(1), kNewYork);
+    const auto dentist = std::find_if(events.cbegin(), events.cend(),
+                                      [](const Event &e) { return e.summary == u"Dentist"; });
+    QVERIFY(dentist != events.cend());
+
+    // As the editor's pickers give it: a local time, with no zone.
+    const QDateTime start(QDate(2026, 10, 7), QTime(15, 0));
+    QString error = u"unset"_s;
+    source.moveEvent(*dentist, start, start.addSecs(3600), false,
+                     [&error](const QString &e) { error = e; });
+    QTRY_COMPARE_WITH_TIMEOUT(error, QString(), 5000);
+    const QJsonObject body =
+        QJsonDocument::fromJson(harness.apiServer.requests.last().body).object();
+    // It keeps its own zone, and Google gets the moment that was picked.
+    QCOMPARE(body[u"start"][u"timeZone"].toString(), u"America/New_York"_s);
+    QCOMPARE(QDateTime::fromString(body[u"start"][u"dateTime"].toString(), Qt::ISODate), start);
 }
 
 void TestGoogleSource::allDayMovesByDates()
