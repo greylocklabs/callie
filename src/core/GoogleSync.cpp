@@ -304,13 +304,8 @@ void GoogleSync::respond(const Account &account, const Target &target, const QSt
 void GoogleSync::move(const Account &account, const QString &calendarId, const QString &eventId,
                       const QDateTime &start, const QDateTime &end, Created done)
 {
-    const auto time = [](const QDateTime &moment) {
-        QJsonObject json{{u"dateTime"_s, moment.toString(Qt::ISODate)}};
-        if (moment.timeSpec() == Qt::TimeZone)
-            json.insert(u"timeZone"_s, QString::fromUtf8(moment.timeZone().id()));
-        return json;
-    };
-    patch(account, calendarId, eventId, {{u"start"_s, time(start)}, {u"end"_s, time(end)}},
+    patch(account, calendarId, eventId,
+          {{u"start"_s, googleTime(start)}, {u"end"_s, googleTime(end)}},
           tr("Google could not move the event: %1"), std::move(done));
 }
 

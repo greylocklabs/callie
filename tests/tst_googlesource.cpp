@@ -87,6 +87,7 @@ private Q_SLOTS:
     void splitMovesDeletedDaysToTheNewClock();
     void allDayMovesByDates();
     void aTimePickedLocallyMovesWithAZone();
+    void aTimePickedLocallyEditsWithAZone();
     void allDaySeriesMovesOneOrAll();
     void seriesMoveKeepsTheWallClockAcrossDst();
     void statusStartsFromTheCache();
@@ -1062,6 +1063,45 @@ void TestGoogleSource::aTimePickedLocallyMovesWithAZone()
     // in, and Google gets the moment that was picked.
     QCOMPARE(body[u"start"][u"timeZone"].toString(), u"Asia/Tokyo"_s);
     QCOMPARE(QDateTime::fromString(body[u"start"][u"dateTime"].toString(), Qt::ISODate), start);
+}
+
+void TestGoogleSource::aTimePickedLocallyEditsWithAZone()
+{
+    QVERIFY(m_cache->storeEvents(kAccount, u"mine"_s, {parsed(R"({"id":"clinic","summary":"Clinic",
+                    "start":{"dateTime":"2026-10-06T22:00:00+09:00","timeZone":"Asia/Tokyo"},
+                    "end":{"dateTime":"2026-10-06T23:00:00+09:00","timeZone":"Asia/Tokyo"}})")}));
+    SyncHarness harness(*m_cache);
+    harness.store.secrets.insert(kAccount.id, u"rt"_s);
+    harness.apiServer.handler = [](const FakeHttpServer::Request &) {
+        return FakeHttpServer::Response(200, R"({"id":"clinic","status":"confirmed"})");
+    };
+    GoogleSource source(*m_cache, {kAccount});
+    source.setSync(&harness.sync);
+    const QDateTime from(QDate(2026, 10, 6), QTime(0, 0), kNewYork);
+    const QList<Event> events = source.eventsBetween(from, from.addDays(1), kNewYork);
+    const auto clinic = std::find_if(events.cbegin(), events.cend(),
+                                     [](const Event &e) { return e.summary == u"Clinic"; });
+    QVERIFY(clinic != events.cend());
+
+    // As the editor's pickers give it: a local time, with no zone. An edit's new times go
+    // on this computer's zone, unlike a move, which keeps the event's.
+    EventEdit edit;
+    edit.start = QDateTime(QDate(2026, 10, 7), QTime(15, 0));
+    edit.end = edit.start->addSecs(3600);
+    QString error = u"unset"_s;
+    source.updateEvent(*clinic, edit, EditScope::ThisEvent,
+                       [&error](const QString &e) { error = e; });
+    QTRY_COMPARE_WITH_TIMEOUT(error, QString(), 5000);
+    const QJsonObject body =
+        QJsonDocument::fromJson(harness.apiServer.requests.last().body).object();
+    const QString here = QString::fromUtf8(QTimeZone::systemTimeZone().id());
+    for (const QString &key : {u"start"_s, u"end"_s}) {
+        QCOMPARE(body[key][u"timeZone"].toString(), here);
+        QVERIFY(body[key].toObject().contains(u"date"_s));
+        QVERIFY(body[key][u"date"].isNull());
+    }
+    QCOMPARE(QDateTime::fromString(body[u"start"][u"dateTime"].toString(), Qt::ISODate),
+             *edit.start);
 }
 
 void TestGoogleSource::allDayMovesByDates()
