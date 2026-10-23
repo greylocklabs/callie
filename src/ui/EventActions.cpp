@@ -334,6 +334,11 @@ QString EventActions::callServiceFor(const QString &calendarId) const
     return found != calendars.cend() ? found->videoCallService : QString();
 }
 
+bool EventActions::hasCallLink(const QString &text)
+{
+    return places::findCallLink(text).isValid();
+}
+
 void EventActions::duplicate(const QVariantMap &event, const QDateTime &at,
                              const QString &fallbackCalendar)
 {
