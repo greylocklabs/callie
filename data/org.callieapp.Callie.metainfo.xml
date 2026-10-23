@@ -42,6 +42,17 @@
   </categories>
 
   <releases>
+    <release version="0.6.1" date="2026-10-23">
+      <description>
+        <ul>
+          <li>Google and Microsoft events have "Open in Google Calendar" or "Open in Outlook" on their card, which opens the event's own page on the web, in the right Google account. Callie downloads Google events once more after updating, to learn their pages.</li>
+          <li>The date picker's month arrows go to the next and previous month again; west of UTC, Next stayed put and Previous skipped a month.</li>
+          <li>Copying or moving an event to a time you picked no longer fails on a Google calendar with "Missing time zone definition for start time". New events on CalDAV and local calendars keep this computer's time zone too, instead of floating to whoever opens them.</li>
+          <li>A change that a calendar turned down no longer leaves the sync status failed until the next change; the next sync clears it.</li>
+          <li>The video call switch in the editor says what it makes, such as "Add a Google Meet", and notes when Where already has a link. Join opens a call link typed in Where ahead of a meeting the calendar added, and knows SimplePractice, Doxy.me, Whereby, Jitsi Meet and GoTo Meeting links.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.0" date="2026-10-19">
       <description>
         <ul>
