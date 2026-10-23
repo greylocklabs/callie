@@ -388,6 +388,11 @@ void QueuedSource::apply(QList<Event> &events, const QList<PendingChange> &chang
 
 void QueuedSource::refresh()
 {
+    // A change that was turned down is gone, so its error lasts until the next sync.
+    if (!m_error.isEmpty()) {
+        m_error.clear();
+        Q_EMIT statusChanged();
+    }
     flush();
     m_inner->refresh();
 }

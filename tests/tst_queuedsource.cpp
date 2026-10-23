@@ -123,6 +123,7 @@ class TestQueuedSource : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void aRefusedChangesErrorLastsUntilTheNextSync();
     void init();
     void changesShowAtOnceAndAreSent();
     void offlineChangesWaitAndSurviveARestart();
@@ -551,6 +552,20 @@ void TestQueuedSource::creationsKeepTheirNotes()
     QCOMPARE(source->changes().first().draft.description, u"Bring an apron and a towel"_s);
     QCOMPARE(source->eventsBetween(at(18), at(19), QTimeZone::UTC).first().description,
              u"Bring an apron and a towel"_s);
+}
+
+void TestQueuedSource::aRefusedChangesErrorLastsUntilTheNextSync()
+{
+    auto source = make();
+    m_server.refuseWith = u"not allowed"_s;
+    source->moveEvent(makeEvent(u"standup"_s, 9), at(10), at(11), false, [](const QString &) {});
+    release(*source);
+    QVERIFY(!source->lastError().isEmpty());
+    // Nothing is left to retry, so the next sync starts clean.
+    QSignalSpy status(source.get(), &CalendarSource::statusChanged);
+    source->refresh();
+    QVERIFY(source->lastError().isEmpty());
+    QVERIFY(!status.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestQueuedSource)

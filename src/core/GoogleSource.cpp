@@ -146,10 +146,8 @@ std::optional<EditFields> editFields(const Event &event, const EventEdit &edit,
             const QDateTime newEnd = newStart.addSecs(start.secsTo(end));
             // And an all-day event's date, which would otherwise stay.
             const auto time = [](const QDateTime &moment) {
-                QJsonObject json{{u"dateTime"_s, moment.toString(Qt::ISODate)},
-                                 {u"date"_s, QJsonValue::Null}};
-                if (moment.timeSpec() == Qt::TimeZone)
-                    json.insert(u"timeZone"_s, QString::fromUtf8(moment.timeZone().id()));
+                QJsonObject json = googleTime(moment);
+                json.insert(u"date"_s, QJsonValue::Null);
                 return json;
             };
             fields.insert(u"start"_s, time(newStart));

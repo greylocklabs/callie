@@ -12,6 +12,7 @@ class TestIcs : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void aNewEventTakesTheSystemsZone();
     void readsOneOffs();
     void allDayEndsTheDayAfter();
     void seriesSkipExceptionsAndTakeChanges();
@@ -754,6 +755,20 @@ void TestIcs::googleEventsBecomeICalendar()
     const auto away = find(u"trip@google.com"_s, false);
     QVERIFY(away->allDay());
     QCOMPARE(away->dtEnd().date(), QDate(2026, 10, 11));
+}
+
+void TestIcs::aNewEventTakesTheSystemsZone()
+{
+    // A time picked in QML is a local time; a new event keeps it on this computer's
+    // zone rather than floating, which would move it with whoever opens it.
+    EventDraft draft;
+    draft.summary = QStringLiteral("Copy");
+    draft.start = QDateTime(QDate(2026, 10, 22), QTime(13, 0));
+    draft.end = draft.start.addSecs(3600);
+    const KCalendarCore::Event::Ptr event = ics::fromDraft(draft, QStringLiteral("copy"));
+    QCOMPARE(event->dtStart().timeSpec(), Qt::TimeZone);
+    QCOMPARE(event->dtStart().timeZone(), QTimeZone::systemTimeZone());
+    QCOMPARE(event->dtStart().toLocalTime(), draft.start);
 }
 
 QTEST_MAIN(TestIcs)
