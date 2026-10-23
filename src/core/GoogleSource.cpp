@@ -45,6 +45,7 @@ QList<CalendarInfo> readCalendars(GoogleCache &cache, const QList<Account> &acco
                 .enabled = calendar.selected,
                 .account = account.id,
                 .videoCalls = true,
+                .videoCallService = u"meet"_s,
                 .invites = true,
             });
         }

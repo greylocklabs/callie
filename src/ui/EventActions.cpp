@@ -327,6 +327,13 @@ bool EventActions::canAddCall(const QString &calendarId) const
     });
 }
 
+QString EventActions::callServiceFor(const QString &calendarId) const
+{
+    const QList<CalendarInfo> calendars = m_source ? m_source->calendars() : QList<CalendarInfo>();
+    const auto found = std::ranges::find(calendars, calendarId, &CalendarInfo::id);
+    return found != calendars.cend() ? found->videoCallService : QString();
+}
+
 void EventActions::duplicate(const QVariantMap &event, const QDateTime &at,
                              const QString &fallbackCalendar)
 {

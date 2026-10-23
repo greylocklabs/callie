@@ -405,11 +405,29 @@ Column {
     }
 
     Toggle {
+        id: callToggle
+
+        // Says what it makes: a new meeting on the calendar's own service.
         visible: root.actions.canAddCall(root.event.calendarId || "")
         width: parent.width
-        text: qsTr("Video call")
+        text: root.actions.callServiceFor(root.event.calendarId || "") === "teams" ? qsTr(
+                                                                                         "Add a Teams meeting") :
+                                                                                     qsTr("Add a Google Meet")
         checked: root.videoCall
         onToggled: root.videoCall = checked
+    }
+
+    Text {
+        // A link typed in Where is a call of its own, and Join opens it.
+        visible: callToggle.visible && callToggle.checked && /https?:\/\//i.test(placeField.text)
+                 && (root.event.conferenceUrl || "").toString() === ""
+        width: parent.width
+        wrapMode: Text.Wrap
+        text: qsTr(
+                  "Where already has a link. This makes a separate meeting, and Join still opens the link in Where.")
+        color: Theme.textMuted
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.textSm
     }
 
     // Guests as chips, each with a way to take them off, then a box to add more.
