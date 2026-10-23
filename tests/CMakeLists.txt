@@ -83,7 +83,8 @@ callie_add_test(tst_googlesync)
 callie_add_test(tst_googlerecurrence)
 callie_add_test(tst_googlesource)
 # A time picked in QML has no zone, so it is checked away from UTC too.
-add_test(NAME tst_googlesource_new_york COMMAND tst_googlesource aTimePickedLocallyMovesWithAZone)
+add_test(NAME tst_googlesource_new_york COMMAND tst_googlesource aTimePickedLocallyMovesWithAZone
+         aTimePickedLocallyEditsWithAZone)
 set_tests_properties(tst_googlesource_new_york PROPERTIES ENVIRONMENT
                      "TZ=America/New_York;QT_QPA_PLATFORM=offscreen;CALLIE_FLATPAK=0")
 callie_add_test(tst_logfile)
