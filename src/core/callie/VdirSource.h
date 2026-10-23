@@ -29,6 +29,9 @@ public:
         QString account = {};
         /// The user's address there, which picks out their own answers.
         QString self = {};
+        /// Whether its events' web page links are Callie's own, as in the copies it keeps
+        /// of Microsoft calendars. Anyone else's .ics could point them anywhere.
+        bool webLinks = false;
     };
 
     explicit VdirSource(QObject *parent = nullptr);

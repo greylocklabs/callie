@@ -343,12 +343,16 @@ QString EventActions::webSite(const QUrl &url)
 {
     if (!url.isValid() || url.scheme() != u"https"_s)
         return {};
+    // Only the providers' own sites, so a link can never send the browser elsewhere.
+    static const QStringList google = {u"calendar.google.com"_s, u"www.google.com"_s};
+    static const QStringList outlook = {u"outlook.office.com"_s, u"outlook.office365.com"_s,
+                                        u"outlook.live.com"_s};
     const QString host = url.host().toLower();
-    if (host == u"calendar.google.com"_s || host == u"www.google.com"_s)
+    if (google.contains(host))
         return u"google"_s;
-    if (host.startsWith(u"outlook."_s))
+    if (outlook.contains(host))
         return u"outlook"_s;
-    return u"web"_s;
+    return {};
 }
 
 void EventActions::duplicate(const QVariantMap &event, const QDateTime &at,

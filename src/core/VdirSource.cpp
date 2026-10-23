@@ -166,7 +166,7 @@ SourceSnapshot VdirSource::snapshot(const QList<Folder> &folders, const QDateTim
     for (qsizetype i = 0; i < folders.size(); ++i) {
         const Folder &folder = folders.at(i);
         const ics::Calendar calendar{folder.id, snapshot.calendars.at(i).color, folder.writable,
-                                     folder.self};
+                                     folder.self, folder.webLinks};
         for (const ics::Group &group : read(folder).groups)
             snapshot.events += ics::expand(group, calendar, from, to, tz);
     }

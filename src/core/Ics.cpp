@@ -177,7 +177,8 @@ Event toEvent(const KEvent &source, const KEvent *series, const QDateTime &start
     }
     if (!source.conferences().isEmpty())
         event.conferenceUrl = source.conferences().first().uri();
-    event.webUrl = QUrl(source.nonKDECustomProperty(kWebLinkProperty));
+    if (calendar.webLinks)
+        event.webUrl = QUrl(source.nonKDECustomProperty(kWebLinkProperty));
 
     const KCalendarCore::Person organizer = source.organizer();
     bool organizerListed = false;
