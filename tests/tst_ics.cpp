@@ -12,6 +12,7 @@ class TestIcs : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void webLinksAreReadOnlyWhereTrusted();
     void aNewEventTakesTheSystemsZone();
     void readsOneOffs();
     void allDayEndsTheDayAfter();
@@ -769,6 +770,32 @@ void TestIcs::aNewEventTakesTheSystemsZone()
     QCOMPARE(event->dtStart().timeSpec(), Qt::TimeZone);
     QCOMPARE(event->dtStart().timeZone(), QTimeZone::systemTimeZone());
     QCOMPARE(event->dtStart().toLocalTime(), draft.start);
+}
+
+void TestIcs::webLinksAreReadOnlyWhereTrusted()
+{
+    // Built outside any macro, as moc reads a link's // as a comment inside one.
+    const ics::Group events = ics::parse(calendar(R"(BEGIN:VEVENT
+UID:sync
+DTSTART:20261006T110000Z
+DTEND:20261006T120000Z
+SUMMARY:Sync
+X-CALLIE-WEB-LINK:https://outlook.office365.com/owa/?itemid=1
+END:VEVENT
+)"));
+    QCOMPARE(events.size(), 1);
+    const QDateTime from(QDate(2026, 10, 5), QTime(0, 0), QTimeZone::UTC);
+    // A calendar someone else wrote, such as an imported file or a CalDAV server's, could
+    // point the link anywhere, so it is left out.
+    const QList<Event> plain = ics::expand(events, kHome, from, from.addDays(7), QTimeZone::UTC);
+    QCOMPARE(plain.size(), 1);
+    QVERIFY(plain.first().webUrl.isEmpty());
+    // The copies Callie keeps of Microsoft calendars hold Graph's own link.
+    ics::Calendar microsoft = kHome;
+    microsoft.webLinks = true;
+    const QList<Event> trusted =
+        ics::expand(events, microsoft, from, from.addDays(7), QTimeZone::UTC);
+    QCOMPARE(trusted.first().webUrl, QUrl(u"https://outlook.office365.com/owa/?itemid=1"_s));
 }
 
 QTEST_MAIN(TestIcs)

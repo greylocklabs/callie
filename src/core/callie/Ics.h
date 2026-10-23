@@ -28,7 +28,7 @@ namespace callie::ics {
 using Group = QList<KCalendarCore::Event::Ptr>;
 
 /// An event's page on its provider's website, kept on events from Microsoft, which
-/// Event::webUrl takes it from.
+/// Event::webUrl takes it from on calendars whose webLinks is set.
 inline const QByteArray kWebLinkProperty = QByteArrayLiteral("X-CALLIE-WEB-LINK");
 
 /// The VEVENTs in iCalendar text, or empty with `error` set when it cannot
@@ -77,6 +77,8 @@ struct Calendar
     bool writable = false;
     /// The user's address, which picks out their own answer to invitations.
     QString self = {};
+    /// Whether its events' kWebLinkProperty is to be trusted; see VdirSource::Folder.
+    bool webLinks = false;
 };
 
 /// The occurrences of one group overlapping [from, to), with all-day events

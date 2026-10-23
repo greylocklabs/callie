@@ -782,6 +782,7 @@ void TestEventModel::eventAtCarriesWhatActionsNeed()
     occurrence.eventId = QStringLiteral("standup_20260316T093000Z");
     occurrence.seriesId = QStringLiteral("standup");
     occurrence.calendarId = QStringLiteral("work");
+    occurrence.webUrl = QUrl(QStringLiteral("https://www.google.com/calendar/event?eid=c3Q"));
     occurrence.recurrenceId = QDateTime(kMonday, QTime(9, 0), QTimeZone::systemTimeZone());
     occurrence.guests = {
         {QStringLiteral("boss@example.com"), {}, QStringLiteral("accepted"), true, false}};
@@ -791,6 +792,7 @@ void TestEventModel::eventAtCarriesWhatActionsNeed()
     QCOMPARE(row.value(QStringLiteral("eventId")).toString(), occurrence.eventId);
     QCOMPARE(row.value(QStringLiteral("seriesId")).toString(), QStringLiteral("standup"));
     QCOMPARE(row.value(QStringLiteral("calendarId")).toString(), QStringLiteral("work"));
+    QCOMPARE(row.value(QStringLiteral("webUrl")).toUrl(), occurrence.webUrl);
     // A moved occurrence is changed by where it was, not where it is.
     QCOMPARE(row.value(QStringLiteral("recurrenceId")).toDateTime(), occurrence.recurrenceId);
     QVERIFY(model->eventAt(1).isEmpty());

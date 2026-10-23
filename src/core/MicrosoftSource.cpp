@@ -249,7 +249,7 @@ void MicrosoftSource::scan()
         for (const QString &name : dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
             const QString folder = dir.filePath(name);
             folders.append({u"microsoft:"_s + slug(account) + u'/' + name, folder,
-                            readState(folder).writable, account, account});
+                            readState(folder).writable, account, account, true});
         }
     }
     const auto same = [](const Folder &a, const Folder &b) {

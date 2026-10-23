@@ -367,7 +367,9 @@ void TestEventActions::webPagesOpenOnlyOverHttps()
              u"google"_s);
     QCOMPARE(EventActions::webSite(QUrl(u"https://outlook.office365.com/owa/?itemid=1"_s)),
              u"outlook"_s);
-    QCOMPARE(EventActions::webSite(QUrl(u"https://cal.example.com/event/1"_s)), u"web"_s);
+    // Only the providers' own sites: any other host, look-alikes too, gets no button.
+    QCOMPARE(EventActions::webSite(QUrl(u"https://cal.example.com/event/1"_s)), QString());
+    QCOMPARE(EventActions::webSite(QUrl(u"https://outlook.attacker.example/owa/"_s)), QString());
     // The link comes from the server, so nothing but a web page opens.
     QCOMPARE(EventActions::webSite(QUrl(u"http://www.google.com/calendar/event?eid=x"_s)),
              QString());

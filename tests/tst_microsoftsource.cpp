@@ -157,6 +157,9 @@ void TestMicrosoftSource::firstSyncBringsCalendarsDown()
     later.insert(u"originalStart"_s, u"2026-10-07T07:00:00Z"_s);
     standup.exceptions.insert(u"2026-10-07T07:00:00Z"_s, later);
     standup.cancelled << u"2026-10-08"_s;
+    // Outlook on the web's page for it, which the event card opens.
+    const QUrl lunchPage(u"https://outlook.office365.com/owa/?itemid=lunch"_s);
+    m_graph->items[m_lunch].event.insert(u"webLink"_s, lunchPage.toString());
 
     sync();
     QVERIFY2(m_source->lastError().isEmpty(), qPrintable(m_source->lastError()));
@@ -170,6 +173,7 @@ void TestMicrosoftSource::firstSyncBringsCalendarsDown()
     QVERIFY(calendars.first().invites);
 
     QVERIFY(!find(u"Lunch"_s).uid.isEmpty());
+    QCOMPARE(find(u"Lunch"_s).webUrl, lunchPage);
     int standups = 0;
     for (const Event &event : week())
         standups += event.summary == u"Standup";

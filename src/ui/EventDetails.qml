@@ -502,10 +502,8 @@ Popup {
                     readonly property string site: actions.webSite(root.webUrl)
 
                     visible: site !== ""
-                    text: ({
-                               "google": qsTr("Open in Google Calendar"),
-                               "outlook": qsTr("Open in Outlook")
-                           })[site] || qsTr("Open on the web")
+                    text: site === "google" ? qsTr("Open in Google Calendar") : qsTr(
+                                                  "Open in Outlook")
                     onClicked: Qt.openUrlExternally(root.webUrl)
                 }
                 StickerButton {
