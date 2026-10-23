@@ -109,6 +109,7 @@ Event toEvent(const GoogleEvent &source, const QTimeZone &viewZone)
     event.description = source.description;
     event.location = source.location;
     event.conferenceUrl = source.conferenceUrl;
+    event.webUrl = source.htmlLink;
     event.declined = source.responseStatus == u"declined";
     event.responseStatus = source.responseStatus;
     event.eventId = source.id;

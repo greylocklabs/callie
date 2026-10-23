@@ -27,6 +27,10 @@ namespace callie::ics {
 
 using Group = QList<KCalendarCore::Event::Ptr>;
 
+/// An event's page on its provider's website, kept on events from Microsoft, which
+/// Event::webUrl takes it from.
+inline const QByteArray kWebLinkProperty = QByteArrayLiteral("X-CALLIE-WEB-LINK");
+
 /// The VEVENTs in iCalendar text, or empty with `error` set when it cannot
 /// be read. Other components, such as to-dos, are left out.
 [[nodiscard]] Group parse(QByteArrayView text, QString *error = nullptr);

@@ -69,6 +69,8 @@ struct GoogleEvent
     QString description;
     QString location;
     QUrl conferenceUrl;
+    /// The event's page in Google Calendar on the web.
+    QUrl htmlLink;
     GoogleEventTime start;
     GoogleEventTime end;
     QStringList recurrence;

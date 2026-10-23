@@ -451,6 +451,7 @@ QVariant EventModel::data(const QModelIndex &index, int role) const
     case LocationRole: return e.location;
     case ConferenceUrlRole: return e.conferenceUrl;
     case JoinUrlRole: return e.joinUrl();
+    case WebUrlRole: return e.webUrl;
     case DeclinedRole: return e.declined;
     case CalendarIdRole: return e.calendarId;
     case EventIdRole: return e.eventId;
@@ -504,6 +505,7 @@ QHash<int, QByteArray> EventModel::roleNames() const
         {LocationRole, "location"},
         {ConferenceUrlRole, "conferenceUrl"},
         {JoinUrlRole, "joinUrl"},
+        {WebUrlRole, "webUrl"},
         {DeclinedRole, "declined"},
         {CalendarIdRole, "calendarId"},
         {EventIdRole, "eventId"},

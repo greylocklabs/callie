@@ -339,6 +339,18 @@ bool EventActions::hasCallLink(const QString &text)
     return places::findCallLink(text).isValid();
 }
 
+QString EventActions::webSite(const QUrl &url)
+{
+    if (!url.isValid() || url.scheme() != u"https"_s)
+        return {};
+    const QString host = url.host().toLower();
+    if (host == u"calendar.google.com"_s || host == u"www.google.com"_s)
+        return u"google"_s;
+    if (host.startsWith(u"outlook."_s))
+        return u"outlook"_s;
+    return u"web"_s;
+}
+
 void EventActions::duplicate(const QVariantMap &event, const QDateTime &at,
                              const QString &fallbackCalendar)
 {

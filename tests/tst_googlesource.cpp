@@ -51,6 +51,7 @@ class TestGoogleSource : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void theWebPageOpensInTheEventsAccount();
     void init();
 
     void listsCalendarsWithColorAndAccess();
@@ -1381,6 +1382,26 @@ void TestGoogleSource::overlappingRefreshesReportEachErrorOnce()
 
     QCOMPARE(errors.size(), 1);
     QCOMPARE(source.lastError().count(u'\n'), 0);
+}
+
+void TestGoogleSource::theWebPageOpensInTheEventsAccount()
+{
+    // Built outside the macro, as moc reads the link's // as a comment inside one.
+    const GoogleEvent gig = parsed(R"({"id":"gig","summary":"Gig",
+                    "htmlLink":"https://www.google.com/calendar/event?eid=Z2ln",
+                    "start":{"dateTime":"2026-10-06T20:00:00-04:00","timeZone":"America/New_York"},
+                    "end":{"dateTime":"2026-10-06T22:00:00-04:00","timeZone":"America/New_York"}})");
+    QVERIFY(m_cache->storeEvents(kAccount, u"mine"_s, {gig}));
+    const GoogleSource source(*m_cache, {kAccount});
+    const QDateTime from(QDate(2026, 10, 6), QTime(0, 0), kNewYork);
+    const QList<Event> events = source.eventsBetween(from, from.addDays(1), kNewYork);
+    const auto found = std::find_if(events.cbegin(), events.cend(),
+                                    [](const Event &e) { return e.summary == u"Gig"; });
+    QVERIFY(found != events.cend());
+    // Among the browser's signed-in Google accounts, the one the event is in.
+    const QUrlQuery query(found->webUrl);
+    QCOMPARE(query.queryItemValue(u"eid"_s), u"Z2ln"_s);
+    QCOMPARE(query.queryItemValue(u"authuser"_s), kAccount.id);
 }
 
 QTEST_GUILESS_MAIN(TestGoogleSource)
