@@ -22,6 +22,16 @@ bool isCall(const QUrl &url)
         return path.startsWith(u"/meet");
     if (host.endsWith(u".webex.com"))
         return path.contains(u"/meet") || path.contains(u"/j.php") || path.contains(u"/join");
+    // Telehealth and other call services, which are always a call past the home page.
+    static const QStringList kCallHosts = {u"video.simplepractice.com"_s,
+                                           u"doxy.me"_s,
+                                           u"whereby.com"_s,
+                                           u"meet.jit.si"_s,
+                                           u"meet.goto.com"_s,
+                                           u"app.gotomeeting.com"_s,
+                                           u"global.gotomeeting.com"_s};
+    if (kCallHosts.contains(host))
+        return path.size() > 1;
     return false;
 }
 

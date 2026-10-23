@@ -145,6 +145,7 @@ void TestGoogleSource::listsCalendarsWithColorAndAccess()
     QCOMPARE(calendars.at(0).color, QColor(u"#9fe1e7"_s));
     QVERIFY(calendars.at(0).writable);
     QVERIFY(calendars.at(0).enabled);
+    QCOMPARE(calendars.at(0).videoCallService, u"meet"_s);
     QVERIFY(!calendars.at(1).writable);
     QVERIFY(!calendars.at(1).enabled);
 }

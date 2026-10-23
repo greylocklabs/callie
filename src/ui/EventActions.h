@@ -91,6 +91,8 @@ public:
     Q_INVOKABLE void clearError();
     /// Whether events in the calendar can be given a video call.
     Q_INVOKABLE bool canAddCall(const QString &calendarId) const;
+    /// The service a call added in the calendar is made on: "meet" or "teams".
+    Q_INVOKABLE QString callServiceFor(const QString &calendarId) const;
     /// Why guests added in the calendar are not sent invitations; empty when
     /// they are.
     Q_INVOKABLE QString noInvites(const QString &calendarId) const;

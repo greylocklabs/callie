@@ -267,6 +267,7 @@ QList<CalendarInfo> MicrosoftSource::calendars() const
         const auto folder = std::ranges::find(all, calendar.id, &Folder::id);
         calendar.videoCalls = folder != all.cend() && calendar.writable &&
                               !readState(folder->path).meetings.isEmpty();
+        calendar.videoCallService = calendar.videoCalls ? u"teams"_s : QString();
         calendar.account = keyFor(calendar.account);
     }
     return list;

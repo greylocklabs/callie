@@ -166,6 +166,7 @@ void TestMicrosoftSource::firstSyncBringsCalendarsDown()
     QCOMPARE(calendars.first().account, MicrosoftSource::keyFor(kMe));
     QCOMPARE(calendars.first().color, QColor(u"#E86AA6"_s));
     QVERIFY(calendars.first().videoCalls);
+    QCOMPARE(calendars.first().videoCallService, u"teams"_s);
     QVERIFY(calendars.first().invites);
 
     QVERIFY(!find(u"Lunch"_s).uid.isEmpty());

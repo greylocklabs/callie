@@ -14,6 +14,9 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
   this computer's time zone too, instead of floating to whoever opens them.
 - A change that a calendar turned down no longer leaves the sync status failed until the next
   change; the next sync clears it.
+- The video call switch in the editor says what it makes, such as "Add a Google Meet", and notes
+  when Where already has a link. Join opens a call link typed in Where ahead of a meeting the
+  calendar added, and knows SimplePractice, Doxy.me, Whereby, Jitsi Meet and GoTo Meeting links.
 
 ## 0.6.0 - 2026-10-19
 

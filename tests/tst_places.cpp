@@ -15,7 +15,7 @@ private Q_SLOTS:
     void callLinksAreFound_data();
     void callLinksAreFound();
     void mapLinksFollowTheApp();
-    void joinPrefersTheProvidersCall();
+    void joinPrefersTheLinkInWhere();
 };
 
 void TestPlaces::callLinksAreFound_data()
@@ -35,6 +35,13 @@ void TestPlaces::callLinksAreFound_data()
     QTest::newRow("first of two")
         << u"https://example.com then https://zoom.us/j/1 https://zoom.us/j/2"_s
         << QUrl(u"https://zoom.us/j/1"_s);
+    QTest::newRow("simplepractice")
+        << u"https://video.simplepractice.com/appt-a14743dd?origin=client"_s
+        << QUrl(u"https://video.simplepractice.com/appt-a14743dd?origin=client"_s);
+    QTest::newRow("doxy.me") << u"https://doxy.me/drsmith"_s << QUrl(u"https://doxy.me/drsmith"_s);
+    QTest::newRow("jitsi") << u"https://meet.jit.si/OurRoom"_s
+                           << QUrl(u"https://meet.jit.si/OurRoom"_s);
+    QTest::newRow("a service's home page") << u"https://doxy.me/"_s << QUrl();
     QTest::newRow("not a call") << u"https://example.com/zoom and zoom.us/j/1"_s << QUrl();
     QTest::newRow("zoom elsewhere") << u"https://zoom.us/pricing"_s << QUrl();
 }
@@ -68,19 +75,22 @@ void TestPlaces::mapLinksFollowTheApp()
              QUrl(u"https://example.com/venue"_s));
 }
 
-void TestPlaces::joinPrefersTheProvidersCall()
+void TestPlaces::joinPrefersTheLinkInWhere()
 {
     Event e;
     e.description = u"Agenda first.\nJoin: https://example.zoom.us/j/987?pwd=x."_s;
     QCOMPARE(e.joinUrl(), QUrl(u"https://example.zoom.us/j/987?pwd=x"_s));
-    e.location = u"https://meet.google.com/aaa-bbbb-ccc"_s;
-    QCOMPARE(e.joinUrl(), QUrl(u"https://meet.google.com/aaa-bbbb-ccc"_s));
+    // The provider's call comes ahead of a link in the notes.
     e.conferenceUrl = QUrl(u"https://meet.google.com/own-call"_s);
     QCOMPARE(e.joinUrl(), e.conferenceUrl);
+    // A call typed in Where is the one that was meant, even when the provider added its own.
+    e.location = u"https://video.simplepractice.com/appt-a14743dd?origin=client"_s;
+    QCOMPARE(e.joinUrl(), QUrl(u"https://video.simplepractice.com/appt-a14743dd?origin=client"_s));
     // Only a web link joins, whoever set it.
+    e.location.clear();
     for (const QString &url : {u"file:///home/sam/run.sh"_s, u"smb://host/share"_s}) {
         e.conferenceUrl = QUrl(url);
-        QCOMPARE(e.joinUrl(), QUrl(u"https://meet.google.com/aaa-bbbb-ccc"_s));
+        QCOMPARE(e.joinUrl(), QUrl(u"https://example.zoom.us/j/987?pwd=x"_s));
     }
 
     Event other;
