@@ -84,6 +84,7 @@ class TestEventActions : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void webPagesOpenOnlyOverHttps();
     void answerReachesTheSource();
     void callsOnlyWhereTheCalendarHasThem();
     void removeTakesItAway();
@@ -358,6 +359,20 @@ void TestEventActions::callsOnlyWhereTheCalendarHasThem()
     NoAddressSource noAddress;
     actions.setProperty("source", QVariant::fromValue(&noAddress));
     QVERIFY(actions.noInvites(u"caldav:me/work"_s).contains(u"email address"_s));
+}
+
+void TestEventActions::webPagesOpenOnlyOverHttps()
+{
+    QCOMPARE(EventActions::webSite(QUrl(u"https://www.google.com/calendar/event?eid=x"_s)),
+             u"google"_s);
+    QCOMPARE(EventActions::webSite(QUrl(u"https://outlook.office365.com/owa/?itemid=1"_s)),
+             u"outlook"_s);
+    QCOMPARE(EventActions::webSite(QUrl(u"https://cal.example.com/event/1"_s)), u"web"_s);
+    // The link comes from the server, so nothing but a web page opens.
+    QCOMPARE(EventActions::webSite(QUrl(u"http://www.google.com/calendar/event?eid=x"_s)),
+             QString());
+    QCOMPARE(EventActions::webSite(QUrl(u"file:///home/sam/run.sh"_s)), QString());
+    QCOMPARE(EventActions::webSite(QUrl()), QString());
 }
 
 QTEST_GUILESS_MAIN(TestEventActions)

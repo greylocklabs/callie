@@ -79,6 +79,7 @@ public:
         CalendarNameRole,
         DescriptionRole,
         JoinUrlRole,
+        WebUrlRole,
     };
     Q_ENUM(Role)
 

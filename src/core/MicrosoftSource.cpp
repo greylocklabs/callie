@@ -27,7 +27,7 @@ const QString kCopies = u".callie-graph"_s;
 const QString kFields =
     u"id,iCalUId,type,changeKey,lastModifiedDateTime,subject,body,location,start,end,isAllDay,"
     "showAs,isCancelled,isOrganizer,organizer,attendees,onlineMeeting,recurrence,"
-    "originalStartTimeZone,originalStart,responseStatus,seriesMasterId"_s;
+    "originalStartTimeZone,originalStart,responseStatus,seriesMasterId,webLink"_s;
 
 QString slug(const QString &text)
 {

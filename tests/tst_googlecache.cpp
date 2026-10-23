@@ -110,6 +110,7 @@ void TestGoogleCache::eventsRoundTrip()
 {
     apply({parsed(R"({"id":"timed","status":"confirmed","summary":"Standup","location":"Room 2",
                     "description":"notes","hangoutLink":"https://meet.google.com/abc",
+                    "htmlLink":"https://www.google.com/calendar/event?eid=c3RhbmR1cA",
                     "start":{"dateTime":"2026-10-05T09:30:00-04:00","timeZone":"America/New_York"},
                     "end":{"dateTime":"2026-10-05T09:45:00-04:00","timeZone":"America/New_York"},
                     "recurrence":["RRULE:FREQ=WEEKLY;BYDAY=MO","EXDATE:20261012T133000Z"],
@@ -131,6 +132,8 @@ void TestGoogleCache::eventsRoundTrip()
     QCOMPARE(timed.location, QStringLiteral("Room 2"));
     QCOMPARE(timed.description, QStringLiteral("notes"));
     QCOMPARE(timed.conferenceUrl, QUrl(QStringLiteral("https://meet.google.com/abc")));
+    QCOMPARE(timed.htmlLink,
+             QUrl(QStringLiteral("https://www.google.com/calendar/event?eid=c3RhbmR1cA")));
     QCOMPARE(timed.start.dateTime.timeZone(), QTimeZone("America/New_York"));
     QCOMPARE(timed.start.dateTime.time(), QTime(9, 30));
     QCOMPARE(timed.end.dateTime.time(), QTime(9, 45));

@@ -68,6 +68,7 @@ void TestGraphEvents::aSeriesWithItsOccurrencesBecomesICalendar()
                       "status":{"response":"tentativelyAccepted"}},
                      {"type":"optional","emailAddress":{"address":"kim@contoso.com"}}],
         "onlineMeeting":{"joinUrl":"https://teams.microsoft.com/l/meetup-join/1"},
+        "webLink":"https://outlook.office365.com/owa/?itemid=m1",
         "recurrence":{"pattern":{"type":"daily","interval":1},
                       "range":{"type":"numbered","numberOfOccurrences":5,"startDate":"2026-10-05",
                                "recurrenceTimeZone":"W. Europe Standard Time"}}})");
@@ -95,6 +96,9 @@ void TestGraphEvents::aSeriesWithItsOccurrencesBecomesICalendar()
     QCOMPARE(master->attendees().last().role(), KCalendarCore::Attendee::OptParticipant);
     QCOMPARE(master->conferences().first().uri(),
              QUrl(u"https://teams.microsoft.com/l/meetup-join/1"_s));
+    // Outlook on the web's page for it, kept for the event card.
+    QCOMPARE(master->nonKDECustomProperty(ics::kWebLinkProperty),
+             u"https://outlook.office365.com/owa/?itemid=m1"_s);
     const auto later =
         *std::ranges::find_if(events, [](const auto &e) { return e->hasRecurrenceId(); });
     QCOMPARE(later->uid(), u"040000-standup"_s);

@@ -95,6 +95,9 @@ public:
     Q_INVOKABLE QString callServiceFor(const QString &calendarId) const;
     /// Whether `text` holds a link that Join would open as a call.
     Q_INVOKABLE static bool hasCallLink(const QString &text);
+    /// The website an event's web page is on: "google", "outlook" or "web". Empty when the
+    /// link should not be opened, as it comes from the server.
+    Q_INVOKABLE static QString webSite(const QUrl &url);
     /// Why guests added in the calendar are not sent invitations; empty when
     /// they are.
     Q_INVOKABLE QString noInvites(const QString &calendarId) const;

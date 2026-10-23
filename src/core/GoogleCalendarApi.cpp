@@ -87,6 +87,7 @@ GoogleEvent parseGoogleEvent(const QJsonObject &item)
     event.description = item[u"description"].toString();
     event.location = item[u"location"].toString();
     event.conferenceUrl = conferenceUrl(item);
+    event.htmlLink = QUrl(item[u"htmlLink"].toString());
     event.start = parseTime(item[u"start"].toObject());
     event.end = parseTime(item[u"end"].toObject());
     for (const QJsonValue &line : item[u"recurrence"].toArray())

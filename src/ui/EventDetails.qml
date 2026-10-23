@@ -26,6 +26,7 @@ Popup {
     property string when
     property string location
     property url joinUrl
+    property url webUrl
     /// From EventModel.callService: empty when the link should not be opened.
     property string callService
     property string calendarName
@@ -47,6 +48,7 @@ Popup {
                                                                     Settings.times.time(event.end)))
         location = event.location
         joinUrl = event.joinUrl
+        webUrl = event.webUrl || ""
         callService = service
         calendarName = event.calendarName
         calendarColor = event.calendarColor
@@ -494,6 +496,17 @@ Popup {
                     visible: (root.event.attendees || []).length > 0
                     text: qsTr("Email guests")
                     onClicked: Qt.openUrlExternally(actions.mailGuests(root.event))
+                }
+                // The event's page on Google Calendar or Outlook on the web.
+                StickerButton {
+                    readonly property string site: actions.webSite(root.webUrl)
+
+                    visible: site !== ""
+                    text: ({
+                               "google": qsTr("Open in Google Calendar"),
+                               "outlook": qsTr("Open in Outlook")
+                           })[site] || qsTr("Open on the web")
+                    onClicked: Qt.openUrlExternally(root.webUrl)
                 }
                 StickerButton {
                     text: qsTr("Save as .ics")

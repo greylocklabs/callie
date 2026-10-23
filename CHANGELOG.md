@@ -5,6 +5,12 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 ## Unreleased
 
+### Added
+
+- Google and Microsoft events have "Open in Google Calendar" or "Open in Outlook" on their card,
+  which opens the event's own page on the web, in the right Google account. Callie downloads
+  Google events once more after updating, to learn their pages.
+
 ### Fixed
 
 - The date picker's month arrows go to the next and previous month again; west of UTC, Next stayed

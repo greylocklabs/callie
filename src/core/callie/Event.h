@@ -35,6 +35,7 @@ struct Event
     Q_PROPERTY(QString location MEMBER location)
     Q_PROPERTY(QUrl conferenceUrl MEMBER conferenceUrl)
     Q_PROPERTY(QUrl joinUrl READ joinUrl)
+    Q_PROPERTY(QUrl webUrl MEMBER webUrl)
     Q_PROPERTY(QColor color MEMBER color)
     Q_PROPERTY(bool declined MEMBER declined)
 
@@ -47,6 +48,8 @@ public:
     QString location;
     /// The provider's own video call, which the editor's "Video call" turns on and off.
     QUrl conferenceUrl;
+    /// The event's page on its provider's website, such as Google Calendar's, where it has one.
+    QUrl webUrl;
     QDateTime start;
     QDateTime end;
     bool allDay = false;

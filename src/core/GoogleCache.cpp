@@ -22,7 +22,7 @@ namespace callie {
 namespace {
 
 // Bump when the tables change. Older caches are dropped and fully re-synced.
-constexpr int kSchemaVersion = 7;
+constexpr int kSchemaVersion = 8;
 
 const char *const kSchema[] = {
     R"(CREATE TABLE calendars (
@@ -42,7 +42,7 @@ const char *const kSchema[] = {
         account TEXT NOT NULL,
         calendar_id TEXT NOT NULL,
         id TEXT NOT NULL,
-        status TEXT, summary TEXT, description TEXT, location TEXT, conference_url TEXT,
+        status TEXT, summary TEXT, description TEXT, location TEXT, conference_url TEXT, html_link TEXT,
         start_date TEXT, start_time TEXT, start_zone TEXT,
         end_date TEXT, end_time TEXT, end_zone TEXT,
         recurrence TEXT,
@@ -336,14 +336,16 @@ bool GoogleCache::writeEvents(const QString &key, const QString &calendarId,
     QSqlQuery upsert(db);
     upsert.prepare(QStringLiteral(
         "INSERT OR REPLACE INTO events (account, calendar_id, id, status, summary, description, "
-        "location, conference_url, start_date, start_time, start_zone, end_date, end_time, "
+        "location, conference_url, html_link, start_date, start_time, start_zone, end_date, "
+        "end_time, "
         "end_zone, recurrence, recurring_event_id, original_date, original_time, original_zone, "
         "updated, response_status, attendees, organizer_self, guests_can_modify, "
         "reminders_default, "
         "reminders, event_type, series_end) VALUES (:account, "
         ":calendar, :id, :status, :summary, "
         ":description, :location, "
-        ":conference, :start_date, :start_time, :start_zone, :end_date, :end_time, :end_zone, "
+        ":conference, :html_link, :start_date, :start_time, :start_zone, :end_date, :end_time, "
+        ":end_zone, "
         ":recurrence, :series, :original_date, :original_time, :original_zone, :updated, "
         ":response, :attendees, :organizer_self, :guests_can_modify, :reminders_default, "
         ":reminders, :event_type, :series_end)"));
@@ -373,6 +375,7 @@ bool GoogleCache::writeEvents(const QString &key, const QString &calendarId,
         upsert.bindValue(QStringLiteral(":description"), event.description);
         upsert.bindValue(QStringLiteral(":location"), event.location);
         upsert.bindValue(QStringLiteral(":conference"), event.conferenceUrl.toString());
+        upsert.bindValue(QStringLiteral(":html_link"), event.htmlLink.toString());
         bindTime(upsert, QStringLiteral("start"), event.start);
         bindTime(upsert, QStringLiteral("end"), event.end);
         upsert.bindValue(QStringLiteral(":recurrence"), event.recurrence.join(u'\n'));
@@ -536,6 +539,7 @@ QList<GoogleEvent> GoogleCache::readEvents(QSqlQuery &query)
         event.description = query.value(u"description"_s).toString();
         event.location = query.value(u"location"_s).toString();
         event.conferenceUrl = QUrl(query.value(u"conference_url"_s).toString());
+        event.htmlLink = QUrl(query.value(u"html_link"_s).toString());
         event.start = readTime(query, QStringLiteral("start"));
         event.end = readTime(query, QStringLiteral("end"));
         const QString recurrence = query.value(u"recurrence"_s).toString();

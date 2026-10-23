@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QPointer>
 #include <QPromise>
+#include <QUrlQuery>
 #include <QUuid>
 
 using namespace Qt::StringLiterals;
@@ -75,6 +76,12 @@ QList<Event> readEvents(GoogleCache &cache, const QList<Account> &accounts, cons
                 // a colleague's working days stay that colleague's events.
                 event.workPlace = event.workPlace && calendar.primary;
                 event.color = color;
+                // Opened in the account the event is in, among the browser's signed-in ones.
+                if (event.webUrl.isValid()) {
+                    QUrlQuery query(event.webUrl);
+                    query.addQueryItem(u"authuser"_s, account.id);
+                    event.webUrl.setQuery(query);
+                }
                 event.start = event.start.toTimeZone(tz);
                 event.end = event.end.toTimeZone(tz);
                 result.append(event);

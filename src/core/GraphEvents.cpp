@@ -1,5 +1,7 @@
 #include "callie/GraphEvents.h"
 
+#include "callie/Ics.h"
+
 #include <KCalendarCore/ICalFormat>
 #include <KCalendarCore/RecurrenceRule>
 
@@ -100,6 +102,10 @@ KEvent::Ptr eventFrom(const QJsonObject &json, const QString &uid, const QTimeZo
     if (!joinUrl.isEmpty())
         event->addConference(KCalendarCore::Conference(QUrl(joinUrl), u"Microsoft Teams"_s,
                                                        {u"AUDIO"_s, u"VIDEO"_s}));
+    // Outlook on the web's page for the event, which the event card offers to open.
+    const QString webLink = json[u"webLink"].toString();
+    if (!webLink.isEmpty())
+        event->setNonKDECustomProperty(ics::kWebLinkProperty, webLink);
     const QDateTime modified =
         QDateTime::fromString(json[u"lastModifiedDateTime"].toString(), Qt::ISODate);
     if (modified.isValid())
