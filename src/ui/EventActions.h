@@ -93,6 +93,8 @@ public:
     Q_INVOKABLE bool canAddCall(const QString &calendarId) const;
     /// The service a call added in the calendar is made on: "meet" or "teams".
     Q_INVOKABLE QString callServiceFor(const QString &calendarId) const;
+    /// Whether `text` holds a link that Join would open as a call.
+    Q_INVOKABLE static bool hasCallLink(const QString &text);
     /// Why guests added in the calendar are not sent invitations; empty when
     /// they are.
     Q_INVOKABLE QString noInvites(const QString &calendarId) const;

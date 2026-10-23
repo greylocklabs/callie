@@ -410,21 +410,23 @@ Column {
         // Says what it makes: a new meeting on the calendar's own service.
         visible: root.actions.canAddCall(root.event.calendarId || "")
         width: parent.width
-        text: root.actions.callServiceFor(root.event.calendarId || "") === "teams" ? qsTr(
-                                                                                         "Add a Teams meeting") :
-                                                                                     qsTr("Add a Google Meet")
+        text: ({
+                   "meet": qsTr("Add a Google Meet"),
+                   "teams": qsTr("Add a Teams meeting")
+               })[root.actions.callServiceFor(root.event.calendarId || "")] || qsTr(
+            "Add a video call")
         checked: root.videoCall
         onToggled: root.videoCall = checked
     }
 
     Text {
-        // A link typed in Where is a call of its own, and Join opens it.
-        visible: callToggle.visible && callToggle.checked && /https?:\/\//i.test(placeField.text)
-                 && (root.event.conferenceUrl || "").toString() === ""
+        // A call link typed in Where is a call of its own, and Join opens it.
+        visible: callToggle.visible && callToggle.checked && root.actions.hasCallLink(
+                     placeField.text) && (root.event.conferenceUrl || "").toString() === ""
         width: parent.width
         wrapMode: Text.Wrap
         text: qsTr(
-                  "Where already has a link. This makes a separate meeting, and Join still opens the link in Where.")
+                  "Where already has a call link. This makes a separate meeting, and Join opens the link in Where.")
         color: Theme.textMuted
         font.family: Theme.fontFamily
         font.pixelSize: Theme.textSm

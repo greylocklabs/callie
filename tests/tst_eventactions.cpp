@@ -345,6 +345,14 @@ void TestEventActions::callsOnlyWhereTheCalendarHasThem()
     actions.setProperty("source", QVariant::fromValue(&source));
     QVERIFY(actions.canAddCall(u"work"_s));
     QVERIFY(!actions.canAddCall(u"local:home"_s));
+    // The sample calendars stand for Google's, so their calls are Meets; one it does not
+    // know has no service.
+    QCOMPARE(actions.callServiceFor(u"work"_s), u"meet"_s);
+    QCOMPARE(actions.callServiceFor(u"nowhere"_s), QString());
+    // Only a link Join would open counts as a call already in Where.
+    QVERIFY(EventActions::hasCallLink(u"https://video.simplepractice.com/appt-a1?origin=client"_s));
+    QVERIFY(!EventActions::hasCallLink(u"https://maps.example.com/clinic"_s));
+    QVERIFY(!EventActions::hasCallLink(u"123 Main St"_s));
     QVERIFY(actions.noInvites(u"work"_s).isEmpty());
     QVERIFY(actions.noInvites(u"local:home"_s).contains(u"only on this computer"_s));
     NoAddressSource noAddress;
