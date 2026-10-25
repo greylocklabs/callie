@@ -321,8 +321,6 @@ Roughly in the order it needs to happen:
 
 ### Email and domain
 
-- [ ] Verify callieapp.org in Resend (DNS records are live)
-- [ ] Decide how `hello@` and `privacy@` forward, and wire it up
-- [ ] Send-as from those addresses, so replies come from the right place
+- [ ] Move `hello@greylocklabs.org`, the one contact address for every app, to Proton, and retire the callieapp.org mail
 
 Copyright (c) 2026 Lara Kelley (larakelley.com). MIT License.
