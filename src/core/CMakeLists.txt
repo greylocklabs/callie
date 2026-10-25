@@ -109,10 +109,6 @@ add_library(calliecore STATIC
     callie/CalDavSource.h
     CalDavSource.cpp
     callie/Outcome.h
-    callie/Releases.h
-    Releases.cpp
-    callie/UpdateCheck.h
-    UpdateCheck.cpp
     callie/EventEdit.h
     EventEdit.cpp
     callie/Repeat.h
@@ -180,8 +176,6 @@ add_library(calliecore STATIC
     TimeFormat.cpp
     callie/Times.h
     Times.cpp
-    callie/ReleaseNotes.h
-    ReleaseNotes.cpp
     callie/ViewRange.h
     ViewRange.cpp
     callie/QuickAdd.h

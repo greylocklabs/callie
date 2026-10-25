@@ -38,8 +38,8 @@
 #include "callie/SampleSource.h"
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
-#include "callie/UpdateCheck.h"
 #include "greylock/Identity.h"
+#include "greylock/UpdateCheck.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
                                                 local ? &*local : nullptr);
     callie::SubscriptionsController::instance()->setUp(subscriptions ? &*subscriptions : nullptr);
 
-    callie::UpdateCheck updates;
+    greylock::UpdateCheck updates;
     QQmlApplicationEngine engine;
     // Started at login, Callie waits hidden until it is opened or a reminder is
     // clicked; that only makes sense while it is set to keep running.

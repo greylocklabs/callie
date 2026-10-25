@@ -20,13 +20,13 @@
 #include "callie/MicrosoftSource.h"
 #include "callie/MicrosoftTokenProvider.h"
 #include "callie/QueuedSource.h"
-#include "callie/Releases.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
 #include "callie/Subscriptions.h"
 #include "callie/Times.h"
 #include "callie/TokenStore.h"
-#include "callie/UpdateCheck.h"
+#include "greylock/Releases.h"
+#include "greylock/UpdateCheck.h"
 
 #include "Commands.h"
 #include "Completion.h"
@@ -151,7 +151,7 @@ public:
 
     ~HintAfterwards()
     {
-        UpdateCheck check;
+        greylock::UpdateCheck check;
         const cli::UpdateHint hint = cli::UpdateHint::after(
             m_command, m_json, ::isatty(STDERR_FILENO),
             Settings(Settings::defaultPath()).checkForUpdates(), check,
@@ -491,7 +491,7 @@ int runDoctor(QCoreApplication &app, bool report)
 /// Prints where to support Callie, and opens it unless `print`.
 int runDonate(bool print)
 {
-    const QString url = releases::supportPage().toString();
+    const QString url = greylock::releases::supportPage().toString();
     // Over SSH or without a desktop nothing opens, so the link is always shown.
     if (!print)
         err << (QProcess::startDetached(QStringLiteral("xdg-open"), {url})
@@ -1345,10 +1345,10 @@ int main(int argc, char *argv[])
 
     // Run by UpdateHint, on its own, to learn the latest release.
     if (command == u"update-check" && args.size() == 1) {
-        UpdateCheck check;
+        greylock::UpdateCheck check;
         if (!check.wanted(Settings(Settings::defaultPath()).checkForUpdates()))
             return 0;
-        QObject::connect(&check, &UpdateCheck::checked, &app, &QCoreApplication::quit);
+        QObject::connect(&check, &greylock::UpdateCheck::checked, &app, &QCoreApplication::quit);
         check.check();
         return app.exec();
     }

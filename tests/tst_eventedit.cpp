@@ -8,7 +8,7 @@
 #include "callie/ContactBook.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
-#include "callie/UpdateCheck.h"
+#include "greylock/UpdateCheck.h"
 
 #include <QClipboard>
 #include <QFile>
@@ -502,7 +502,7 @@ void TestEventEdit::buttonsTellTheirShortcuts()
 void TestEventEdit::newerReleaseIsOffered()
 {
     // GitHub said yesterday that 9.9.9 is out.
-    UpdateCheck check(m_dir->filePath(u"latest-release.json"_s));
+    greylock::UpdateCheck check(m_dir->filePath(u"latest-release.json"_s));
     check.setDevel(false);
     {
         QFile file(m_dir->filePath(u"latest-release.json"_s));
