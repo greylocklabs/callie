@@ -66,65 +66,65 @@ appstream-util validate-relax --nonet \
 %{_datadir}/callie/
 
 %changelog
-* Fri Oct 23 2026 Lara Kelley <hello@callieapp.org> - 0.6.1-1
+* Fri Oct 23 2026 Lara Kelley <hello@greylocklabs.org> - 0.6.1-1
 - Update to 0.6.1
 
-* Mon Oct 19 2026 Lara Kelley <hello@callieapp.org> - 0.6.0-1
+* Mon Oct 19 2026 Lara Kelley <hello@greylocklabs.org> - 0.6.0-1
 - Update to 0.6.0
 
-* Sat Oct 17 2026 Lara Kelley <hello@callieapp.org> - 0.5.8-1
+* Sat Oct 17 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.8-1
 - Update to 0.5.8
 
-* Sat Oct 17 2026 Lara Kelley <hello@callieapp.org> - 0.5.7-1
+* Sat Oct 17 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.7-1
 - Update to 0.5.7
 
-* Fri Oct 16 2026 Lara Kelley <hello@callieapp.org> - 0.5.6-1
+* Fri Oct 16 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.6-1
 - Update to 0.5.6
 
-* Fri Oct 16 2026 Lara Kelley <hello@callieapp.org> - 0.5.5-1
+* Fri Oct 16 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.5-1
 - Update to 0.5.5
 
-* Fri Oct 16 2026 Lara Kelley <hello@callieapp.org> - 0.5.4-1
+* Fri Oct 16 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.4-1
 - Update to 0.5.4
 
-* Thu Oct 15 2026 Lara Kelley <hello@callieapp.org> - 0.5.3-1
+* Thu Oct 15 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.3-1
 - Update to 0.5.3
 
-* Thu Oct 15 2026 Lara Kelley <larakelley@higharc.ai> - 0.5.2-1
+* Thu Oct 15 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.2-1
 - Update to 0.5.2
 
-* Wed Oct 14 2026 Lara Kelley <larakelley@higharc.ai> - 0.5.1-1
+* Wed Oct 14 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.1-1
 - Update to 0.5.1
 
-* Wed Oct 14 2026 Lara Kelley <larakelley@higharc.ai> - 0.5.0-1
+* Wed Oct 14 2026 Lara Kelley <hello@greylocklabs.org> - 0.5.0-1
 - Update to 0.5.0
 
-* Tue Oct 13 2026 Lara Kelley <larakelley@higharc.ai> - 0.4.1-1
+* Tue Oct 13 2026 Lara Kelley <hello@greylocklabs.org> - 0.4.1-1
 - Update to 0.4.1
 
-* Mon Oct 12 2026 Lara Kelley <larakelley@higharc.ai> - 0.4.0-1
+* Mon Oct 12 2026 Lara Kelley <hello@greylocklabs.org> - 0.4.0-1
 - Update to 0.4.0
 
-* Mon Oct 12 2026 Lara Kelley <larakelley@higharc.ai> - 0.3.2-1
+* Mon Oct 12 2026 Lara Kelley <hello@greylocklabs.org> - 0.3.2-1
 - Update to 0.3.2
 
-* Mon Oct 12 2026 Lara Kelley <larakelley@higharc.ai> - 0.3.1-1
+* Mon Oct 12 2026 Lara Kelley <hello@greylocklabs.org> - 0.3.1-1
 - Update to 0.3.1
 
-* Sun Oct 11 2026 Lara Kelley <larakelley@higharc.ai> - 0.3.0-1
+* Sun Oct 11 2026 Lara Kelley <hello@greylocklabs.org> - 0.3.0-1
 - Update to 0.3.0
 
-* Sun Oct 11 2026 Lara Kelley <larakelley@higharc.ai> - 0.2.3-1
+* Sun Oct 11 2026 Lara Kelley <hello@greylocklabs.org> - 0.2.3-1
 - Update to 0.2.3
 
-* Sat Oct 10 2026 Lara Kelley <larakelley@higharc.ai> - 0.2.2-1
+* Sat Oct 10 2026 Lara Kelley <hello@greylocklabs.org> - 0.2.2-1
 - Update to 0.2.2
 
-* Fri Oct 09 2026 Lara Kelley <larakelley@higharc.ai> - 0.2.1-1
+* Fri Oct 09 2026 Lara Kelley <hello@greylocklabs.org> - 0.2.1-1
 - Update to 0.2.1
 
-* Fri Oct 09 2026 Lara Kelley <larakelley@higharc.ai> - 0.2.0-1
+* Fri Oct 09 2026 Lara Kelley <hello@greylocklabs.org> - 0.2.0-1
 - Update to 0.2.0
 
-* Sat Sep 05 2026 Lara Kelley <larakelley@higharc.ai> - 0.1.0-1
+* Sat Sep 05 2026 Lara Kelley <hello@greylocklabs.org> - 0.1.0-1
 - Initial package
