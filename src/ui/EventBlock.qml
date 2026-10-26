@@ -145,6 +145,9 @@ Rectangle {
         }
         spacing: 1
         clip: true
+        // Shorter than the smallest text, a block shows no half-cut letters; hovering or opening it
+        // still names the event.
+        visible: root.height >= Theme.textXs
 
         // A short block has room for one line: the title, then the start time while it fits.
         Row {
