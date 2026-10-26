@@ -555,16 +555,12 @@ Item {
                         const gap = Math.max(Theme.stickerEdge + 1, Math.min(Theme.space2
                                                                              + Theme.stickerEdge,
                                                                              pixels / 4))
-                        const own = pixels - gap + stretchHeight
-                        // One small line fits, so it keeps its own size, and a run of short events
-                        // all match.
-                        if (own >= Theme.minLineHeight)
-                            return own
                         // Too short to read, a block grows toward the shortest readable height,
                         // but never into the block below it, so events sit flush as their times do.
                         const room = roomMinutes < 0 ? Infinity : roomMinutes / 60 * root.hourHeight
                                                        - gap
-                        return Math.max(own, Math.min(Theme.minEventHeight, room))
+                        return Math.max(pixels - gap + stretchHeight, Math.min(Theme.minEventHeight,
+                                                                               room))
                     }
 
                     onActivated: root.showDetails(block)

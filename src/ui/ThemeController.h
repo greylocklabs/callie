@@ -128,10 +128,8 @@ class ThemeController : public QObject
     Q_PROPERTY(int resizeBorder READ resizeBorder CONSTANT)
     /// How many ordinary columns' width today takes when it is given more room.
     Q_PROPERTY(qreal todayShare READ todayShare CONSTANT)
-    /// What a block too short to read grows toward, room allowing, so its title shows.
+    /// The shortest an event block is drawn, so its title stays readable.
     Q_PROPERTY(int minEventHeight READ minEventHeight CONSTANT)
-    /// One line of the smallest text, the least a block is drawn at its own size.
-    Q_PROPERTY(int minLineHeight READ minLineHeight CONSTANT)
     /// How far an event steps in over the earlier events it overlaps.
     Q_PROPERTY(int cascadeIndent READ cascadeIndent CONSTANT)
     /// How far the logo sits above centre, so its face, not its ears, lines up
@@ -263,7 +261,6 @@ public:
     int resizeBorder() const { return 6; }
     qreal fadedOpacity() const { return 0.5; }
     int minEventHeight() const { return 20; }
-    int minLineHeight() const { return 14; }
     int cascadeIndent() const { return 14; }
     qreal fineGlyphStroke() const { return 1.6; }
     int logoLift() const { return 1; }
