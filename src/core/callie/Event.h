@@ -98,6 +98,9 @@ public:
     int depth = 0;
     int lane = 0;
     int laneCount = 1;
+    /// Minutes from the start until the next event that would sit under this one begins, which a
+    /// block drawn taller than its event may grow into; -1 when nothing follows.
+    int roomMinutes = -1;
 
     [[nodiscard]] bool isValid() const { return !uid.isEmpty() && start.isValid(); }
 };
