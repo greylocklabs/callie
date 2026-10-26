@@ -128,8 +128,7 @@ class ThemeController : public QObject
     Q_PROPERTY(int resizeBorder READ resizeBorder CONSTANT)
     /// How many ordinary columns' width today takes when it is given more room.
     Q_PROPERTY(qreal todayShare READ todayShare CONSTANT)
-    /// The shortest an event block is drawn, so its title stays readable, and
-    /// how many minutes of the grid that covers at the shortest hour.
+    /// The shortest an event block is drawn, so its title stays readable.
     Q_PROPERTY(int minEventHeight READ minEventHeight CONSTANT)
     /// How far an event steps in over the earlier events it overlaps.
     Q_PROPERTY(int cascadeIndent READ cascadeIndent CONSTANT)
