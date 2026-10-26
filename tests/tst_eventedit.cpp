@@ -11,6 +11,7 @@
 #include "greylock/UpdateCheck.h"
 
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QFile>
 #include <QGuiApplication>
 #include <QJsonDocument>
@@ -20,7 +21,9 @@
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QRegularExpression>
+#include <QScopeGuard>
 #include <QSignalSpy>
+#include <QStyleHints>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtQml/qqmlextensionplugin.h>
@@ -36,6 +39,18 @@ using namespace Qt::StringLiterals;
 namespace {
 
 /// SampleSource that also notes how widely each change was asked to apply.
+/// Takes the links the app opens, so a test sees them and no browser starts.
+class OpenedLinks : public QObject
+{
+    Q_OBJECT
+
+public:
+    QList<QUrl> links;
+
+public Q_SLOTS:
+    void open(const QUrl &url) { links.append(url); }
+};
+
 class RecordingSource : public SampleSource
 {
 public:
@@ -127,6 +142,7 @@ private Q_SLOTS:
     void developerModeShowsIds();
     void cardTextCanBeSelectedAndCopied();
     void longNotesScrollInTheCard();
+    void linksOpenOnOneClickOnly();
     void customRepeatsAreWritten();
     void detachedOccurrencesChangeAlone();
 
@@ -852,6 +868,36 @@ void TestEventEdit::cardTextCanBeSelectedAndCopied()
     QVERIFY(title->isVisible());
     QTest::keyClick(m_window, Qt::Key_Escape);
     QTRY_VERIFY(!find(m_window->contentItem(), "SelectableText", "text", u"Dentist"_s));
+}
+
+void TestEventEdit::linksOpenOnOneClickOnly()
+{
+    OpenedLinks opened;
+    for (const QString &scheme : {u"https"_s, u"http"_s, u"geo"_s})
+        QDesktopServices::setUrlHandler(scheme, &opened, "open");
+    const auto unset = qScopeGuard([] {
+        for (const QString &scheme : {u"https"_s, u"http"_s, u"geo"_s})
+            QDesktopServices::unsetUrlHandler(scheme);
+    });
+    QQuickItem *block = nullptr;
+    QTRY_VERIFY((block = find(m_window->contentItem(), "EventBlock", "summary", u"Dentist"_s)));
+    QTest::qWait(300);
+    click(m_window, block);
+    QQuickItem *where = nullptr;
+    QTRY_VERIFY((where = find(m_window->contentItem(), "SelectableText", "text", u"Clinic"_s)));
+    QTest::qWait(300);
+
+    // One click opens the place once the double-click time has passed.
+    click(m_window, where);
+    QTRY_COMPARE(opened.links.size(), 1);
+
+    // A double click selects the word instead, and opens nothing.
+    const QPoint middle =
+        where->mapToScene(QPointF(where->width() / 4, where->height() / 2)).toPoint();
+    QTest::mouseDClick(m_window, Qt::LeftButton, {}, middle);
+    QTRY_COMPARE(where->property("selectedText").toString(), u"Clinic"_s);
+    QTest::qWait(QGuiApplication::styleHints()->mouseDoubleClickInterval() * 2);
+    QCOMPARE(opened.links.size(), 1);
 }
 
 void TestEventEdit::longNotesScrollInTheCard()

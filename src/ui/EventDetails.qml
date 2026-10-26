@@ -789,6 +789,7 @@ Popup {
         }
         // All of it, however long: the card scrolls instead.
         SelectableText {
+            id: valueText
             width: detail.width - 64 - detail.spacing
             text: detail.value
             color: detail.linked ? Theme.accent : Theme.text
@@ -804,9 +805,20 @@ Popup {
                 enabled: detail.linked
                 cursorShape: Qt.PointingHandCursor
             }
+            // A double click selects a word instead, so the link opens only once the clicks turn
+            // out to be a single one that selected nothing.
             TapHandler {
+                id: linkTap
                 enabled: detail.linked
-                onTapped: detail.activated()
+                onTapped: linkTap.tapCount === 1 ? opening.restart() : opening.stop()
+            }
+            Timer {
+                id: opening
+                interval: Application.styleHints.mouseDoubleClickInterval
+                onTriggered: {
+                    if (valueText.selectedText === "")
+                        detail.activated()
+                }
             }
         }
     }
