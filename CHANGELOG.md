@@ -3,6 +3,14 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- Short events in the week and day views are tidier: a run of them back to back, such as two
+  15-minute tasks, are drawn the same size with an even gap between them, the title is centered,
+  and the start time shows beside it when there is room.
+
 ## 0.6.2 - 2026-10-25
 
 ### Fixed
