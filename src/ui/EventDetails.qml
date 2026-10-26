@@ -208,332 +208,356 @@ Popup {
         }
     }
 
-    contentItem: Column {
-        // The form, in place of everything else while editing.
-        Column {
-            visible: root.editing
-            width: root.width
-            padding: Theme.space5
+    // Scrolls, by the wheel or its bar, when the notes or guests make the card taller than the
+    // window. Dragging is left to selecting text.
+    contentItem: Flickable {
+        id: scroller
 
-            EventEditor {
-                id: editor
-                width: parent.width - 2 * parent.padding
-                actions: actions
-                onFinished: saved => {
-                    root.editing = false
-                    if (saved)
-                        root.close()
-                }
-            }
+        implicitWidth: content.implicitWidth
+        implicitHeight: content.implicitHeight
+        contentWidth: width
+        contentHeight: content.height
+        clip: true
+        interactive: false
+        boundsBehavior: Flickable.StopAtBounds
+
+        ScrollBar.vertical: ScrollBar {
+            policy: scroller.contentHeight > scroller.height ? ScrollBar.AsNeeded :
+                                                               ScrollBar.AlwaysOff
+        }
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: event => scroller.contentY = Math.max(0, Math.min(scroller.contentHeight
+                                                                       - scroller.height,
+                                                                       scroller.contentY
+                                                                       - event.angleDelta.y / 2))
         }
 
-        // Header: the event's own colors.
-        Rectangle {
-            visible: !root.editing
-            width: root.width
-            height: header.implicitHeight + 2 * Theme.space4
-            topLeftRadius: Theme.radiusXl
-            topRightRadius: Theme.radiusXl
-            color: root.fill
+        Column {
+            id: content
 
-            Row {
-                id: header
-                anchors {
-                    left: parent.left
-                    right: parent.right
-                    verticalCenter: parent.verticalCenter
-                    leftMargin: Theme.space5
-                    rightMargin: Theme.space4
-                }
-                spacing: Theme.space3
+            // The form, in place of everything else while editing.
+            Column {
+                visible: root.editing
+                width: root.width
+                padding: Theme.space5
 
-                Column {
-                    width: header.width - closeButton.width - header.spacing
-                    spacing: Theme.space1
-
-                    Text {
-                        width: parent.width
-                        text: root.summary
-                        textFormat: Text.PlainText
-                        wrapMode: Text.Wrap
-                        maximumLineCount: 3
-                        elide: Text.ElideRight
-                        color: root.ink
-                        font.family: Theme.displayFontFamily
-                        font.pixelSize: Theme.textXl
-                        font.weight: Theme.weightBold
-                    }
-                    Text {
-                        width: parent.width
-                        text: root.when
-                        wrapMode: Text.Wrap
-                        color: root.ink
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textMd
-                        font.weight: Theme.weightBold
+                EventEditor {
+                    id: editor
+                    width: parent.width - 2 * parent.padding
+                    actions: actions
+                    onFinished: saved => {
+                        root.editing = false
+                        if (saved)
+                            root.close()
                     }
                 }
+            }
 
-                AbstractButton {
-                    id: closeButton
-                    width: 30
-                    height: 30
-                    Accessible.name: qsTr("Close")
-                    onClicked: root.close()
+            // Header: the event's own colors.
+            Rectangle {
+                visible: !root.editing
+                width: root.width
+                height: header.implicitHeight + 2 * Theme.space4
+                topLeftRadius: Theme.radiusXl
+                topRightRadius: Theme.radiusXl
+                color: root.fill
 
-                    HoverHandler {
-                        cursorShape: Qt.PointingHandCursor
+                Row {
+                    id: header
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        verticalCenter: parent.verticalCenter
+                        leftMargin: Theme.space5
+                        rightMargin: Theme.space4
                     }
+                    spacing: Theme.space3
 
-                    background: Rectangle {
-                        radius: Theme.radiusSm
-                        color: closeButton.hovered ? Theme.tint(root.ink, 0.12) : "transparent"
-                    }
-                    contentItem: Item {
-                        Glyph {
-                            anchors.centerIn: parent
-                            width: 12
-                            height: 12
-                            stroke: 1.8
-                            name: "close"
+                    Column {
+                        width: header.width - closeButton.width - header.spacing
+                        spacing: Theme.space1
+
+                        SelectableText {
+                            width: parent.width
+                            text: root.summary
                             color: root.ink
+                            font.family: Theme.displayFontFamily
+                            font.pixelSize: Theme.textXl
+                            font.weight: Theme.weightBold
+                        }
+                        SelectableText {
+                            width: parent.width
+                            text: root.when
+                            color: root.ink
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightBold
+                        }
+                    }
+
+                    AbstractButton {
+                        id: closeButton
+                        width: 30
+                        height: 30
+                        Accessible.name: qsTr("Close")
+                        onClicked: root.close()
+
+                        HoverHandler {
+                            cursorShape: Qt.PointingHandCursor
+                        }
+
+                        background: Rectangle {
+                            radius: Theme.radiusSm
+                            color: closeButton.hovered ? Theme.tint(root.ink, 0.12) : "transparent"
+                        }
+                        contentItem: Item {
+                            Glyph {
+                                anchors.centerIn: parent
+                                width: 12
+                                height: 12
+                                stroke: 1.8
+                                name: "close"
+                                color: root.ink
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // The user's answer, right under the header, when they were invited.
-        Rectangle {
-            visible: root.event.canRespond === true && !root.editing
-            width: root.width
-            height: answers.implicitHeight + 2 * Theme.space3
-            color: Theme.surfaceAlt
+            // The user's answer, right under the header, when they were invited.
+            Rectangle {
+                visible: root.event.canRespond === true && !root.editing
+                width: root.width
+                height: answers.implicitHeight + 2 * Theme.space3
+                color: Theme.surfaceAlt
 
-            Row {
-                id: answers
-                anchors {
-                    left: parent.left
-                    leftMargin: Theme.space5
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: Theme.space2
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    rightPadding: Theme.space2
-                    text: qsTr("Going?")
-                    color: Theme.textMuted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textSm
-                    font.weight: Theme.weightHeavy
-                }
-                Repeater {
-                    model: [
-                        {
-                            "status": "accepted",
-                            "label": qsTr("Yes")
-                        },
-                        {
-                            "status": "tentative",
-                            "label": qsTr("Maybe")
-                        },
-                        {
-                            "status": "declined",
-                            "label": qsTr("No")
-                        }
-                    ]
-
-                    PillButton {
-                        id: answer
-                        required property var modelData
-                        label: answer.modelData.label
-                        selected: root.response === answer.modelData.status
-                        hoverColor: Theme.answerHover
-                        enabled: !actions.busy
-                        onClicked: root.act(answer.modelData.status)
+                Row {
+                    id: answers
+                    anchors {
+                        left: parent.left
+                        leftMargin: Theme.space5
+                        verticalCenter: parent.verticalCenter
                     }
-                }
-            }
-        }
-
-        Column {
-            visible: !root.editing
-            width: root.width
-            padding: Theme.space5
-            spacing: Theme.space4
-
-            StickerButton {
-                visible: root.hasCall
-                width: parent.width - 2 * parent.padding
-                height: 40
-                accent: true
-                glyph: "video"
-                glyphStroke: Theme.fineGlyphStroke
-                text: root.callName
-                onClicked: Qt.openUrlExternally(root.joinUrl)
-            }
-
-            // A place opens in the map app chosen in Settings.
-            Detail {
-                width: parent.width - 2 * parent.padding
-                label: qsTr("Where")
-                value: root.location
-                linked: true
-                onActivated: {
-                    if (!Qt.openUrlExternally(actions.mapUrl(Settings.mapApp, root.location)))
-                        Qt.openUrlExternally(actions.mapUrl("osm", root.location))
-                }
-            }
-            Detail {
-                width: parent.width - 2 * parent.padding
-                label: qsTr("Calendar")
-                value: root.calendarName
-            }
-            Guests {
-                width: parent.width - 2 * parent.padding
-                guests: root.event.guests || []
-                ownResponse: root.response
-            }
-            Detail {
-                width: parent.width - 2 * parent.padding
-                label: qsTr("Notes")
-                value: root.description
-            }
-
-            // For debugging, with developer mode on: the event's ids and all of it as JSON.
-            Column {
-                visible: Settings.developerMode
-                width: parent.width - 2 * parent.padding
-                spacing: Theme.space2
-
-                IdRow {
-                    width: parent.width
-                    label: qsTr("Event")
-                    value: root.event.eventId || ""
-                }
-                IdRow {
-                    width: parent.width
-                    label: qsTr("Series")
-                    value: root.event.seriesId || ""
-                }
-                IdRow {
-                    width: parent.width
-                    label: qsTr("Calendar")
-                    value: root.event.calendarId || ""
-                }
-                IdRow {
-                    width: parent.width
-                    label: qsTr("UID")
-                    value: root.event.uid || ""
-                }
-                StickerButton {
-                    text: qsTr("Copy as JSON")
-                    onClicked: Support.copyText(JSON.stringify(root.event, null, 2))
-                }
-            }
-
-            // Which occurrences a repeating event's answer or deletion is for.
-            Column {
-                visible: root.pending !== ""
-                width: parent.width - 2 * parent.padding
-                spacing: Theme.space2
-
-                Text {
-                    width: parent.width
-                    wrapMode: Text.Wrap
-                    text: root.pending === "delete" ? qsTr(
-                                                          "Delete this event, or every one in the series?") :
-                                                      qsTr("Answer for this event, or every one in the series?")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textSm
-                    font.weight: Theme.weightBold
-                }
-                Flow {
-                    width: parent.width
                     spacing: Theme.space2
 
-                    // Red when the choice deletes, since it is the confirming click.
-                    StickerButton {
-                        destructive: root.pending === "delete"
-                        armed: destructive
-                        text: qsTr("This event")
-                        onClicked: root.perform(root.pending, false)
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        rightPadding: Theme.space2
+                        text: qsTr("Going?")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                        font.weight: Theme.weightHeavy
                     }
-                    StickerButton {
-                        destructive: root.pending === "delete"
-                        armed: destructive
-                        text: qsTr("All events")
-                        onClicked: root.perform(root.pending, true)
-                    }
-                    StickerButton {
-                        text: qsTr("Cancel")
-                        onClicked: root.pending = ""
+                    Repeater {
+                        model: [
+                            {
+                                "status": "accepted",
+                                "label": qsTr("Yes")
+                            },
+                            {
+                                "status": "tentative",
+                                "label": qsTr("Maybe")
+                            },
+                            {
+                                "status": "declined",
+                                "label": qsTr("No")
+                            }
+                        ]
+
+                        PillButton {
+                            id: answer
+                            required property var modelData
+                            label: answer.modelData.label
+                            selected: root.response === answer.modelData.status
+                            hoverColor: Theme.answerHover
+                            enabled: !actions.busy
+                            onClicked: root.act(answer.modelData.status)
+                        }
                     }
                 }
             }
 
-            Flow {
-                width: parent.width - 2 * parent.padding
-                spacing: Theme.space2
+            Column {
+                visible: !root.editing
+                width: root.width
+                padding: Theme.space5
+                spacing: Theme.space4
 
                 StickerButton {
-                    visible: root.event.canEdit === true
-                    text: qsTr("Edit")
-                    onClicked: {
-                        editor.load(root.event)
-                        root.editing = true
+                    visible: root.hasCall
+                    width: parent.width - 2 * parent.padding
+                    height: 40
+                    accent: true
+                    glyph: "video"
+                    glyphStroke: Theme.fineGlyphStroke
+                    text: root.callName
+                    onClicked: Qt.openUrlExternally(root.joinUrl)
+                }
+
+                // A place opens in the map app chosen in Settings.
+                Detail {
+                    width: parent.width - 2 * parent.padding
+                    label: qsTr("Where")
+                    value: root.location
+                    linked: true
+                    onActivated: {
+                        if (!Qt.openUrlExternally(actions.mapUrl(Settings.mapApp, root.location)))
+                            Qt.openUrlExternally(actions.mapUrl("osm", root.location))
                     }
                 }
-                StickerButton {
-                    text: qsTr("Duplicate")
-                    tip: root.tip(qsTr("Duplicate this event"), "duplicate")
-                    enabled: !actions.busy
-                    onClicked: root.duplicate()
+                Detail {
+                    width: parent.width - 2 * parent.padding
+                    label: qsTr("Calendar")
+                    value: root.calendarName
                 }
-                StickerButton {
-                    visible: (root.event.attendees || []).length > 0
-                    text: qsTr("Email guests")
-                    onClicked: Qt.openUrlExternally(actions.mailGuests(root.event))
+                Guests {
+                    width: parent.width - 2 * parent.padding
+                    guests: root.event.guests || []
+                    ownResponse: root.response
                 }
-                // The event's page on Google Calendar or Outlook on the web.
-                StickerButton {
-                    readonly property string site: actions.webSite(root.webUrl)
+                Detail {
+                    width: parent.width - 2 * parent.padding
+                    label: qsTr("Notes")
+                    value: root.description
+                }
 
-                    visible: site !== ""
-                    text: site === "google" ? qsTr("Open in Google Calendar") : qsTr(
-                                                  "Open in Outlook")
-                    onClicked: Qt.openUrlExternally(root.webUrl)
-                }
-                StickerButton {
-                    text: qsTr("Save as .ics")
-                    onClicked: {
-                        saveDialog.selectedFile = Exporter.suggestedFile(root.summary)
-                        saveDialog.open()
+                // For debugging, with developer mode on: the event's ids and all of it as JSON.
+                Column {
+                    visible: Settings.developerMode
+                    width: parent.width - 2 * parent.padding
+                    spacing: Theme.space2
+
+                    IdRow {
+                        width: parent.width
+                        label: qsTr("Event")
+                        value: root.event.eventId || ""
+                    }
+                    IdRow {
+                        width: parent.width
+                        label: qsTr("Series")
+                        value: root.event.seriesId || ""
+                    }
+                    IdRow {
+                        width: parent.width
+                        label: qsTr("Calendar")
+                        value: root.event.calendarId || ""
+                    }
+                    IdRow {
+                        width: parent.width
+                        label: qsTr("UID")
+                        value: root.event.uid || ""
+                    }
+                    StickerButton {
+                        text: qsTr("Copy as JSON")
+                        onClicked: Support.copyText(JSON.stringify(root.event, null, 2))
                     }
                 }
-                // A one-off event takes a second click to delete; a repeating
-                // one asks which occurrences instead.
-                DangerButton {
-                    id: deleteButton
-                    visible: root.event.canEdit === true
-                    enabled: !actions.busy
-                    label: qsTr("Delete")
-                    armedLabel: qsTr("Click again to delete")
-                    confirms: !root.repeats
-                    onConfirmed: root.repeats ? root.act("delete") : root.perform("delete", false)
-                }
-            }
 
-            Text {
-                visible: actions.error !== "" && actions.errorEventId === root.event.eventId
-                width: parent.width - 2 * parent.padding
-                text: actions.error
-                wrapMode: Text.Wrap
-                color: Theme.danger
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
+                // Which occurrences a repeating event's answer or deletion is for.
+                Column {
+                    visible: root.pending !== ""
+                    width: parent.width - 2 * parent.padding
+                    spacing: Theme.space2
+
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: root.pending === "delete" ? qsTr(
+                                                              "Delete this event, or every one in the series?") :
+                                                          qsTr("Answer for this event, or every one in the series?")
+                        color: Theme.text
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                        font.weight: Theme.weightBold
+                    }
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.space2
+
+                        // Red when the choice deletes, since it is the confirming click.
+                        StickerButton {
+                            destructive: root.pending === "delete"
+                            armed: destructive
+                            text: qsTr("This event")
+                            onClicked: root.perform(root.pending, false)
+                        }
+                        StickerButton {
+                            destructive: root.pending === "delete"
+                            armed: destructive
+                            text: qsTr("All events")
+                            onClicked: root.perform(root.pending, true)
+                        }
+                        StickerButton {
+                            text: qsTr("Cancel")
+                            onClicked: root.pending = ""
+                        }
+                    }
+                }
+
+                Flow {
+                    width: parent.width - 2 * parent.padding
+                    spacing: Theme.space2
+
+                    StickerButton {
+                        visible: root.event.canEdit === true
+                        text: qsTr("Edit")
+                        onClicked: {
+                            editor.load(root.event)
+                            root.editing = true
+                        }
+                    }
+                    StickerButton {
+                        text: qsTr("Duplicate")
+                        tip: root.tip(qsTr("Duplicate this event"), "duplicate")
+                        enabled: !actions.busy
+                        onClicked: root.duplicate()
+                    }
+                    StickerButton {
+                        visible: (root.event.attendees || []).length > 0
+                        text: qsTr("Email guests")
+                        onClicked: Qt.openUrlExternally(actions.mailGuests(root.event))
+                    }
+                    // The event's page on Google Calendar or Outlook on the web.
+                    StickerButton {
+                        readonly property string site: actions.webSite(root.webUrl)
+
+                        visible: site !== ""
+                        text: site === "google" ? qsTr("Open in Google Calendar") : qsTr(
+                                                      "Open in Outlook")
+                        onClicked: Qt.openUrlExternally(root.webUrl)
+                    }
+                    StickerButton {
+                        text: qsTr("Save as .ics")
+                        onClicked: {
+                            saveDialog.selectedFile = Exporter.suggestedFile(root.summary)
+                            saveDialog.open()
+                        }
+                    }
+                    // A one-off event takes a second click to delete; a repeating
+                    // one asks which occurrences instead.
+                    DangerButton {
+                        id: deleteButton
+                        visible: root.event.canEdit === true
+                        enabled: !actions.busy
+                        label: qsTr("Delete")
+                        armedLabel: qsTr("Click again to delete")
+                        confirms: !root.repeats
+                        onConfirmed: root.repeats ? root.act("delete") : root.perform("delete",
+                                                                                      false)
+                    }
+                }
+
+                Text {
+                    visible: actions.error !== "" && actions.errorEventId === root.event.eventId
+                    width: parent.width - 2 * parent.padding
+                    text: actions.error
+                    wrapMode: Text.Wrap
+                    color: Theme.danger
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textSm
+                }
             }
         }
     }
@@ -624,7 +648,7 @@ Popup {
                         anchors.verticalCenter: parent.verticalCenter
                         answer: guestRow.answer
                     }
-                    Text {
+                    SelectableText {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - Theme.textBase - parent.spacing
                         text: {
@@ -634,8 +658,6 @@ Popup {
                             return guestRow.modelData.organizer ? qsTr("%1, organizer").arg(name) :
                                                                   name
                         }
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
                         color: guestRow.answer === "declined" ? Theme.textFaint : Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textMd
@@ -726,12 +748,11 @@ Popup {
             font.pixelSize: Theme.textSm
             font.weight: Theme.weightHeavy
         }
-        Text {
+        SelectableText {
             anchors.verticalCenter: parent.verticalCenter
             width: idRow.width - 64 - copy.width - 2 * idRow.spacing
             text: idRow.value
-            textFormat: Text.PlainText
-            elide: Text.ElideMiddle
+            wrapMode: TextEdit.WrapAnywhere
             color: Theme.textMuted
             font.family: Theme.monoFontFamily
             font.pixelSize: Theme.textXs
@@ -766,13 +787,10 @@ Popup {
             font.pixelSize: Theme.textSm
             font.weight: Theme.weightHeavy
         }
-        Text {
+        // All of it, however long: the card scrolls instead.
+        SelectableText {
             width: detail.width - 64 - detail.spacing
             text: detail.value
-            wrapMode: Text.Wrap
-            maximumLineCount: 8
-            elide: Text.ElideRight
-            textFormat: Text.PlainText
             color: detail.linked ? Theme.accent : Theme.text
             font.family: Theme.fontFamily
             font.pixelSize: Theme.textMd

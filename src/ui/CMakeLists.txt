@@ -69,6 +69,7 @@ qt_add_qml_module(callieui
         EventBlock.qml
         EventTip.qml
         EventDetails.qml
+        SelectableText.qml
         SoftShadow.qml
         Stripes.qml
         CalendarMark.qml

@@ -125,6 +125,8 @@ private Q_SLOTS:
     void callsInNotesJoinWithoutAVideoCall();
     void trayAsksWhichOccurrences();
     void developerModeShowsIds();
+    void cardTextCanBeSelectedAndCopied();
+    void longNotesScrollInTheCard();
     void customRepeatsAreWritten();
     void detachedOccurrencesChangeAlone();
 
@@ -817,7 +819,7 @@ void TestEventEdit::developerModeShowsIds()
     m_settings->setDeveloperMode(true);
     QQuickItem *json = nullptr;
     QTRY_VERIFY((json = find(m_window->contentItem(), "StickerButton", "text", u"Copy as JSON"_s)));
-    QVERIFY(find(m_window->contentItem(), "QQuickText", "text", u"sample-3-16-0-2026-10-07"_s));
+    QVERIFY(find(m_window->contentItem(), "SelectableText", "text", u"sample-3-16-0-2026-10-07"_s));
     QTest::qWait(300);
     click(m_window, json);
     // A slow machine can still be handling the click when the clipboard is read.
@@ -826,6 +828,58 @@ void TestEventEdit::developerModeShowsIds()
     };
     QTRY_COMPARE(copied()[u"summary"].toString(), u"Dentist"_s);
     QCOMPARE(copied()[u"eventId"].toString(), u"sample-3-16-0-2026-10-07"_s);
+}
+
+void TestEventEdit::cardTextCanBeSelectedAndCopied()
+{
+    QQuickItem *block = nullptr;
+    QTRY_VERIFY((block = find(m_window->contentItem(), "EventBlock", "summary", u"Dentist"_s)));
+    QTest::qWait(300);
+    click(m_window, block);
+    QQuickItem *title = nullptr;
+    QTRY_VERIFY((title = find(m_window->contentItem(), "SelectableText", "text", u"Dentist"_s)));
+
+    // Part of the title, selected and copied, rather than the whole event.
+    QGuiApplication::clipboard()->clear();
+    title->forceActiveFocus();
+    QVERIFY(QMetaObject::invokeMethod(title, "select", Q_ARG(int, 0), Q_ARG(int, 4)));
+    QTest::keySequence(m_window, QKeySequence::Copy);
+    QTRY_COMPARE(QGuiApplication::clipboard()->text(), u"Dent"_s);
+
+    // Escape clears the selection first, and only then closes the card.
+    QTest::keyClick(m_window, Qt::Key_Escape);
+    QTRY_COMPARE(title->property("selectedText").toString(), QString());
+    QVERIFY(title->isVisible());
+    QTest::keyClick(m_window, Qt::Key_Escape);
+    QTRY_VERIFY(!find(m_window->contentItem(), "SelectableText", "text", u"Dentist"_s));
+}
+
+void TestEventEdit::longNotesScrollInTheCard()
+{
+    QQuickItem *block = nullptr;
+    QTRY_VERIFY((block = find(m_window->contentItem(), "EventBlock", "summary", u"Dentist"_s)));
+    QTest::qWait(300);
+    click(m_window, block);
+    QQuickItem *title = nullptr;
+    QTRY_VERIFY((title = find(m_window->contentItem(), "SelectableText", "text", u"Dentist"_s)));
+    QQuickItem *scroller = title;
+    while (scroller &&
+           !QString::fromLatin1(scroller->metaObject()->className()).startsWith("QQuickFlickable"))
+        scroller = scroller->parentItem();
+    QVERIFY(scroller);
+    QObject *card = scroller->parent();
+    while (card && !card->property("description").isValid())
+        card = card->parent();
+    QVERIFY(card);
+
+    // Notes far taller than the window are shown whole, and the card scrolls to them.
+    QStringList lines;
+    for (int i = 1; i <= 200; ++i)
+        lines << u"Line %1 of the notes"_s.arg(i);
+    card->setProperty("description", lines.join(u'\n'));
+    QTRY_VERIFY(find(m_window->contentItem(), "SelectableText", "text", lines.join(u'\n')));
+    QTRY_VERIFY(scroller->property("contentHeight").toReal() > scroller->height());
+    QVERIFY(scroller->height() <= m_window->height());
 }
 
 void TestEventEdit::detachedOccurrencesChangeAlone()
