@@ -551,10 +551,11 @@ Item {
                     height: {
                         const pixels = durationMinutes / 60 * root.hourHeight
                         // A clear gap under each, so back-to-back events read as two; a short one
-                        // keeps at least room for its sticker edge and a pixel of the grid.
-                        const gap = Math.max(Theme.stickerEdge + 1, Math.min(Theme.space2
-                                                                             + Theme.stickerEdge,
-                                                                             pixels / 4))
+                        // keeps room for its sticker edge and a pixel of the grid, though never
+                        // more than half of the event.
+                        const wanted = Math.max(Theme.stickerEdge + 1, Math.min(Theme.space2 + Theme.stickerEdge,
+                                                                                pixels / 4))
+                        const gap = Math.min(wanted, pixels / 2)
                         // Too short to read, a block grows toward the shortest readable height,
                         // but never into the block below it, so events sit flush as their times do.
                         const room = roomMinutes < 0 ? Infinity : roomMinutes / 60 * root.hourHeight
