@@ -284,10 +284,11 @@ void TestEventModel::backToBackShortEventsShareALane()
         QCOMPARE(intRole(*model, row, EventModel::LaneCountRole), 1);
         QCOMPARE(intRole(*model, row, EventModel::DepthRole), 0);
     }
-    // Each block may grow only until the next begins; the last has nothing under it.
+    // Each block may grow only until the next begins, and the last, following on from the others,
+    // no further than its own end, so the run is drawn evenly.
     QCOMPARE(intRole(*model, 0, EventModel::RoomMinutesRole), 5);
     QCOMPARE(intRole(*model, 1, EventModel::RoomMinutesRole), 5);
-    QCOMPARE(intRole(*model, 2, EventModel::RoomMinutesRole), -1);
+    QCOMPARE(intRole(*model, 2, EventModel::RoomMinutesRole), 5);
 }
 
 void TestEventModel::roomStopsAtTheBlockBelow()

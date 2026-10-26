@@ -300,6 +300,17 @@ void EventModel::assignLanes(QList<Event> &events) const
                     break;
                 }
             }
+            // One that follows straight on from the block above it keeps to its own slot, so no
+            // block in a run of back-to-back events grows past the others.
+            for (qsizetype j = 0; j < i; ++j) {
+                const Event *above = day[j];
+                if (above->end == e->start &&
+                    (above->lane == e->lane || clusterOf.value(above) != clusterOf.value(e))) {
+                    const int own = int(e->start.secsTo(e->end) / 60);
+                    e->roomMinutes = e->roomMinutes < 0 ? own : std::min(e->roomMinutes, own);
+                    break;
+                }
+            }
         }
     }
 }
