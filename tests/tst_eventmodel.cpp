@@ -114,6 +114,7 @@ private Q_SLOTS:
     void laterEventsStackOnOneColumn();
     void backToBackShortEventsShareALane();
     void roomStopsAtTheBlockBelow();
+    void aBlockFollowingOnKeepsToItsOwnSlot();
     void workPlacesLabelTheirDays();
     void clustersAreCountedIndependently();
     void differentDaysDoNotShareLanes();
@@ -314,6 +315,35 @@ void TestEventModel::roomStopsAtTheBlockBelow()
     QCOMPARE(intRole(*model, rowOf("check"), EventModel::RoomMinutesRole), 30);
     QCOMPARE(intRole(*model, rowOf("call"), EventModel::RoomMinutesRole), 135);
     QCOMPARE(intRole(*model, rowOf("review"), EventModel::RoomMinutesRole), 180);
+}
+
+void TestEventModel::aBlockFollowingOnKeepsToItsOwnSlot()
+{
+    // A short event straight after a long one, and one straight after a cluster whose latest event
+    // sits in the other column, may not grow past their own ends; so they match the run they
+    // belong to.
+    auto [model, source] = modelFor({
+        timed("class", kMonday, 8, 0, 60),
+        timed("notes", kMonday, 9, 0, 15),
+        timed("check", kMonday, 10, 0, 30),
+        timed("call", kMonday, 10, 15, 45),
+        timed("reply", kMonday, 11, 0, 15),
+    });
+    const auto rowOf = [&](const char *uid) {
+        for (int row = 0; row < model->rowCount(); ++row) {
+            if (model->data(model->index(row), EventModel::UidRole).toString() ==
+                QLatin1StringView(uid))
+                return row;
+        }
+        return -1;
+    };
+    QCOMPARE(intRole(*model, rowOf("notes"), EventModel::RoomMinutesRole), 15);
+    // The call, in the second column, ends as the reply begins in the first.
+    QCOMPARE(intRole(*model, rowOf("call"), EventModel::LaneRole), 1);
+    QCOMPARE(intRole(*model, rowOf("reply"), EventModel::LaneRole), 0);
+    QCOMPARE(intRole(*model, rowOf("reply"), EventModel::RoomMinutesRole), 15);
+    // Nothing follows on to the first of each, so it keeps the room to the next block.
+    QCOMPARE(intRole(*model, rowOf("class"), EventModel::RoomMinutesRole), 60);
 }
 
 void TestEventModel::workPlacesLabelTheirDays()
