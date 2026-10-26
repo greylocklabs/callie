@@ -73,6 +73,8 @@ Rectangle {
     }
 
     readonly property bool compact: height < 34
+    /// Too short for the title at its usual size.
+    readonly property bool tiny: height < Theme.minEventHeight
     readonly property bool hovered: hover.hovered
     readonly property bool pending: response === "needsAction"
     readonly property color fill: Theme.calendarColor(calendarColor, Theme.calendar)
@@ -138,21 +140,45 @@ Rectangle {
             fill: parent
             leftMargin: Theme.space3 + 1
             rightMargin: Theme.space3
-            topMargin: root.compact ? 2 : Theme.space2
+            // Centered in a short block, so the line sits evenly between its edges.
+            topMargin: root.compact ? Math.max(0, (root.height - title.height) / 2) : Theme.space2
         }
         spacing: 1
         clip: true
 
-        Text {
+        // A short block has room for one line: the title, then the start time while it fits.
+        Row {
             width: parent.width
-            text: root.summary
-            textFormat: Text.PlainText
-            color: root.ink
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.textSm
-            font.weight: Theme.weightHeavy
-            font.strikeout: root.declined
-            elide: Text.ElideRight
+            spacing: Theme.space2
+
+            Text {
+                id: title
+                width: Math.min(implicitWidth, parent.width - (startTime.visible
+                                                               ? startTime.implicitWidth
+                                                                 + parent.spacing : 0))
+                text: root.summary
+                textFormat: Text.PlainText
+                color: root.ink
+                font.family: Theme.fontFamily
+                font.pixelSize: root.tiny ? Theme.textXs : Theme.textSm
+                font.weight: Theme.weightHeavy
+                font.strikeout: root.declined
+                elide: Text.ElideRight
+            }
+
+            Text {
+                id: startTime
+                anchors.baseline: title.baseline
+                visible: root.compact && parent.width - title.implicitWidth >= implicitWidth
+                         + parent.spacing
+                text: Settings.times.time(Settings.times.shifted(root.start, root.dayShift,
+                                                                 root.minuteShift))
+                textFormat: Text.PlainText
+                color: root.ink
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textXs
+                font.weight: Theme.weightStrong
+            }
         }
 
         Text {

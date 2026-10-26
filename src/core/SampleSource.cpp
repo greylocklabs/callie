@@ -22,11 +22,13 @@ struct Seed
     int calendar; // index into m_calendars
 };
 
-// A week that exercises the layout: back-to-back meetings, a three-way
-// overlap on Wednesday, an early call, and a long focus block.
+// A week that exercises the layout: back-to-back meetings, short tasks, a
+// three-way overlap on Wednesday, an early call, and a long focus block.
 // clang-format off: the columns are aligned on purpose, so the table stays readable.
 constexpr Seed kSeeds[] = {
     { Qt::Monday,    9, 30,  30, "Standup",                  "",            "https://zoom.us/j/1112223334", 0 },
+    { Qt::Monday,   10,  0,  15, "Order coffee beans",       "",            "",                             2 },
+    { Qt::Monday,   10, 15,  15, "Expense report",           "",            "",                             0 },
     { Qt::Monday,   11,  0,  60, "1:1 with Priya",           "",            "https://zoom.us/j/9998887776", 0 },
     { Qt::Monday,   14,  0, 120, "Focus: sync engine",       "",            "",                             1 },
     { Qt::Tuesday,   8,  0,  45, "Berlin sync",              "",            "https://meet.google.com/abc-defg-hij", 0 },
