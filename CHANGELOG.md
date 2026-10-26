@@ -10,6 +10,9 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - An event's title, time, details, guests and notes can be selected and copied from its card:
   drag or double-click, then Ctrl+C, or right-click for Copy. Long notes show in full, and the card
   scrolls when they make it taller than the window.
+- Short events back to back, such as 11:45 to 12:00 and then 12:00 to 12:15, sit one above the
+  other at full width, as their times do, rather than side by side. Events only share the width
+  when their times overlap.
 
 ## 0.6.1 - 2026-10-23
 

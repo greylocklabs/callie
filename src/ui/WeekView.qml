@@ -56,8 +56,6 @@ Item {
     readonly property real workHours: (Settings.workEnd - Settings.workStart) / 60
     readonly property real shownHours: Math.max(Theme.fitHours, workHours) + 2 * Theme.fitMargin
                                        / 60
-    /// The shortest an event is drawn, in minutes, at that height.
-    readonly property int shortestMinutes: Theme.eventMinutes(hourHeight)
 
     function columnX(i) {
         let x = Theme.gutterWidth
@@ -534,6 +532,7 @@ Item {
                     required property int durationMinutes
                     required property int lane
                     required property int laneCount
+                    required property int roomMinutes
                     required property bool allDay
 
                     readonly property real columnInner: root.columnWidth(dayIndex) - 6
@@ -549,9 +548,18 @@ Item {
                     x: root.columnX(dayIndex) + 3 + lane * laneWidth + indent
                     width: laneWidth - indent - (laneCount > 1 ? 3 : 0)
                     y: startMinutes / 60 * root.hourHeight
-                    // A clear gap under each, so back-to-back events read as two.
-                    height: Math.max(Theme.minEventHeight, durationMinutes / 60 * root.hourHeight
-                                     - Theme.space2 - Theme.stickerEdge + stretchHeight)
+                    height: {
+                        const pixels = durationMinutes / 60 * root.hourHeight
+                        // A clear gap under each, so back-to-back events read as two; a short one
+                        // keeps a sliver of it.
+                        const gap = Math.min(Theme.space2 + Theme.stickerEdge, pixels / 4)
+                        // Too short to read, a block grows toward the shortest readable height,
+                        // but never into the block below it, so events sit flush as their times do.
+                        const room = roomMinutes < 0 ? Infinity : roomMinutes / 60 * root.hourHeight
+                                                       - gap
+                        return Math.max(pixels - gap + stretchHeight, Math.min(Theme.minEventHeight,
+                                                                               room))
+                    }
 
                     onActivated: root.showDetails(block)
                     onHoveredChanged: root.blockHovered(block, hovered)
