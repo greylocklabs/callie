@@ -3,6 +3,14 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- An event's title, time, details, guests and notes can be selected and copied from its card:
+  drag or double-click, then Ctrl+C, or right-click for Copy. Long notes show in full, and the card
+  scrolls when they make it taller than the window.
+
 ## 0.6.1 - 2026-10-23
 
 ### Added
