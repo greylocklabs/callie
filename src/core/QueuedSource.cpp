@@ -383,7 +383,24 @@ void QueuedSource::apply(QList<Event> &events, const QList<PendingChange> &chang
             break;
         }
         }
+        // An event moved or edited here from outside the range is not among what was read, so it
+        // would only show once the server has the change: it is added as the change makes it.
+        if (change.kind == PendingChange::Kind::Move ||
+            change.kind == PendingChange::Kind::Update) {
+            const bool read =
+                std::any_of(events.cbegin(), events.cend(), [&change](const Event &e) {
+                    return e.calendarId == change.event.calendarId &&
+                           e.eventId == change.event.eventId;
+                });
+            if (!read) {
+                QList<Event> one{change.event};
+                apply(one, {change}, calendars, from, to, tz);
+                events.append(one);
+            }
+        }
     }
+    // And one moved or edited away is no longer in it.
+    events.removeIf([&from, &to](const Event &e) { return e.end <= from || e.start >= to; });
 }
 
 void QueuedSource::refresh()

@@ -12,6 +12,9 @@ Item {
     /// The item whose change is being saved, with a settle() that puts it back.
     property var moving: null
 
+    /// The change went through, just before `moving` is cleared.
+    signal saved
+
     /// Places a popup beside the item, on whichever side has room, inside the view.
     function placeBeside(item, popup) {
         const gap = Theme.space3
@@ -56,7 +59,10 @@ Item {
                 root.failed(error)
         }
         // The reloaded model draws the event in its new place.
-        onMoved: root.moving = null
+        onMoved: {
+            root.saved()
+            root.moving = null
+        }
     }
 
     MoveChoice {

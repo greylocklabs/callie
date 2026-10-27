@@ -283,9 +283,13 @@ Item {
         id: mover
         anchors.fill: parent
         source: root.model.source
-        // Saved or put back: either way the stand-in is done.
+        // Saved, the stand-in stays until the event shows where it went; put back, it is done.
+        onSaved: {
+            if (pager.dropped)
+                pager.clearWhenShown()
+        }
         onMovingChanged: {
-            if (!moving && pager.dropped)
+            if (!moving && pager.dropped && !pager.waiting)
                 pager.clear()
         }
     }
@@ -324,13 +328,15 @@ Item {
         pager.dropped = true
         mover.move(ghost.item, carry.event, Settings.times.shifted(carry.event.start, days, 0),
                    Settings.times.shifted(carry.event.end, days, 0))
-        // Busy with another change, so nothing is waiting to be saved.
-        if (!mover.moving)
+        // Busy with another change, so nothing is waiting to be saved; a change saved at once
+        // leaves the stand-in waiting for the event to show.
+        if (!mover.moving && !pager.waiting)
             pager.clear()
     }
 
     DragPager {
         id: pager
+        model: root.model
         onHandOff: (item, scenePosition) => root.carryFrom(item, scenePosition)
         onPageRequested: direction => root.pageRequested(direction)
         // Dropped or cancelled, no day waits for it.

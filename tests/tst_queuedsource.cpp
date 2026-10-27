@@ -136,6 +136,7 @@ private Q_SLOTS:
     void passingFailuresAreTriedAgain();
     void seriesMovesOnItsOwnClock();
     void allDaySeriesMovesByWholeDays();
+    void anEventMovedInFromOtherDaysShowsAtOnce();
     void editsShowAtOnceAndSurviveARestart();
     void editsFoldIntoAPendingCreation();
     void creationsKeepTheirNotes();
@@ -523,6 +524,38 @@ void TestQueuedSource::allDaySeriesMovesByWholeDays()
     QCOMPARE(events[0].end, midnight(10, 26));
     QCOMPARE(events[1].start, midnight(11, 1));
     QCOMPARE(events[1].end, midnight(11, 2));
+}
+
+void TestQueuedSource::anEventMovedInFromOtherDaysShowsAtOnce()
+{
+    // Standup, on the 7th, is dragged to the 14th, and lunch is edited to the 15th; a week
+    // later is read, which the account has neither in yet.
+    const auto day = [](int date, int hour) {
+        return QDateTime(QDate(2026, 10, date), QTime(hour, 0), QTimeZone::UTC);
+    };
+    PendingChange move;
+    move.kind = PendingChange::Kind::Move;
+    move.event = makeEvent(u"standup"_s, 9);
+    move.start = day(14, 10);
+    move.end = day(14, 11);
+    PendingChange edit;
+    edit.kind = PendingChange::Kind::Update;
+    edit.event = makeEvent(u"lunch"_s, 12);
+    edit.edit.start = day(15, 12);
+    edit.edit.end = day(15, 13);
+
+    QList<Event> nextWeek;
+    QueuedSource::apply(nextWeek, {move, edit}, {}, day(12, 0), day(19, 0), QTimeZone::UTC);
+    QCOMPARE(nextWeek.size(), 2);
+    QCOMPARE(nextWeek[0].eventId, u"standup"_s);
+    QCOMPARE(nextWeek[0].start, day(14, 10));
+    QCOMPARE(nextWeek[1].eventId, u"lunch"_s);
+    QCOMPARE(nextWeek[1].start, day(15, 12));
+
+    // The week they left no longer shows them, though the account still does.
+    QList<Event> thisWeek = {makeEvent(u"standup"_s, 9), makeEvent(u"lunch"_s, 12)};
+    QueuedSource::apply(thisWeek, {move, edit}, {}, day(5, 0), day(12, 0), QTimeZone::UTC);
+    QVERIFY(thisWeek.isEmpty());
 }
 
 void TestQueuedSource::creationsKeepTheirNotes()

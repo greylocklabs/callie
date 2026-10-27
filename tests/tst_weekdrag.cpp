@@ -2,15 +2,18 @@
 #include "EventModelForeign.h"
 #include "ThemeController.h"
 
+#include "callie/QueuedSource.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
 
+#include <QPromise>
 #include <QQmlApplicationEngine>
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <QTest>
+#include <QTimer>
 #include <QtQml/qqmlextensionplugin.h>
 
 #include <functional>
@@ -28,6 +31,7 @@ private Q_SLOTS:
     void allDayAndMonthDragsMoveByDays();
     void heldAtAnEdgeCarriesToOtherDays();
     void hoursFitTheWorkingDay();
+    void aMovedEventStaysInSight();
 };
 
 /// The visible event block showing `summary`.
@@ -57,6 +61,25 @@ static QQuickItem *findItem(QQuickItem *item, QLatin1StringView type,
 
 /// Scrolls the week to the end of the day, where the evening's events are,
 /// and gives how tall an hour is drawn.
+/// The sample week, read as an account's calendars are: on another thread, so the answer
+/// comes a moment after it is asked for.
+class SlowSample : public SampleSource
+{
+public:
+    QFuture<SourceSnapshot> load(const QDateTime &from, const QDateTime &to,
+                                 const QTimeZone &tz) const override
+    {
+        auto promise = std::make_shared<QPromise<SourceSnapshot>>();
+        promise->start();
+        SourceSnapshot snapshot{eventsBetween(from, to, tz), calendars()};
+        QTimer::singleShot(400, [promise, snapshot] {
+            promise->addResult(snapshot);
+            promise->finish();
+        });
+        return promise->future();
+    }
+};
+
 static int showEvening(QQuickWindow *window)
 {
     QQuickItem *week =
@@ -378,6 +401,71 @@ void TestWeekDrag::heldAtAnEdgeCarriesToOtherDays()
     QTest::keyClick(window, Qt::Key_Escape);
     QTest::mouseRelease(window, Qt::LeftButton, {}, from);
     QCOMPARE(month->property("dropIndex").toInt(), -1);
+}
+
+void TestWeekDrag::aMovedEventStaysInSight()
+{
+    QQuickStyle::setStyle(u"Basic"_s);
+    QTemporaryDir dir;
+    Settings settings(dir.filePath(u"s.ini"_s));
+    SettingsForeign::s_instance = &settings;
+    Clock::instance()->freeze(QDateTime(QDate(2026, 10, 7), QTime(13, 40)));
+    SlowSample sample;
+    // Only once, unlike the sample week's events, which every week has.
+    EventDraft ferry;
+    ferry.calendarId = sample.calendars().first().id;
+    ferry.summary = u"Ferry"_s;
+    ferry.start = QDateTime(QDate(2026, 10, 9), QTime(18, 0));
+    ferry.end = ferry.start.addSecs(3600);
+    sample.createEvent(ferry, [](const QString &) {});
+    // As the app has it: changes wait in the queue a few seconds before they go out.
+    QueuedSource source(sample, {});
+    QQmlApplicationEngine engine;
+    engine.setInitialProperties({{u"source"_s, QVariant::fromValue<CalendarSource *>(&source)}});
+    engine.loadFromModule("Callie.Ui", "Main");
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    window->resize(1280, 1300);
+    QVERIFY(QTest::qWaitForWindowExposed(window));
+    QTest::qWait(800);
+    const int hour = showEvening(window);
+    QVERIFY(hour > 0);
+
+    // How long, in the moment after letting go, no block shows the event anywhere.
+    const auto unseenAfterDrop = [&] {
+        int unseen = 0;
+        for (int ms = 0; ms < 1500; ms += 25) {
+            if (!findBlock(window->contentItem(), u"Ferry"_s))
+                unseen += 25;
+            QTest::qWait(25);
+        }
+        return unseen;
+    };
+
+    // A day later, within the week shown.
+    QQuickItem *block = nullptr;
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Ferry"_s)));
+    QPoint grip = block->mapToScene(QPointF(block->width() / 2, 10)).toPoint();
+    const int column = int(block->width()) + 6;
+    QTest::mousePress(window, Qt::LeftButton, {}, grip);
+    move(window, grip, grip + QPoint(column, hour));
+    QTest::mouseRelease(window, Qt::LeftButton, {}, grip + QPoint(column, hour));
+    QCOMPARE(unseenAfterDrop(), 0);
+
+    // Carried into next week.
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Ferry"_s)));
+    grip = block->mapToScene(QPointF(block->width() / 2, 10)).toPoint();
+    const QPoint right(window->width() - 4, grip.y());
+    QTest::mousePress(window, Qt::LeftButton, {}, grip);
+    move(window, grip, right);
+    QTRY_VERIFY(window->property("focusDate").toDateTime().date() >= QDate(2026, 10, 12));
+    move(window, right, grip);
+    QTest::mouseRelease(window, Qt::LeftButton, {}, grip);
+    // Not on the days read before the move, it still shows at once, while the change waits
+    // to be sent, and the stand-in gives way to the event itself.
+    QCOMPARE(unseenAfterDrop(), 0);
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Ferry"_s)) && block->isEnabled());
+    QVERIFY(!source.changes().isEmpty());
 }
 
 QTEST_MAIN(TestWeekDrag)
