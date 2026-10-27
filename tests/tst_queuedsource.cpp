@@ -556,6 +556,17 @@ void TestQueuedSource::anEventMovedInFromOtherDaysShowsAtOnce()
     QList<Event> thisWeek = {makeEvent(u"standup"_s, 9), makeEvent(u"lunch"_s, 12)};
     QueuedSource::apply(thisWeek, {move, edit}, {}, day(5, 0), day(12, 0), QTimeZone::UTC);
     QVERIFY(thisWeek.isEmpty());
+
+    // An event with no length at the very start of the range stays, changes waiting or not.
+    Event reminder = makeEvent(u"reminder"_s, 0);
+    reminder.start = reminder.end = day(12, 0);
+    for (const QList<PendingChange> &waiting :
+         {QList<PendingChange>{}, QList<PendingChange>{move, edit}}) {
+        QList<Event> read{reminder};
+        QueuedSource::apply(read, waiting, {}, day(12, 0), day(19, 0), QTimeZone::UTC);
+        QVERIFY(std::any_of(read.cbegin(), read.cend(),
+                            [](const Event &e) { return e.eventId == u"reminder"; }));
+    }
 }
 
 void TestQueuedSource::creationsKeepTheirNotes()
