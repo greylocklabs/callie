@@ -59,8 +59,6 @@ static QQuickItem *findItem(QQuickItem *item, QLatin1StringView type,
     return nullptr;
 }
 
-/// Scrolls the week to the end of the day, where the evening's events are,
-/// and gives how tall an hour is drawn.
 /// The sample week, read as an account's calendars are: on another thread, so the answer
 /// comes a moment after it is asked for.
 class SlowSample : public SampleSource
@@ -80,6 +78,8 @@ public:
     }
 };
 
+/// Scrolls the week to the end of the day, where the evening's events are,
+/// and gives how tall an hour is drawn.
 static int showEvening(QQuickWindow *window)
 {
     QQuickItem *week =
