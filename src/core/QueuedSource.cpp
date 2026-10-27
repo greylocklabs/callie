@@ -399,8 +399,17 @@ void QueuedSource::apply(QList<Event> &events, const QList<PendingChange> &chang
             }
         }
     }
-    // And one moved or edited away is no longer in it.
-    events.removeIf([&from, &to](const Event &e) { return e.end <= from || e.start >= to; });
+    // And one moved or edited away is no longer in it. Only those: the rest are as the source
+    // read them, an event with no length at the very start included.
+    events.removeIf([&](const Event &e) {
+        const bool outside = e.start >= to || (e.end <= from && e.start < from);
+        return outside &&
+               std::any_of(changes.cbegin(), changes.cend(), [&e](const PendingChange &c) {
+                   return (c.kind == PendingChange::Kind::Move ||
+                           c.kind == PendingChange::Kind::Update) &&
+                          targets(e, c);
+               });
+    });
 }
 
 void QueuedSource::refresh()
