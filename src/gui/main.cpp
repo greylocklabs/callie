@@ -38,6 +38,7 @@
 #include "callie/SampleSource.h"
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
+#include "greylock/Desktop.h"
 #include "greylock/Identity.h"
 #include "greylock/UpdateCheck.h"
 
@@ -63,6 +64,7 @@ int main(int argc, char *argv[])
 {
     QElapsedTimer started;
     started.start();
+    greylock::desktop::useDesktopFileDialogs();
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("Callie"));
     app.setOrganizationName(QStringLiteral("Callie"));
