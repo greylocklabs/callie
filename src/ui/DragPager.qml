@@ -14,6 +14,10 @@ Item {
     property point point
     /// Dropped, and waiting for the move to be saved.
     property bool dropped: false
+    /// The view's events, whose next reload draws a saved move in its new place.
+    property var model: null
+    /// Saved, and the stand-in waits for the events to show the move.
+    readonly property bool waiting: shown.running
 
     /// Held at an edge long enough: the view should note what `item` drags
     /// in `carry`, or leave it null to stay put.
@@ -38,13 +42,33 @@ Item {
             hold.stop()
     }
 
+    /// The move was saved: the stand-in stays until the view's events have been read again,
+    /// so the event is never out of sight, or until a moment has passed.
+    function clearWhenShown() {
+        shown.restart()
+    }
+
     function clear() {
+        shown.stop()
         hold.stop()
         hold.edge = 0
         hold.item = null
         watch.active = false
         carry = null
         dropped = false
+    }
+
+    Timer {
+        id: shown
+        interval: 3000
+        onTriggered: root.clear()
+    }
+    Connections {
+        target: root.model
+        enabled: shown.running
+        function onRevisionChanged() {
+            root.clear()
+        }
     }
 
     Timer {

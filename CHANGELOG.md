@@ -3,6 +3,14 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- An event moved to another week or month, by dragging it to the edge or by changing its date,
+  shows in its new place straight away. It used to vanish for several seconds, until the change
+  reached the server.
+
 ## 0.6.3 - 2026-10-26
 
 ### Changed
