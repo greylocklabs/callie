@@ -1,10 +1,9 @@
 #include "Reminders.h"
 
-#include "NotificationServer.h"
-
 #include "callie/ReminderScheduler.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
+#include "greylock/Notifications.h"
 
 #include <QCoreApplication>
 #include <QDesktopServices>
@@ -37,7 +36,8 @@ Reminders *Reminders::create(QQmlEngine *, QJSEngine *)
     return reminders;
 }
 
-void Reminders::setup(ReminderScheduler *scheduler, NotificationServer *server, Settings *settings)
+void Reminders::setup(ReminderScheduler *scheduler, greylock::NotificationServer *server,
+                      Settings *settings)
 {
     if (m_scheduler)
         disconnect(m_scheduler, nullptr, this, nullptr);
@@ -52,8 +52,9 @@ void Reminders::setup(ReminderScheduler *scheduler, NotificationServer *server, 
 
     connect(m_scheduler, &ReminderScheduler::due, this,
             [this](const Event &event) { notify(event); });
-    connect(m_server, &NotificationServer::actionInvoked, this, &Reminders::onAction);
-    connect(m_server, &NotificationServer::closed, this, [this](uint id) { m_shown.remove(id); });
+    connect(m_server, &greylock::NotificationServer::actionInvoked, this, &Reminders::onAction);
+    connect(m_server, &greylock::NotificationServer::closed, this,
+            [this](uint id) { m_shown.remove(id); });
     connect(m_settings, &Settings::notifyChanged, this, &Reminders::applySettings);
     connect(m_settings, &Settings::reminderMinutesChanged, this, &Reminders::applySettings);
     connect(m_settings, &Settings::hiddenCalendarsChanged, this, &Reminders::applySettings);

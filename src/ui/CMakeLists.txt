@@ -36,16 +36,9 @@ qt_add_qml_module(callieui
         PlaceSearch.cpp
         EventModelForeign.h
         LiveQml.h
-        NotificationServer.h
-        NotificationServer.cpp
         Reminders.h
         Reminders.cpp
-        SingleInstance.h
-        SingleInstance.cpp
-        TrayItem.h
-        TrayItem.cpp
-        StartAtLogin.h
-        StartAtLogin.cpp
+        StartAtLoginSetting.h
         LiveQml.cpp
         SupportActions.h
         SupportActions.cpp

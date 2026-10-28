@@ -1,11 +1,10 @@
-#include "NotificationServer.h"
 #include "Reminders.h"
 
 #include "callie/ReminderScheduler.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
+#include "greylock/Notifications.h"
 
-#include <QFileInfo>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -16,7 +15,7 @@ using namespace Qt::StringLiterals;
 namespace {
 
 /// Keeps what would be shown, and hands out ids at once.
-class FakeServer : public NotificationServer
+class FakeServer : public greylock::NotificationServer
 {
 public:
     struct Shown
@@ -83,7 +82,6 @@ class TestReminders : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
-    void logoIsCopiedForTheDaemon();
     void init();
     void sayHowSoon();
     void buttonsFollowTheEvent();
@@ -219,37 +217,6 @@ void TestReminders::turningOffStopsReminders()
     m_now = at(9, 30);
     m_scheduler->check();
     QVERIFY(m_server.shown.isEmpty());
-}
-
-void TestReminders::logoIsCopiedForTheDaemon()
-{
-    QTemporaryDir dir;
-    const QString folder = dir.filePath(u"callie"_s);
-    const QString path = folder + u"/notification-icon.png"_s;
-
-    // Missing: written, the folder too.
-    QCOMPARE(cachedLogo(folder, "old logo"), path);
-    QFile written(path);
-    QVERIFY(written.open(QIODevice::ReadOnly));
-    QCOMPARE(written.readAll(), QByteArray("old logo"));
-    written.close();
-
-    // The same: left alone, so its old time stays.
-    const QDateTime old(QDate(2020, 1, 1), QTime(0, 0));
-    QVERIFY(written.open(QIODevice::ReadWrite));
-    QVERIFY(written.setFileTime(old, QFileDevice::FileModificationTime));
-    written.close();
-    QCOMPARE(cachedLogo(folder, "old logo"), path);
-    QCOMPARE(QFileInfo(path).lastModified(), old);
-
-    // Different: replaced.
-    QCOMPARE(cachedLogo(folder, "new logo"), path);
-    QVERIFY(written.open(QIODevice::ReadOnly));
-    QCOMPARE(written.readAll(), QByteArray("new logo"));
-    written.close();
-
-    // Unwritable, even for root: a file where the folder should be.
-    QVERIFY(cachedLogo(path, "newer logo").isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestReminders)

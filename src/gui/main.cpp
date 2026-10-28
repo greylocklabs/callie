@@ -5,20 +5,15 @@
 #include "ImportController.h"
 #include "LiveQml.h"
 #include "LocalController.h"
-#include "NotificationServer.h"
 #include "PlaceSearch.h"
 #include "ReleaseInfo.h"
 #include "Reminders.h"
 #include "ServerCalendarsController.h"
-#include "SingleInstance.h"
-#include "StartAtLogin.h"
 #include "SubscriptionsController.h"
 #include "ThemeController.h"
 #include "ThemesController.h"
-#include "TrayItem.h"
 
 #include "callie/AccountStore.h"
-#include "callie/Autostart.h"
 #include "callie/CalDavSource.h"
 #include "callie/CombinedSource.h"
 #include "callie/GoogleCache.h"
@@ -38,8 +33,13 @@
 #include "callie/SampleSource.h"
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
+#include "greylock/Autostart.h"
 #include "greylock/Desktop.h"
 #include "greylock/Identity.h"
+#include "greylock/Notifications.h"
+#include "greylock/SingleInstance.h"
+#include "greylock/StartAtLogin.h"
+#include "greylock/Tray.h"
 #include "greylock/UpdateCheck.h"
 
 #include <QCommandLineParser>
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
                                   QStringLiteral("view"));
     parser.addOption(viewOption);
     QCommandLineOption backgroundOption(
-        QString::fromLatin1(callie::Autostart::kBackgroundOption),
+        QString::fromLatin1(greylock::Autostart::kBackgroundOption),
         QStringLiteral("Start without showing the window, as when started at login."));
     parser.addOption(backgroundOption);
 #ifdef CALLIE_LIVE_QML
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
     const bool useSample = parser.isSet(sampleOption);
     const QString screenshot = parser.value(screenshotOption);
     const bool standalone = useSample || !screenshot.isEmpty();
-    callie::SingleInstance single(greylock::identity::appId(), QDBusConnection::sessionBus());
+    greylock::SingleInstance single(greylock::identity::appId(), QDBusConnection::sessionBus());
     // As a file manager passes them: paths, or file:// URLs.
     QStringList opened;
     for (const QString &argument : parser.positionalArguments())
@@ -361,19 +361,24 @@ int main(int argc, char *argv[])
 
     // Screenshots and sample data stay quiet.
     callie::ReminderScheduler scheduler;
-    callie::FreedesktopNotifications notifications;
+    const QString logo = QStringLiteral(":/callie/assets/logo.png");
+    greylock::FreedesktopNotifications notifications(logo, QStringLiteral("x-gnome.calendar"));
+    greylock::Autostart autostart(
+        greylock::identity::appId(), QCoreApplication::applicationFilePath(),
+        QCoreApplication::translate("main", "Keeps Callie running for event reminders"));
     if (!standalone) {
         scheduler.setSource(source);
         callie::Reminders::instance()->setup(&scheduler, &notifications, &settings);
         // Closing the window can leave Callie running so reminders still come.
         app.setQuitOnLastWindowClosed(!settings.keepRunning());
-        QObject::connect(&settings, &callie::Settings::keepRunningChanged, &app,
-                         [&] { app.setQuitOnLastWindowClosed(!settings.keepRunning()); });
+        greylock::StartAtLogin::instance()->setup(&autostart);
+        QObject::connect(&settings, &callie::Settings::keepRunningChanged, &app, [&] {
+            app.setQuitOnLastWindowClosed(!settings.keepRunning());
+            // Starting at login only makes sense while Callie keeps running.
+            if (!settings.keepRunning())
+                greylock::StartAtLogin::instance()->setEnabled(false);
+        });
     }
-    callie::Autostart autostart(greylock::identity::appId(),
-                                QCoreApplication::applicationFilePath());
-    if (!standalone)
-        callie::StartAtLogin::instance()->setup(&autostart, &settings);
 
     callie::AccountsController::Setup accountSetup{&store,   &tokens, &cache, &google,
                                                    &network, client,  {}};
@@ -456,7 +461,7 @@ int main(int argc, char *argv[])
             shown->requestActivate();
         }
     };
-    QObject::connect(&single, &callie::SingleInstance::activated, &engine, showWindow);
+    QObject::connect(&single, &greylock::SingleInstance::activated, &engine, showWindow);
     // Files opened from the file manager, now or by a later launch.
     const auto openFiles = [&engine](const QStringList &uris) {
         if (engine.rootObjects().isEmpty() || uris.isEmpty())
@@ -467,19 +472,29 @@ int main(int argc, char *argv[])
         QMetaObject::invokeMethod(engine.rootObjects().first(), "openFiles",
                                   Q_ARG(QVariant, QVariant(urls)));
     };
-    QObject::connect(&single, &callie::SingleInstance::opened, &engine, openFiles);
+    QObject::connect(&single, &greylock::SingleInstance::opened, &engine, openFiles);
     QTimer::singleShot(0, &engine, [openFiles, opened] { openFiles(opened); });
 
     // While Callie keeps running without its window, the tray shows it is there.
-    callie::TrayItem tray(QDBusConnection::sessionBus());
+    greylock::TrayItem tray(QDBusConnection::sessionBus(), logo);
     if (!standalone) {
+        tray.setMenu(
+            {{QStringLiteral("open"), QCoreApplication::translate("main", "Open Callie")},
+             {QStringLiteral("sync"), QCoreApplication::translate("main", "Sync now")},
+             {},
+             {QStringLiteral("quit"), QCoreApplication::translate("main", "Quit Callie")}});
         tray.setVisible(settings.keepRunning());
         QObject::connect(&settings, &callie::Settings::keepRunningChanged, &tray,
                          [&] { tray.setVisible(settings.keepRunning()); });
-        QObject::connect(&tray, &callie::TrayItem::openRequested, &engine, showWindow);
-        QObject::connect(&tray, &callie::TrayItem::syncRequested, source,
-                         &callie::CalendarSource::refresh);
-        QObject::connect(&tray, &callie::TrayItem::quitRequested, &app, &QCoreApplication::quit);
+        QObject::connect(&tray, &greylock::TrayItem::activated, &engine, showWindow);
+        QObject::connect(&tray, &greylock::TrayItem::triggered, &engine, [&](const QString &key) {
+            if (key == u"open")
+                showWindow();
+            else if (key == u"sync")
+                source->refresh();
+            else if (key == u"quit")
+                QCoreApplication::quit();
+        });
     }
 
     if (windowSize.isValid() && window)

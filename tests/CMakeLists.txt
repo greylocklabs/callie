@@ -1,20 +1,11 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
-# Tests that talk over D-Bus get a session bus of their own, so they run in CI
-# containers and leave the desktop's alone.
-find_program(DBUS_RUN_SESSION dbus-run-session)
-
 # TZ is pinned so that wall-clock assertions do not depend on the host zone or
-# on whether a DST transition falls inside the test window. BUS runs the test
-# under dbus-run-session when it is there.
+# on whether a DST transition falls inside the test window.
 function(callie_add_test name)
     qt_add_executable(${name} ${name}.cpp)
     target_link_libraries(${name} PRIVATE Qt6::Test calliecore)
-    if("BUS" IN_LIST ARGN AND DBUS_RUN_SESSION)
-        add_test(NAME ${name} COMMAND ${DBUS_RUN_SESSION} -- $<TARGET_FILE:${name}>)
-    else()
-        add_test(NAME ${name} COMMAND ${name})
-    endif()
+    add_test(NAME ${name} COMMAND ${name})
     # The same on the host and inside a Flatpak build; tests that want a Flatpak say so.
     set_tests_properties(${name} PROPERTIES ENVIRONMENT
         "TZ=UTC;QT_QPA_PLATFORM=offscreen;CALLIE_FLATPAK=0")
@@ -28,9 +19,6 @@ callie_add_test(tst_invitesmodel)
 callie_add_test(tst_searchmodel)
 callie_add_test(tst_contactbook)
 callie_add_test(tst_reminderscheduler)
-callie_add_test(tst_autostart)
-callie_add_test(tst_startatlogin)
-target_link_libraries(tst_startatlogin PRIVATE callieui)
 callie_add_test(tst_lookedsource)
 callie_add_test(tst_combinedsource)
 callie_add_test(tst_ics)
@@ -64,10 +52,6 @@ callie_add_test(tst_places)
 callie_add_test(tst_placesearch)
 callie_add_test(tst_reminders)
 target_link_libraries(tst_reminders PRIVATE callieui)
-callie_add_test(tst_singleinstance BUS)
-callie_add_test(tst_trayitem BUS)
-target_link_libraries(tst_singleinstance PRIVATE callieui)
-target_link_libraries(tst_trayitem PRIVATE callieui)
 callie_add_test(tst_monthmodel)
 callie_add_test(tst_accountstore)
 callie_add_test(tst_googleauth)
