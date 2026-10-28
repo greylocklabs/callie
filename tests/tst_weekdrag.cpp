@@ -168,6 +168,15 @@ void TestWeekDrag::dragMovesStretchesAndClickStillOpens()
     QCOMPARE(stretched.start, moved.start);
     QCOMPARE(stretched.end, moved.end.addSecs(30 * 60));
 
+    // Dragging the top edge an hour up starts it earlier and keeps the end.
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Climbing"_s)));
+    QTest::qWait(300);
+    const QPoint top = block->mapToScene(QPointF(block->width() / 2, 2)).toPoint();
+    drag(window, top, top - QPoint(0, hour));
+    const Event earlier = climbing(source);
+    QCOMPARE(earlier.start, stretched.start.addSecs(-3600));
+    QCOMPARE(earlier.end, stretched.end);
+
     // A plain click still opens the details, and moves nothing.
     QTRY_VERIFY((block = findBlock(window->contentItem(), u"Climbing"_s)));
     QTest::qWait(300);
@@ -183,7 +192,7 @@ void TestWeekDrag::dragMovesStretchesAndClickStillOpens()
     // Waited for, since a loaded machine can take a while to open it.
     QTRY_VERIFY_WITH_TIMEOUT(detailsOpen(), 5000);
     const Event after = climbing(source);
-    QCOMPARE(after.start, stretched.start);
+    QCOMPARE(after.start, earlier.start);
 
     // With weekends hidden, a drag past the last column lands on the last day
     // shown, not on a hidden one.

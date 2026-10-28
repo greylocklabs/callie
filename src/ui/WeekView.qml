@@ -574,6 +574,8 @@ Item {
                                                                                     deltaMinutes,
                                                                                     deltaDays, 0)
                     onResizeRequested: deltaMinutes => root.commitChange(block, 0, 0, deltaMinutes)
+                    onStartResizeRequested: deltaMinutes => root.commitChange(block, deltaMinutes, 0,
+                                                                              -deltaMinutes)
                 }
             }
 
