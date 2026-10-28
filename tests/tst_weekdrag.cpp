@@ -203,6 +203,23 @@ void TestWeekDrag::dragMovesStretchesAndClickStillOpens()
     const QPoint grip = block->mapToScene(QPointF(block->width() / 2, 10)).toPoint();
     drag(window, grip, QPoint(window->width() - 4, grip.y()));
     QCOMPARE(climbing(source).start.date(), QDate(2026, 10, 9));
+
+    // The top edge dragged past the bottom leaves one snap, and dragged far up stops at midnight.
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Climbing"_s)));
+    QTest::qWait(300);
+    const Event full = climbing(source);
+    QPoint edge = block->mapToScene(QPointF(block->width() / 2, 2)).toPoint();
+    drag(window, edge, edge + QPoint(0, 3 * hour));
+    const Event shortest = climbing(source);
+    QCOMPARE(shortest.end, full.end);
+    QCOMPARE(shortest.start, full.end.addSecs(-15 * 60));
+    QTRY_VERIFY((block = findBlock(window->contentItem(), u"Climbing"_s)));
+    QTest::qWait(300);
+    edge = block->mapToScene(QPointF(block->width() / 2, 2)).toPoint();
+    drag(window, edge, edge - QPoint(0, 30 * hour));
+    const Event longest = climbing(source);
+    QCOMPARE(longest.end, full.end);
+    QCOMPARE(longest.start, QDateTime(full.end.date(), QTime(0, 0), full.end.timeZone()));
 }
 
 void TestWeekDrag::allDayAndMonthDragsMoveByDays()
