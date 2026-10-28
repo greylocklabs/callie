@@ -3,6 +3,13 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- Callie Light's pink is deeper, with white text on it, so buttons and what is selected are
+  easier to read.
+
 ## 0.6.5 - 2026-10-27
 
 ### Changed
