@@ -5,7 +5,7 @@ import QtQuick
 
 /// One timed event in the week/day grid, drawn as a sticker in its calendar's
 /// colors. Click for details. An event the user may change can be dragged to
-/// another time or day, or stretched from its bottom edge; both snap to
+/// another time or day, or stretched from its top or bottom edge; all snap to
 /// Theme.snapMinutes, show where the event will land, and report the change
 /// rather than making it.
 Rectangle {
@@ -36,12 +36,22 @@ Rectangle {
     /// the view sets both from draggedTo, since only it knows its columns.
     property int dayShift: 0
     property real dayShiftX: 0
-    /// Minutes the drag or stretch moves the start, and adds to the length.
-    readonly property int minuteShift: drag.active || settling ? Settings.times.shiftWithinDay(start,
-                                                                                               drag.minutes,
-                                                                                               24 * 60 - Theme.snapMinutes) :
-                                                                 0
-    readonly property int lengthChange: stretch.active || settling ? stretch.minutes : 0
+    /// The latest a drag can start the event in its day, leaving one snap before midnight.
+    readonly property int latestStart: 24 * 60 - Theme.snapMinutes
+    /// Minutes the top edge moves the start, which the end stays put for.
+    readonly property int topShift: top.active || settling ? Settings.times.shiftWithinDay(start,
+                                                                                           top.minutes,
+                                                                                           latestStart) :
+                                                             0
+    readonly property int dragShift: drag.active || settling ? Settings.times.shiftWithinDay(start,
+                                                                                             drag.minutes,
+                                                                                             latestStart) :
+                                                               0
+    /// Minutes the drag or either edge moves the start, and adds to the length.
+    readonly property int minuteShift: dragShift + topShift
+    readonly property int lengthChange: (stretch.active || settling ? stretch.minutes : 0)
+                                        - topShift
+
     /// The change was dropped and waits to be saved; the event stays where it
     /// landed until the view reloads it or calls settle().
     property bool settling: false
@@ -56,6 +66,8 @@ Rectangle {
 
     signal moveRequested(int deltaMinutes, int deltaDays)
     signal resizeRequested(int deltaMinutes)
+    /// The top edge moved the start by `deltaMinutes`, keeping the end.
+    signal startResizeRequested(int deltaMinutes)
     signal draggedTo(point scenePosition)
     signal activated
 
@@ -66,6 +78,7 @@ Rectangle {
         dayShiftX = 0
         drag.minutes = 0
         stretch.minutes = 0
+        top.minutes = 0
     }
 
     function snapped(pixels) {
@@ -246,6 +259,47 @@ Rectangle {
                 root.moveRequested(root.minuteShift, root.dayShift)
             } else {
                 root.settle()
+            }
+        }
+    }
+
+    // The top edge, to start the event earlier or later.
+    Item {
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+        }
+        height: 6
+        visible: root.canEdit
+
+        HoverHandler {
+            cursorShape: Qt.SizeVerCursor
+        }
+        DragHandler {
+            id: top
+
+            property int minutes: 0
+
+            target: null
+            grabPermissions: PointerHandler.CanTakeOverFromAnything
+            enabled: !root.settling
+            onCentroidChanged: {
+                if (!active)
+                    return
+                // Never shorter than one snap.
+                minutes = Math.min(root.lengthMinutes - Theme.snapMinutes, root.snapped(
+                                       centroid.scenePosition.y - centroid.scenePressPosition.y))
+            }
+            onActiveChanged: {
+                if (active)
+                    return
+                if (root.topShift !== 0) {
+                    root.settling = true
+                    root.startResizeRequested(root.topShift)
+                } else {
+                    root.settle()
+                }
             }
         }
     }
