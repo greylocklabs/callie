@@ -9,6 +9,7 @@
 #include "ReleaseInfo.h"
 #include "Reminders.h"
 #include "ServerCalendarsController.h"
+#include "StartAtLoginSetting.h"
 #include "SubscriptionsController.h"
 #include "ThemeController.h"
 #include "ThemesController.h"
@@ -38,7 +39,6 @@
 #include "greylock/Identity.h"
 #include "greylock/Notifications.h"
 #include "greylock/SingleInstance.h"
-#include "greylock/StartAtLogin.h"
 #include "greylock/Tray.h"
 #include "greylock/UpdateCheck.h"
 
@@ -371,13 +371,9 @@ int main(int argc, char *argv[])
         callie::Reminders::instance()->setup(&scheduler, &notifications, &settings);
         // Closing the window can leave Callie running so reminders still come.
         app.setQuitOnLastWindowClosed(!settings.keepRunning());
-        greylock::StartAtLogin::instance()->setup(&autostart);
-        QObject::connect(&settings, &callie::Settings::keepRunningChanged, &app, [&] {
-            app.setQuitOnLastWindowClosed(!settings.keepRunning());
-            // Starting at login only makes sense while Callie keeps running.
-            if (!settings.keepRunning())
-                greylock::StartAtLogin::instance()->setEnabled(false);
-        });
+        QObject::connect(&settings, &callie::Settings::keepRunningChanged, &app,
+                         [&] { app.setQuitOnLastWindowClosed(!settings.keepRunning()); });
+        callie::StartAtLoginSetting::setup(&autostart, &settings);
     }
 
     callie::AccountsController::Setup accountSetup{&store,   &tokens, &cache, &google,
