@@ -1,5 +1,7 @@
 #pragma once
 
+#include "callie/Settings.h"
+#include "greylock/Autostart.h"
 #include "greylock/StartAtLogin.h"
 
 #include <QObject>
@@ -22,6 +24,17 @@ public:
     explicit StartAtLoginSetting(QObject *parent = nullptr) : QObject(parent)
     {
         connect(core(), &greylock::StartAtLogin::changed, this, &StartAtLoginSetting::changed);
+    }
+
+    /// Starts managing `autostart`. Starting at login only makes sense while Callie keeps
+    /// running after its window closes, so turning that off turns this off too.
+    static void setup(greylock::Autostart *autostart, Settings *settings)
+    {
+        core()->setup(autostart);
+        QObject::connect(settings, &Settings::keepRunningChanged, core(), [settings] {
+            if (!settings->keepRunning())
+                core()->setEnabled(false);
+        });
     }
 
     [[nodiscard]] bool enabled() const { return core()->enabled(); }
