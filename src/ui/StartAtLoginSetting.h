@@ -1,18 +1,14 @@
 #pragma once
 
+#include "greylock/StartAtLogin.h"
+
 #include <QObject>
-#include <QPointer>
 #include <QQmlEngine>
-#include <QVariantMap>
 
 namespace callie {
 
-class Autostart;
-class Settings;
-
-/// The "start when I log in" setting. It only makes sense while Callie keeps
-/// running after its window closes, so turning that off turns this off too.
-class StartAtLogin : public QObject
+/// Core's start-at-login setting for QML, which cannot see core's own types.
+class StartAtLoginSetting : public QObject
 {
     Q_OBJECT
     QML_NAMED_ELEMENT(StartAtLogin)
@@ -23,37 +19,21 @@ class StartAtLogin : public QObject
     Q_PROPERTY(QString error READ error NOTIFY changed)
 
 public:
-    static StartAtLogin *instance();
-    static StartAtLogin *create(QQmlEngine *, QJSEngine *);
+    explicit StartAtLoginSetting(QObject *parent = nullptr) : QObject(parent)
+    {
+        connect(core(), &greylock::StartAtLogin::changed, this, &StartAtLoginSetting::changed);
+    }
 
-    void setup(Autostart *autostart, Settings *settings);
-
-    [[nodiscard]] bool enabled() const;
-    void setEnabled(bool enabled);
-    [[nodiscard]] bool available() const { return m_autostart != nullptr; }
-    [[nodiscard]] QString error() const { return m_error; }
-
-    /// The desktop portal asked in a Flatpak, which tests stand in for.
-    void setPortal(const QString &service) { m_portal = service; }
+    [[nodiscard]] bool enabled() const { return core()->enabled(); }
+    void setEnabled(bool enabled) { core()->setEnabled(enabled); }
+    [[nodiscard]] bool available() const { return core()->available(); }
+    [[nodiscard]] QString error() const { return core()->error(); }
 
 Q_SIGNALS:
     void changed();
 
 private:
-    explicit StartAtLogin(QObject *parent);
-    /// Asks the Background portal to start Callie at login, or not. A refusal
-    /// takes the setting back and says why.
-    void requestBackground(bool autostart);
-    Q_SLOT void backgroundAnswered(uint response, const QVariantMap &results);
-    void refused(const QString &why);
-
-    Autostart *m_autostart = nullptr;
-    QPointer<Settings> m_settings;
-    QString m_error;
-    QString m_portal = QStringLiteral("org.freedesktop.portal.Desktop");
-    /// The portal request waiting for its answer, by its object path.
-    QString m_request;
-    bool m_requestedAutostart = false;
+    static greylock::StartAtLogin *core() { return greylock::StartAtLogin::instance(); }
 };
 
 } // namespace callie

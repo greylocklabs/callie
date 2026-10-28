@@ -8,9 +8,12 @@
 #include <QPointer>
 #include <QQmlEngine>
 
+namespace greylock {
+class NotificationServer;
+}
+
 namespace callie {
 
-class NotificationServer;
 class ReminderScheduler;
 class Settings;
 class Times;
@@ -34,7 +37,8 @@ public:
     static Reminders *create(QQmlEngine *, QJSEngine *);
 
     /// Starts notifying. Until then nothing is shown, as in tests and screenshots.
-    void setup(ReminderScheduler *scheduler, NotificationServer *server, Settings *settings);
+    void setup(ReminderScheduler *scheduler, greylock::NotificationServer *server,
+               Settings *settings);
 
     /// What a notification about `event` says at `now`.
     [[nodiscard]] static Text describe(const Event &event, const QDateTime &now,
@@ -55,7 +59,7 @@ private:
     void onAction(uint id, const QString &key);
 
     QPointer<ReminderScheduler> m_scheduler;
-    QPointer<NotificationServer> m_server;
+    QPointer<greylock::NotificationServer> m_server;
     QPointer<Settings> m_settings;
     QHash<uint, Event> m_shown;
 };
