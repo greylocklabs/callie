@@ -149,7 +149,7 @@ bool TestMicrosoftSource::called(const QByteArray &method, const QString &path) 
 void TestMicrosoftSource::firstSyncBringsCalendarsDown()
 {
     QSignalSpy contacts(m_source.get(), &MicrosoftSource::contactsFound);
-    // A changed and a cancelled occurrence, made elsewhere.
+    // A changed and a canceled occurrence, made elsewhere.
     FakeGraphServer::Item &standup = m_graph->items[m_standup];
     QJsonObject later = standup.event;
     later.insert(u"start"_s, at("2026-10-07T09:00:00"));

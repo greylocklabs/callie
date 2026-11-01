@@ -371,7 +371,7 @@ void GoogleSync::remove(const Account &account, const Target &target, Created do
                               worthRetrying(error)});
                         return;
                     }
-                    // A cancelled occurrence hides just that one; a cancelled
+                    // A canceled occurrence hides just that one; a canceled
                     // event or series takes the whole of it away.
                     GoogleEvent gone;
                     gone.id = target.eventId;

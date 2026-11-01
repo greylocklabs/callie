@@ -94,7 +94,7 @@ struct GoogleEvent
     /// Minutes before the event for each of its own on-screen reminders.
     QList<int> reminders;
 
-    /// Deleted events, and cancelled instances of a series, arrive with only
+    /// Deleted events, and canceled instances of a series, arrive with only
     /// an id and this status.
     [[nodiscard]] bool isCancelled() const { return status == QLatin1String("cancelled"); }
 };
@@ -182,7 +182,7 @@ public:
 
     using InstancesResult =
         std::function<void(const QList<GoogleEvent> &instances, const GoogleApiError &error)>;
-    /// The occurrences of a series between `from` and `to`, cancelled ones too.
+    /// The occurrences of a series between `from` and `to`, canceled ones too.
     void fetchInstances(const QString &accessToken, const QString &calendarId,
                         const QString &eventId, const QDateTime &from, const QDateTime &to,
                         InstancesResult result);

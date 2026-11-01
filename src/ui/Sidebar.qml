@@ -210,7 +210,7 @@ Rectangle {
 
                             width: root.dayCellWidth
                             height: Theme.miniDaySize
-                            // A sliver between neighbours, so the shown week reads as days.
+                            // A sliver between neighbors, so the shown week reads as days.
                             leftInset: Theme.space1
                             rightInset: Theme.space1
                             focusPolicy: Qt.TabFocus
@@ -243,7 +243,7 @@ Rectangle {
                             contentItem: Text {
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
-                                // Neighbouring months' days stay visible and clickable, since
+                                // Neighboring months' days stay visible and clickable, since
                                 // today and the shown week can fall among them.
                                 text: dayCell.day
                                 // Other months' days recede, even inside the shown week.

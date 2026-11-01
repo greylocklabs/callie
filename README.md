@@ -303,13 +303,13 @@ Roughly in the order it needs to happen:
 
 ### Design
 
-- [x] Settle the accent colour: pink, see `DESIGN.md`
+- [x] Settle the accent color: pink, see `DESIGN.md`
 - [x] A component gallery for reviewing tokens and states in one place
 - [x] Themes as TOML files, with live reload
 - [x] A theme picker, and the built-in themes: Callie, Callie Light, Paper, Minimal, Minimal Dark,
       Tomorrow and Tomorrow Night
 - [x] base16 import
-- [ ] Keep close calendar colours apart, and vary their lightness by hue
+- [ ] Keep close calendar colors apart, and vary their lightness by hue
 - [ ] Settle the typefaces and the rest of the open questions in `DESIGN.md`
 - [ ] Hand-tuned 16px and 32px icons
 

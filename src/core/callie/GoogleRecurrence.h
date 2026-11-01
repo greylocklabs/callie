@@ -21,7 +21,7 @@ bool buildGoogleRecurrence(KCalendarCore::Recurrence &recurrence, const GoogleEv
 
 /// The occurrences of `events`, as stored by GoogleCache for one calendar,
 /// that overlap [from, to). Series are expanded in their organizer's time
-/// zone, then cancelled and moved occurrences are applied. All-day events
+/// zone, then canceled and moved occurrences are applied. All-day events
 /// start at midnight in `viewZone`.
 [[nodiscard]] QList<Event> expandGoogleEvents(const QList<GoogleEvent> &events,
                                               const QDateTime &from, const QDateTime &to,

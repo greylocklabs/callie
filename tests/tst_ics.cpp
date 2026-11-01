@@ -623,7 +623,7 @@ END:VEVENT
     QCOMPARE(series[u"attendees"][0][u"email"].toString(), u"alex@example.com"_s);
     const QStringList lines = series[u"recurrence"].toVariant().toStringList();
     QVERIFY(lines.contains(u"RRULE:FREQ=DAILY;COUNT=5"_s));
-    // Its own skipped day and the cancelled one; the moved one stays, to be
+    // Its own skipped day and the canceled one; the moved one stays, to be
     // patched once the series is in, since Google takes no RECURRENCE-ID.
     QVERIFY(lines.contains(u"EXDATE:20261006T070000Z"_s));
     QVERIFY(!lines.contains(u"EXDATE:20261007T070000Z"_s));
@@ -743,7 +743,7 @@ void TestIcs::googleEventsBecomeICalendar()
     QCOMPARE(master->dtStart().timeZone().id(), QByteArray("Europe/Berlin"));
     QCOMPARE(master->dtStart().time(), QTime(9, 0));
     QCOMPARE(master->recurrence()->rRules().size(), 1);
-    // Its own skipped day and the cancelled occurrence.
+    // Its own skipped day and the canceled occurrence.
     QCOMPARE(master->recurrence()->exDateTimes().size(), 2);
     QCOMPARE(master->organizer().email(), u"me@example.com"_s);
     QCOMPARE(master->attendees().size(), 2);

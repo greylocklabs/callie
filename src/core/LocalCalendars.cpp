@@ -69,7 +69,7 @@ QString LocalCalendars::create(const QString &name, const QColor &color, QString
         *error = tr("A calendar needs a name.");
         return {};
     }
-    // A folder name a person would recognise, kept apart from any taken.
+    // A folder name a person would recognize, kept apart from any taken.
     QString base = trimmed.toLower();
     base.replace(QRegularExpression(u"[^\\w-]+"_s), u"-"_s);
     base.remove(QRegularExpression(u"^[-.]+|-+$"_s));
