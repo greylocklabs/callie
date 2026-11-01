@@ -316,7 +316,7 @@ void AccountsController::reload()
 
 void AccountsController::finish(const QString &error)
 {
-    // Only the attempt in progress may finish; a cancelled one has no auth left.
+    // Only the attempt in progress may finish; a canceled one has no auth left.
     if (!m_auth && !m_microsoftAuth && !m_removing && !m_checking)
         return;
     if (m_auth)

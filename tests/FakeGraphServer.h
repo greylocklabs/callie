@@ -11,7 +11,7 @@
 #include <QUrlQuery>
 
 /// Microsoft Graph's calendar calls in memory, on FakeHttpServer: calendars,
-/// events, daily series with changed and cancelled occurrences, instances,
+/// events, daily series with changed and canceled occurrences, instances,
 /// changes, deletes, answers and people. Just enough for MicrosoftSource.
 class FakeGraphServer
 {

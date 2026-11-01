@@ -12,7 +12,7 @@
 namespace callie::graph {
 
 /// One event as Graph lists it: a single event, or a series master with the
-/// occurrences changed on their own and those cancelled.
+/// occurrences changed on their own and those canceled.
 struct Series
 {
     QJsonObject event;
@@ -27,7 +27,7 @@ struct Series
 [[nodiscard]] QDateTime timeOf(const QJsonObject &dateTimeTimeZone);
 
 /// The series as iCalendar: the master, or the single event, with its
-/// changed occurrences under RECURRENCE-ID and the cancelled ones as EXDATEs.
+/// changed occurrences under RECURRENCE-ID and the canceled ones as EXDATEs.
 [[nodiscard]] ics::Group toIcs(const Series &series);
 
 /// The RRULE line for a Graph patternedRecurrence of a series starting at

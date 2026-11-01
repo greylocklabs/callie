@@ -339,7 +339,7 @@ Item {
         model: root.model
         onHandOff: (item, scenePosition) => root.carryFrom(item, scenePosition)
         onPageRequested: direction => root.pageRequested(direction)
-        // Dropped or cancelled, no day waits for it.
+        // Dropped or canceled, no day waits for it.
         onCarryChanged: {
             if (!carry)
                 root.dropIndex = -1

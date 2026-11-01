@@ -253,7 +253,7 @@ void TestGoogleSource::exportsTheCalendarOrOneSeries()
     CombinedSource combined;
     combined.setSources({&google});
     const QString mine = u"me@example.com/mine"_s;
-    // One occurrence moved and one cancelled, as Google keeps them.
+    // One occurrence moved and one canceled, as Google keeps them.
     QVERIFY(m_cache->applyChanges(
         kAccount, u"mine"_s,
         {{parsed(R"({"id":"standup_20261007T133000Z","recurringEventId":"standup",

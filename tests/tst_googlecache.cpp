@@ -239,7 +239,7 @@ void TestGoogleCache::rangeReadKeepsEdgeCases()
                     "end":{"dateTime":"2026-10-05T00:00:00Z"}})"),
            parsed(R"({"id":"allday-no-end","start":{"date":"2026-10-07"}})"),
            // Four-day trips every month; one starting three days before the
-           // range is cancelled, though its days run into the range.
+           // range is canceled, though its days run into the range.
            parsed(R"({"id":"trip","start":{"date":"2026-01-02"},"end":{"date":"2026-01-06"},
                     "recurrence":["RRULE:FREQ=MONTHLY"]})"),
            parsed(R"({"id":"trip-cancelled","status":"cancelled","recurringEventId":"trip",
@@ -247,7 +247,7 @@ void TestGoogleCache::rangeReadKeepsEdgeCases()
            parsed(R"({"id":"trip-old","status":"cancelled","recurringEventId":"trip",
                     "originalStartTime":{"date":"2026-08-02"}})"),
            // Three-day timed shifts every week; the one that started two days
-           // before the range is cancelled.
+           // before the range is canceled.
            parsed(R"({"id":"shift","start":{"dateTime":"2026-01-03T08:00:00Z"},
                     "end":{"dateTime":"2026-01-06T08:00:00Z"},"recurrence":["RRULE:FREQ=WEEKLY"]})"),
            parsed(R"({"id":"shift-cancelled","status":"cancelled","recurringEventId":"shift",

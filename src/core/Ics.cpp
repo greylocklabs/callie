@@ -930,7 +930,7 @@ Group fromGoogle(const QList<GoogleEvent> &events)
             series.insert(google.id, event);
         group << event;
     }
-    // A cancelled occurrence of a series known here is a day it skips.
+    // A canceled occurrence of a series known here is a day it skips.
     for (const GoogleEvent *google : std::as_const(cancelled)) {
         const KEvent::Ptr master = series.value(google->recurringEventId);
         if (!master)

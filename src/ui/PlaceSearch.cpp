@@ -149,7 +149,7 @@ void PlaceSearch::ask()
     connect(reply, &QNetworkReply::finished, this, [this, reply, asked] {
         reply->deleteLater();
         // An answer to text since changed, or to a search asked again, is old,
-        // and a cancelled one is no answer.
+        // and a canceled one is no answer.
         if (asked != m_text || m_delay.isActive() ||
             reply->error() == QNetworkReply::OperationCanceledError)
             return;

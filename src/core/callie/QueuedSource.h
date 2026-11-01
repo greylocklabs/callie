@@ -116,7 +116,7 @@ private:
     QPointer<CalendarSource> m_inner;
     QString m_path;
     QList<PendingChange> m_changes;
-    /// The change on its way to the server, which can no longer be cancelled.
+    /// The change on its way to the server, which can no longer be canceled.
     QString m_sending;
     /// Creations as they were before a change folded into them, by the id
     /// that undoes that change, with where they stood in the queue.

@@ -45,7 +45,7 @@ inline const QByteArray kWebLinkProperty = QByteArrayLiteral("X-CALLIE-WEB-LINK"
 /// `events` split by UID, keeping their order.
 [[nodiscard]] QList<Group> byUid(const Group &events);
 
-/// Google's events as iCalendar ones, for export: a cancelled occurrence
+/// Google's events as iCalendar ones, for export: a canceled occurrence
 /// becomes an EXDATE of its series, a changed one keeps its RECURRENCE-ID.
 [[nodiscard]] Group fromGoogle(const QList<GoogleEvent> &events);
 
@@ -64,7 +64,7 @@ struct GoogleImport
     QList<Occurrence> changed;
 };
 
-/// `events` as Google's events.import takes them. A cancelled occurrence is
+/// `events` as Google's events.import takes them. A canceled occurrence is
 /// an EXDATE; a changed one whose series is not in the file goes as an event
 /// of its own.
 [[nodiscard]] QList<GoogleImport> toGoogle(const Group &events);

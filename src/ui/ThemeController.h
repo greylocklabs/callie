@@ -132,7 +132,7 @@ class ThemeController : public QObject
     Q_PROPERTY(int minEventHeight READ minEventHeight CONSTANT)
     /// How far an event steps in over the earlier events it overlaps.
     Q_PROPERTY(int cascadeIndent READ cascadeIndent CONSTANT)
-    /// How far the logo sits above centre, so its face, not its ears, lines up
+    /// How far the logo sits above center, so its face, not its ears, lines up
     /// with the title beside it.
     Q_PROPERTY(int logoLift READ logoLift CONSTANT)
     /// A lighter line for glyphs with several strokes, or beside text.

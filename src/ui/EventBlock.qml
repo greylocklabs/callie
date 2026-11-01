@@ -71,7 +71,7 @@ Rectangle {
     signal draggedTo(point scenePosition)
     signal activated
 
-    /// Puts the block back where its event is, after a cancelled or failed change.
+    /// Puts the block back where its event is, after a canceled or failed change.
     function settle() {
         settling = false
         dayShift = 0

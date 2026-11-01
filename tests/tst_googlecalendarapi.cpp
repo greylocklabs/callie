@@ -418,7 +418,7 @@ void TestGoogleCalendarApi::instancesAreAskedForAroundTheirStart()
              QStringLiteral("2026-10-08T10:00:00Z"));
     QCOMPARE(query.queryItemValue(QStringLiteral("timeMax"), QUrl::FullyDecoded),
              QStringLiteral("2026-10-10T10:00:00Z"));
-    // Cancelled ones too, so one already gone is told apart from one not there.
+    // Canceled ones too, so one already gone is told apart from one not there.
     QCOMPARE(query.queryItemValue(QStringLiteral("showDeleted")), QStringLiteral("true"));
 }
 

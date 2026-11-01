@@ -34,7 +34,7 @@ struct EventDraft
 
 /// Reads a one-line description of an event, such as "Lunch with Alex
 /// tomorrow 12-1pm at Cafe Sol", with fixed English rules rather than a model.
-/// What it does not recognise stays in the title.
+/// What it does not recognize stays in the title.
 ///
 /// Days: today, tomorrow, weekday names (the next one, or "next friday" for
 /// the one after), "in 3 days", "oct 12", "12 october" and 2026-10-12.

@@ -245,7 +245,7 @@ void TestGoogleSync::expiredSyncTokenFallsBackToFullSync()
 
 void TestGoogleSync::fullSyncKeepsCancelledOccurrences()
 {
-    // Google includes cancelled occurrences of a series in a full sync, since
+    // Google includes canceled occurrences of a series in a full sync, since
     // showDeleted and singleEvents are both left false.
     m_google->on(u"calendars/me%40example.com/events"_s, 200,
                  events(R"({"id":"s","recurrence":["RRULE:FREQ=DAILY"]},

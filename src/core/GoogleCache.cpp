@@ -357,7 +357,7 @@ bool GoogleCache::writeEvents(const QString &key, const QString &calendarId,
     for (const GoogleEvent &event : events) {
         if (!ok)
             break;
-        // A cancelled event that belongs to a series is a deleted occurrence,
+        // A canceled event that belongs to a series is a deleted occurrence,
         // which recurrence expansion needs. Any other cancellation is a
         // deletion, and a deleted series takes its exceptions with it.
         if (event.isCancelled() && event.recurringEventId.isEmpty()) {
