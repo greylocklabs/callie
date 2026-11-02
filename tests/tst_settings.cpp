@@ -59,6 +59,7 @@ void TestSettings::defaultsWithoutAFile()
     QCOMPARE(settings.view(), u"week"_s);
     QVERIFY(settings.lastSeenVersion().isEmpty());
     QVERIFY(settings.notify());
+    QVERIFY(settings.callCard());
     QCOMPARE(settings.reminderMinutes(), 10);
     QVERIFY(!settings.keepRunning());
 }
@@ -82,6 +83,7 @@ void TestSettings::choicesSurviveARestart()
         settings.setAccountName(u"me@example.com"_s, u"Work"_s);
         settings.setLastSeenVersion(u"0.1.0"_s);
         settings.setNotify(false);
+        settings.setCallCard(false);
         settings.setReminderMinutes(-5);
         settings.setKeepRunning(true);
         settings.setWeekStart(7);
@@ -107,6 +109,7 @@ void TestSettings::choicesSurviveARestart()
     QCOMPARE(settings.accountName(u"other@example.com"_s), u"other@example.com"_s);
     QCOMPARE(settings.lastSeenVersion(), u"0.1.0"_s);
     QVERIFY(!settings.notify());
+    QVERIFY(!settings.callCard());
     QCOMPARE(settings.reminderMinutes(), -1);
     QVERIFY(settings.keepRunning());
     QCOMPARE(settings.firstDayOfWeek(), int(Qt::Sunday));
@@ -414,7 +417,9 @@ void TestSettings::resetForgetsEverything()
     settings.setCalendarName(u"google/me/work"_s, u"Job"_s);
     settings.setAccountName(u"me@example.com"_s, u"Work"_s);
     settings.setAccountPhoto(u"me@example.com"_s, QUrl(u"https://lh3/me"_s));
+    settings.setCallCard(false);
     QSignalSpy widen(&settings, &Settings::widenTodayChanged);
+    QSignalSpy callCard(&settings, &Settings::callCardChanged);
     QSignalSpy photos(&settings, &Settings::accountPhotosChanged);
     QSignalSpy looks(&settings, &Settings::calendarLooksChanged);
     QSignalSpy accounts(&settings, &Settings::accountNamesChanged);
@@ -427,6 +432,8 @@ void TestSettings::resetForgetsEverything()
     QVERIFY(settings.timeZoneId().isEmpty());
     QVERIFY(settings.theme().isEmpty());
     QCOMPARE(widen.size(), 1);
+    QVERIFY(settings.callCard());
+    QCOMPARE(callCard.size(), 1);
     QCOMPARE(declined.size(), 0);
     QVERIFY(settings.defaultCalendar().isEmpty());
     QCOMPARE(calendar.size(), 1);
