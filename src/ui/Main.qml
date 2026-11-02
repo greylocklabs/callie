@@ -1279,6 +1279,19 @@ ApplicationWindow {
         }
     }
 
+    CallCard {
+        objectName: "callCard"
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            margins: Theme.space6
+        }
+        z: 800
+        offer: CallOffer {
+            source: window.source
+        }
+    }
+
     // Dims the calendar while the leader's keys are shown, as a popup does.
     Scrim {
         anchors.fill: parent

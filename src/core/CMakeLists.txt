@@ -114,6 +114,8 @@ add_library(calliecore STATIC
     callie/QueuedSource.h
     QueuedSource.cpp
     ReminderScheduler.cpp
+    callie/NextCall.h
+    NextCall.cpp
     callie/EventModel.h
     EventModel.cpp
     callie/TodayModel.h

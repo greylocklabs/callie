@@ -778,6 +778,28 @@ Popup {
         }
 
         Section {
+            title: qsTr("Calls")
+            visible: root.tab === "reminders"
+
+            Toggle {
+                objectName: "callCardSetting"
+                width: parent.width
+                text: qsTr("Offer to join the next call")
+                checked: Settings.callCard
+                onToggled: Settings.callCard = checked
+            }
+            Text {
+                width: parent.width
+                wrapMode: Text.Wrap
+                text: qsTr(
+                          "A card in the corner of the window, from a few minutes before an event with a call link until it ends. Its X hides it for that call only.")
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSm
+            }
+        }
+
+        Section {
             title: qsTr("When the window closes")
             visible: root.tab === "reminders"
 
