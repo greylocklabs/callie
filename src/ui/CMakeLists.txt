@@ -38,6 +38,8 @@ qt_add_qml_module(callieui
         LiveQml.h
         Reminders.h
         Reminders.cpp
+        CallOffer.h
+        CallOffer.cpp
         StartAtLoginSetting.h
         LiveQml.cpp
         SupportActions.h
@@ -108,6 +110,7 @@ qt_add_qml_module(callieui
         SuggestionPopup.qml
         EventEditor.qml
         InvitesTray.qml
+        CallCard.qml
         Field.qml
         LookEditor.qml
         SearchPopup.qml

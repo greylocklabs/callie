@@ -77,6 +77,8 @@ class Settings : public QObject
     Q_PROPERTY(QString view READ view WRITE setView NOTIFY viewChanged)
     /// Desktop notifications for event reminders.
     Q_PROPERTY(bool notify READ notify WRITE setNotify NOTIFY notifyChanged)
+    /// The card offering to join the current or next call, in the window's corner.
+    Q_PROPERTY(bool callCard READ callCard WRITE setCallCard NOTIFY callCardChanged)
     /// Minutes before events that bring no reminders of their own; -1 for none.
     Q_PROPERTY(int reminderMinutes READ reminderMinutes WRITE setReminderMinutes NOTIFY
                    reminderMinutesChanged)
@@ -201,6 +203,8 @@ public:
 
     [[nodiscard]] bool notify() const { return m_notify; }
     void setNotify(bool notify);
+    [[nodiscard]] bool callCard() const { return m_callCard; }
+    void setCallCard(bool show);
 
     [[nodiscard]] int reminderMinutes() const { return m_reminderMinutes; }
     void setReminderMinutes(int minutes);
@@ -244,6 +248,7 @@ Q_SIGNALS:
     void newEventCalendarChanged();
     void defaultCalendarChanged();
     void notifyChanged();
+    void callCardChanged();
     void reminderMinutesChanged();
     void keepRunningChanged();
     void checkForUpdatesChanged();
@@ -285,6 +290,7 @@ private:
     QString m_newEventCalendar;
     QString m_defaultCalendar;
     bool m_notify = true;
+    bool m_callCard = true;
     int m_reminderMinutes = 10;
     bool m_keepRunning = false;
     bool m_checkForUpdates = true;

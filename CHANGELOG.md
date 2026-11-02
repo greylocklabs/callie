@@ -3,6 +3,14 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Added
+
+- A card in the corner of the window offers to join the current or next call, from a few minutes
+  before it starts until it ends, using the same link as the event's Join button. Its X hides it
+  for that call only, and Settings › Reminders can turn it off.
+
 ## 0.6.6 - 2026-11-01
 
 ### Changed

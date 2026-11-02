@@ -1,5 +1,6 @@
 #include "Reminders.h"
 
+#include "callie/NextCall.h"
 #include "callie/ReminderScheduler.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
@@ -11,15 +12,6 @@
 using namespace Qt::StringLiterals;
 
 namespace callie {
-
-namespace {
-
-bool canJoin(const QUrl &url)
-{
-    return url.isValid() && (url.scheme() == u"https"_s || url.scheme() == u"http"_s);
-}
-
-} // namespace
 
 Reminders::Reminders(QObject *parent) : QObject(parent) {}
 
