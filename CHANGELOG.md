@@ -3,6 +3,13 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- The box for renaming or recoloring a calendar stays inside the window, instead of running off
+  the bottom when opened from a calendar low in the sidebar.
+
 ## 0.6.8 - 2026-11-03
 
 ### Fixed

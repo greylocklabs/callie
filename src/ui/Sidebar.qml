@@ -435,7 +435,7 @@ Rectangle {
     function editLook(item, account, id, name) {
         const at = item.mapToItem(root, item.width + Theme.space3, 0)
         lookEditor.x = at.x
-        lookEditor.y = Math.min(at.y, root.height - lookEditor.height - Theme.space3)
+        lookEditor.y = at.y
         if (account)
             lookEditor.editAccount(id)
         else
