@@ -3,6 +3,13 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- Short events next to each other in the week can be clicked and dragged by their middle again:
+  their edges for changing the time no longer cover the whole event.
+
 ## 0.6.7 - 2026-11-01
 
 ### Added

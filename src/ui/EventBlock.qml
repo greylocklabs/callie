@@ -85,6 +85,10 @@ Rectangle {
         return Math.round(pixels / root.hourHeight * 60 / Theme.snapMinutes) * Theme.snapMinutes
     }
 
+    /// The resize edges take only a share of a short block, leaving its middle to select and drag.
+    readonly property real edgeHeight: Math.min(6, Math.max(2, height / 4))
+    /// Too short for a top edge as well: its start changes in the editor instead.
+    readonly property bool tooShortToStretchUp: height < 16
     readonly property bool compact: height < 34
     /// Too short for the title at its usual size.
     readonly property bool tiny: height < Theme.minEventHeight
@@ -265,13 +269,14 @@ Rectangle {
 
     // The top edge, to start the event earlier or later.
     Item {
+        objectName: "topEdge"
         anchors {
             left: parent.left
             right: parent.right
             top: parent.top
         }
-        height: 6
-        visible: root.canEdit
+        height: root.edgeHeight
+        visible: root.canEdit && !root.tooShortToStretchUp
 
         HoverHandler {
             cursorShape: Qt.SizeVerCursor
@@ -306,12 +311,13 @@ Rectangle {
 
     // The bottom edge, to stretch or shorten the event.
     Item {
+        objectName: "bottomEdge"
         anchors {
             left: parent.left
             right: parent.right
             bottom: parent.bottom
         }
-        height: 6
+        height: root.edgeHeight
         visible: root.canEdit
 
         HoverHandler {

@@ -8,6 +8,7 @@
 
 #include <QPromise>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
 #include <QQuickItem>
 #include <QQuickStyle>
 #include <QQuickWindow>
@@ -32,6 +33,7 @@ private Q_SLOTS:
     void heldAtAnEdgeCarriesToOtherDays();
     void hoursFitTheWorkingDay();
     void aMovedEventStaysInSight();
+    void aShortEventKeepsItsMiddleToGrab();
 };
 
 /// The visible event block showing `summary`.
@@ -492,6 +494,44 @@ void TestWeekDrag::aMovedEventStaysInSight()
     QCOMPARE(unseenAfterDrop(), 0);
     QTRY_VERIFY((block = findBlock(window->contentItem(), u"Ferry"_s)) && block->isEnabled());
     QVERIFY(!source.changes().isEmpty());
+}
+
+void TestWeekDrag::aShortEventKeepsItsMiddleToGrab()
+{
+    QQuickStyle::setStyle(u"Basic"_s);
+    QTemporaryDir dir;
+    Settings settings(dir.filePath(u"s.ini"_s));
+    SettingsForeign::s_instance = &settings;
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.loadFromModule("Callie.Ui", "EventBlock");
+    const QDateTime start(QDate(2026, 10, 7), QTime(9, 0));
+    std::unique_ptr<QObject> made(
+        component.createWithInitialProperties({{u"summary"_s, u"Stand-up"_s},
+                                               {u"location"_s, QString()},
+                                               {u"joinUrl"_s, QUrl()},
+                                               {u"calendarName"_s, u"Work"_s},
+                                               {u"description"_s, QString()},
+                                               {u"calendarColor"_s, QColor(Qt::magenta)},
+                                               {u"start"_s, start},
+                                               {u"end"_s, start.addSecs(15 * 60)},
+                                               {u"declined"_s, false},
+                                               {u"depth"_s, 0},
+                                               {u"response"_s, QString()},
+                                               {u"canEdit"_s, true}}));
+    auto *block = qobject_cast<QQuickItem *>(made.get());
+    QVERIFY2(block, qPrintable(component.errorString()));
+    block->setSize({120, 60});
+    auto *top = block->findChild<QQuickItem *>(u"topEdge"_s);
+    auto *bottom = block->findChild<QQuickItem *>(u"bottomEdge"_s);
+    QVERIFY(top && bottom);
+    QCOMPARE(top->height(), 6.0);
+    // Ten pixels, as a quarter hour can be next to another: the edges leave most of it to
+    // grab, and the top one goes.
+    block->setHeight(10);
+    QVERIFY(!top->isVisible());
+    QVERIFY(bottom->height() <= 2.5);
+    QVERIFY(block->height() - bottom->height() >= 7);
 }
 
 QTEST_MAIN(TestWeekDrag)
