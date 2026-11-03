@@ -49,6 +49,8 @@ Popup {
     }
 
     width: 300
+    // Kept inside the window, however low the row it opens beside.
+    margins: Theme.space3
     padding: Theme.space5
     modal: true
     focus: true

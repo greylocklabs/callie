@@ -20,6 +20,7 @@ private Q_SLOTS:
     void initTestCase() { QQuickStyle::setStyle(u"Basic"_s); }
     void opensAndClosesWithItsButton_data();
     void opensAndClosesWithItsButton();
+    void keepsTheLookEditorInTheWindow();
 };
 
 void TestPopups::opensAndClosesWithItsButton_data()
@@ -79,6 +80,37 @@ void TestPopups::opensAndClosesWithItsButton()
     const QPointF center = close->mapToScene(QPointF(close->width() / 2, close->height() / 2));
     QTest::mouseClick(&window, Qt::LeftButton, {}, center.toPoint());
     QTRY_VERIFY(!opened->property("opened").toBool());
+}
+
+void TestPopups::keepsTheLookEditorInTheWindow()
+{
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    component.setData("import QtQuick\nimport Callie.Ui\n"
+                      "Item { width: 600; height: 400\n"
+                      "  LookEditor { objectName: \"editor\"; x: 250; y: 380 } }",
+                      QUrl());
+    std::unique_ptr<QObject> object(component.create());
+    QVERIFY2(object, qPrintable(component.errorString()));
+    auto *root = qobject_cast<QQuickItem *>(object.get());
+    QQuickWindow window;
+    window.resize(600, 400);
+    root->setParentItem(window.contentItem());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+
+    // Opened beside a calendar low in the sidebar, it moves up to fit.
+    QObject *editor = root->findChild<QObject *>(u"editor"_s);
+    QVERIFY(QMetaObject::invokeMethod(editor, "editCalendar", Q_ARG(QVariant, u"local:jazz"_s),
+                                      Q_ARG(QVariant, u"Jazz Band Tycoon"_s)));
+    QTRY_VERIFY(editor->property("opened").toBool());
+    window.grabWindow();
+    auto *content = editor->property("contentItem").value<QQuickItem *>();
+    QQuickItem *box = content->parentItem();
+    const QRectF shown = box->mapRectToScene(QRectF(0, 0, box->width(), box->height()));
+    QVERIFY2(shown.height() > 100, qPrintable(u"height %1"_s.arg(shown.height())));
+    QVERIFY2(shown.top() >= 0 && shown.bottom() <= window.height(),
+             qPrintable(u"%1 to %2"_s.arg(shown.top()).arg(shown.bottom())));
 }
 
 QTEST_MAIN(TestPopups)
