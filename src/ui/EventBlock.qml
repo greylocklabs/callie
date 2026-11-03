@@ -85,10 +85,13 @@ Rectangle {
         return Math.round(pixels / root.hourHeight * 60 / Theme.snapMinutes) * Theme.snapMinutes
     }
 
+    /// The block's height at rest, not as a drag of its edges stretches it, so the edges do not
+    /// change under the pointer while one is dragged.
+    readonly property real restingHeight: height - stretchHeight
     /// The resize edges take only a share of a short block, leaving its middle to select and drag.
-    readonly property real edgeHeight: Math.min(6, Math.max(2, height / 4))
+    readonly property real edgeHeight: Math.min(6, Math.max(2, restingHeight / 4))
     /// Too short for a top edge as well: its start changes in the editor instead.
-    readonly property bool tooShortToStretchUp: height < 16
+    readonly property bool tooShortToStretchUp: restingHeight < 16
     readonly property bool compact: height < 34
     /// Too short for the title at its usual size.
     readonly property bool tiny: height < Theme.minEventHeight
