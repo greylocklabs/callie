@@ -42,6 +42,13 @@
   </categories>
 
   <releases>
+    <release version="0.6.8" date="2026-11-03">
+      <description>
+        <ul>
+          <li>Short events next to each other in the week can be clicked and dragged by their middle again: their edges for changing the time no longer cover the whole event.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.7" date="2026-11-01">
       <description>
         <ul>
