@@ -42,6 +42,13 @@
   </categories>
 
   <releases>
+    <release version="0.6.9" date="2026-11-03">
+      <description>
+        <ul>
+          <li>The box for renaming or recoloring a calendar stays inside the window, instead of running off the bottom when opened from a calendar low in the sidebar.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.8" date="2026-11-03">
       <description>
         <ul>
