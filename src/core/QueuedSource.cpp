@@ -719,13 +719,21 @@ void QueuedSource::finished(const QString &id, const Outcome &outcome)
     const auto found = std::find_if(m_changes.cbegin(), m_changes.cend(),
                                     [&id](const PendingChange &c) { return c.id == id; });
     if (found != m_changes.cend()) {
+        const PendingChange change = *found;
+        m_changes.erase(found);
         if (!error.isEmpty()) {
-            m_error = QStringLiteral("%1: %2").arg(found->describe(), error);
+            m_error = QStringLiteral("%1: %2").arg(change.describe(), error);
             Q_EMIT errorOccurred(m_error);
+            // An event never made takes the changes waiting on it along.
+            if (change.kind == PendingChange::Kind::Create) {
+                m_changes.removeIf([&change](const PendingChange &c) {
+                    return c.event.calendarId == change.event.calendarId &&
+                           c.event.eventId == change.event.eventId;
+                });
+            }
         } else {
             m_error.clear();
         }
-        m_changes.erase(found);
         save();
     }
     Q_EMIT statusChanged();
