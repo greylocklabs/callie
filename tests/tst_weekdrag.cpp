@@ -549,17 +549,22 @@ void TestWeekDrag::aReadOnlyEventUnderneathLeavesTheDragAlone()
         import QtQuick
         import Callie.Ui
         Item {
-            component Block: EventBlock {
+            EventBlock {
+                objectName: "under"; width: 300; height: 400; depth: 0; z: 1
+                summary: "Working from home"; canEdit: false
                 location: ""; joinUrl: ""; calendarName: ""; description: ""
                 calendarColor: "magenta"; declined: false; response: ""
                 start: new Date(2026, 10, 13, 9); end: new Date(2026, 10, 13, 17)
             }
-            Block { objectName: "under"; width: 300; height: 400; depth: 0; z: 1
-                    summary: "Working from home"; canEdit: false }
-            Block { objectName: "over"; y: 100; width: 300; height: 100; depth: 1; z: 2
-                    summary: "Guild"; canEdit: true }
+            EventBlock {
+                objectName: "over"; y: 100; width: 300; height: 100; depth: 1; z: 2
+                summary: "Guild"; canEdit: true
+                location: ""; joinUrl: ""; calendarName: ""; description: ""
+                calendarColor: "magenta"; declined: false; response: ""
+                start: new Date(2026, 10, 13, 9); end: new Date(2026, 10, 13, 17)
+            }
         })"_ba,
-                      QUrl(u"qrc:/stack.qml"_s));
+                      QUrl());
     std::unique_ptr<QObject> made(component.create());
     auto *stack = qobject_cast<QQuickItem *>(made.get());
     QVERIFY2(stack, qPrintable(component.errorString()));
