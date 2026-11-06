@@ -55,7 +55,8 @@ public:
         calls << u"create "_s + draft.summary;
         if (refuseWith.isEmpty() && !hold) {
             Event e;
-            e.uid = e.eventId = u"real-"_s + draft.summary;
+            // As the real sources do, the event takes the id the queue picked.
+            e.uid = e.eventId = draft.id.isEmpty() ? u"real-"_s + draft.summary : draft.id;
             e.calendarId = draft.calendarId;
             e.summary = draft.summary;
             e.start = draft.start;
@@ -141,6 +142,7 @@ private Q_SLOTS:
     void editsFoldIntoAPendingCreation();
     void creationsKeepTheirNotes();
     void followingEditsShowFromTheOccurrenceOn();
+    void editsAfterACreationGoesOutReachIt();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -461,16 +463,50 @@ void TestQueuedSource::editsFoldIntoAPendingCreation()
     QCOMPARE(source->changes().first().draft.summary, u"Clay"_s);
     QCOMPARE(source->changes().first().draft.start, at(17));
 
-    // Guests wait for the event to exist.
+    // Guests go out once the event exists.
     EventEdit invite;
     invite.guests = QStringList{u"pat@example.com"_s};
     source->updateEvent(pottery, invite, EditScope::ThisEvent,
                         [&error](const QString &e) { error = e; });
-    QVERIFY(error.contains(u"Wait"_s));
-    QCOMPARE(source->changes().size(), 1);
+    QVERIFY(error.isEmpty());
+    QCOMPARE(source->changes().size(), 2);
 
     release(*source);
-    QCOMPARE(m_server.calls, QStringList{u"create Clay"_s});
+    const QString id = m_server.events.last().eventId;
+    QCOMPARE(m_server.calls, (QStringList{u"create Clay"_s, u"update "_s + id + u' '}));
+}
+
+void TestQueuedSource::editsAfterACreationGoesOutReachIt()
+{
+    m_server.hold = true;
+    auto source = make();
+    EventDraft draft;
+    draft.summary = u"Pottery"_s;
+    draft.calendarId = u"work"_s;
+    draft.start = at(18);
+    draft.end = at(20);
+    source->createEvent(draft, [](const QString &) {});
+    release(*source);
+    QCOMPARE(m_server.calls, QStringList{u"create Pottery"_s});
+
+    // Changed while its creation is on the way, before any sync brings the real event.
+    const Event pottery = source->eventsBetween(at(18), at(19), QTimeZone::UTC).first();
+    EventEdit rename;
+    rename.summary = u"Clay"_s;
+    source->updateEvent(pottery, rename, EditScope::ThisEvent, [](const QString &) {});
+    source->moveEvent(pottery, at(19), at(21), false, [](const QString &) {});
+
+    // The server made it under the id the queue picked.
+    const QString made = source->changes().first().draft.id;
+    m_server.hold = false;
+    const auto [done, refusal] = m_server.held.takeFirst();
+    done(refusal);
+    release(*source);
+    QVERIFY(source->changes().isEmpty());
+    QCOMPARE(pottery.eventId, made);
+    QCOMPARE(m_server.calls.size(), 3);
+    QVERIFY(m_server.calls.at(1).startsWith(u"update "_s + made));
+    QVERIFY(m_server.calls.at(2).startsWith(u"move "_s + made));
 }
 
 void TestQueuedSource::followingEditsShowFromTheOccurrenceOn()
