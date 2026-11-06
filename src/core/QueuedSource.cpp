@@ -15,6 +15,8 @@
 #include <QStandardPaths>
 #include <QUuid>
 
+#include <algorithm>
+
 using namespace Qt::StringLiterals;
 
 namespace callie {
@@ -222,6 +224,17 @@ bool targets(const Event &e, const PendingChange &c)
         sameSeries(e, c))
         return originalStart(e) >= originalStart(c.event);
     return e.calendarId == c.event.calendarId && e.eventId == c.event.eventId;
+}
+
+// Whether a change after `index` is for the event that change creates, so the
+// creation can no longer take later changes into itself.
+bool builtOn(const QList<PendingChange> &changes, qsizetype index)
+{
+    const Event &made = changes.at(index).event;
+    return std::any_of(
+        changes.cbegin() + index + 1, changes.cend(), [&made](const PendingChange &c) {
+            return c.event.calendarId == made.calendarId && c.event.eventId == made.eventId;
+        });
 }
 
 // What a change of `kind` to `event` says once done, such as "Moved Standup".
@@ -476,9 +489,10 @@ void QueuedSource::createEvent(const EventDraft &draft, Created done)
     // answer finds the event already made instead of making another.
     if (change.draft.id.isEmpty())
         change.draft.id = QUuid::createUuid().toString(QUuid::Id128);
-    // Shown at once under a made-up id, until the server gives the real one.
+    // Shown at once under the id it will have, so a change made before the next
+    // sync reaches the created event.
     Event &e = change.event;
-    e.uid = u"pending-"_s + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    e.uid = change.draft.id;
     e.eventId = e.uid;
     e.calendarId = draft.calendarId;
     e.summary = draft.summary;
@@ -508,7 +522,7 @@ void QueuedSource::deleteEvent(const Event &event, bool wholeSeries, Created don
     for (qsizetype i = 0; i < m_changes.size(); ++i) {
         const PendingChange &change = m_changes.at(i);
         if (change.kind == PendingChange::Kind::Create && change.event.eventId == event.eventId &&
-            change.id != m_sending) {
+            change.id != m_sending && !builtOn(m_changes, i)) {
             const PendingChange before = change;
             m_changes.removeAt(i);
             save();
@@ -533,7 +547,7 @@ void QueuedSource::moveEvent(const Event &event, const QDateTime &start, const Q
     for (qsizetype i = 0; i < m_changes.size(); ++i) {
         PendingChange &change = m_changes[i];
         if (change.kind == PendingChange::Kind::Create && change.event.eventId == event.eventId &&
-            change.id != m_sending) {
+            change.id != m_sending && !builtOn(m_changes, i)) {
             const PendingChange before = change;
             change.draft.start = change.event.start = start;
             change.draft.end = change.event.end = end;
@@ -573,12 +587,11 @@ void QueuedSource::updateEvent(const Event &event, const EventEdit &edit, EditSc
     for (qsizetype i = 0; i < m_changes.size(); ++i) {
         PendingChange &change = m_changes[i];
         if (change.kind != PendingChange::Kind::Create || change.event.eventId != event.eventId ||
-            change.id == m_sending)
+            change.id == m_sending || builtOn(m_changes, i))
             continue;
-        if (edit.recurrence || edit.guests || edit.videoCall) {
-            done(tr("Wait a moment for the new event to be saved, then change it."));
-            return;
-        }
+        // What a creation cannot say goes out after it.
+        if (edit.recurrence || edit.guests || edit.videoCall)
+            break;
         const PendingChange before = change;
         applyEdit(change.event, event, edit);
         change.draft.summary = change.event.summary;
