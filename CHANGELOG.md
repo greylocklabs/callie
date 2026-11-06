@@ -9,6 +9,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - Changes made to a new event before Callie's next sync, such as renaming it or adding guests, are
   no longer lost with a sync failure.
+- An event drawn over one you cannot edit, such as one on a calendar shared with you, can be
+  dragged again instead of showing that it cannot move.
 
 ## 0.6.9 - 2026-11-03
 

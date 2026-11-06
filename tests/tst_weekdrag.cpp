@@ -34,6 +34,7 @@ private Q_SLOTS:
     void hoursFitTheWorkingDay();
     void aMovedEventStaysInSight();
     void aShortEventKeepsItsMiddleToGrab();
+    void aReadOnlyEventUnderneathLeavesTheDragAlone();
 };
 
 /// The visible event block showing `summary`.
@@ -532,6 +533,65 @@ void TestWeekDrag::aShortEventKeepsItsMiddleToGrab()
     QVERIFY(!top->isVisible());
     QVERIFY(bottom->height() <= 2.5);
     QVERIFY(block->height() - bottom->height() >= 7);
+}
+
+void TestWeekDrag::aReadOnlyEventUnderneathLeavesTheDragAlone()
+{
+    QQuickStyle::setStyle(u"Basic"_s);
+    QTemporaryDir dir;
+    Settings settings(dir.filePath(u"s.ini"_s));
+    SettingsForeign::s_instance = &settings;
+    QQmlEngine engine;
+    QQmlComponent component(&engine);
+    // A long read-only event, such as one shared from someone else's calendar, with an
+    // editable one stacked over it.
+    component.setData(R"(
+        import QtQuick
+        import Callie.Ui
+        Item {
+            component Block: EventBlock {
+                location: ""; joinUrl: ""; calendarName: ""; description: ""
+                calendarColor: "magenta"; declined: false; response: ""
+                start: new Date(2026, 10, 13, 9); end: new Date(2026, 10, 13, 17)
+            }
+            Block { objectName: "under"; width: 300; height: 400; depth: 0; z: 1
+                    summary: "Working from home"; canEdit: false }
+            Block { objectName: "over"; y: 100; width: 300; height: 100; depth: 1; z: 2
+                    summary: "Guild"; canEdit: true }
+        })"_ba,
+                      QUrl(u"qrc:/stack.qml"_s));
+    std::unique_ptr<QObject> made(component.create());
+    auto *stack = qobject_cast<QQuickItem *>(made.get());
+    QVERIFY2(stack, qPrintable(component.errorString()));
+    QQuickWindow window;
+    window.resize(300, 400);
+    stack->setParentItem(window.contentItem());
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    auto *over = stack->findChild<QQuickItem *>(u"over"_s);
+    QVERIFY(over);
+
+    const QPoint grab(150, 150);
+    QTest::mousePress(&window, Qt::LeftButton, {}, grab);
+    for (int i = 1; i <= 10; ++i) {
+        QTest::mouseMove(&window, grab + QPoint(0, 4 * i));
+        QTest::qWait(16);
+    }
+    QVERIFY(over->property("dragging").toBool());
+    QTest::mouseRelease(&window, Qt::LeftButton, {}, grab + QPoint(0, 40));
+    QTest::qWait(50);
+
+    // Pulled on its own, the read-only one still says it cannot move.
+    auto *under = stack->findChild<QQuickItem *>(u"under"_s);
+    const QPoint alone(150, 320);
+    QTest::mousePress(&window, Qt::LeftButton, {}, alone);
+    QVERIFY(!under->property("refused").toBool());
+    for (int i = 1; i <= 10; ++i) {
+        QTest::mouseMove(&window, alone + QPoint(0, 4 * i));
+        QTest::qWait(16);
+    }
+    QVERIFY(under->property("refused").toBool());
+    QTest::mouseRelease(&window, Qt::LeftButton, {}, alone + QPoint(0, 40));
 }
 
 QTEST_MAIN(TestWeekDrag)

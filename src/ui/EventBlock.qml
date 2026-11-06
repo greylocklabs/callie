@@ -57,6 +57,10 @@ Rectangle {
     property bool settling: false
     /// Being dragged to another time or day.
     readonly property bool dragging: drag.active
+    /// A read-only event pulled as if to move it. Read from the press, as a drag handler of its
+    /// own would take the drag from an event stacked over it.
+    readonly property bool refused: !canEdit && tap.pressed && pulled(tap.point)
+                                    > Application.styleHints.startDragDistance
     /// The view has taken over the drag to carry the event onto other days.
     property bool carried: false
     /// How tall an hour is drawn in the grid the block sits on.
@@ -79,6 +83,12 @@ Rectangle {
         drag.minutes = 0
         stretch.minutes = 0
         top.minutes = 0
+    }
+
+    /// How far a press has moved from where it began.
+    function pulled(point) {
+        return Math.hypot(point.position.x - point.pressPosition.x, point.position.y
+                          - point.pressPosition.y)
     }
 
     function snapped(pixels) {
@@ -227,19 +237,13 @@ Rectangle {
 
     HoverHandler {
         id: hover
-        cursorShape: drag.active ? Qt.ClosedHandCursor : denied.active ? Qt.ForbiddenCursor :
-                                                                         Qt.PointingHandCursor
+        cursorShape: drag.active ? Qt.ClosedHandCursor : root.refused ? Qt.ForbiddenCursor :
+                                                                        Qt.PointingHandCursor
 
-    }
-    // A read-only event cannot move; trying to drag it shows as much.
-    DragHandler {
-        id: denied
-        target: null
-        enabled: !root.canEdit
-        cursorShape: Qt.ForbiddenCursor
     }
     // Takes the tap for itself, so the event under it in a cascade does not open too.
     TapHandler {
+        id: tap
         gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: root.activated()
     }
