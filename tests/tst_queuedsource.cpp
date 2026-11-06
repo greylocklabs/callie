@@ -143,6 +143,7 @@ private Q_SLOTS:
     void creationsKeepTheirNotes();
     void followingEditsShowFromTheOccurrenceOn();
     void editsAfterACreationGoesOutReachIt();
+    void aRefusedCreationTakesItsChangesAlong();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -507,6 +508,28 @@ void TestQueuedSource::editsAfterACreationGoesOutReachIt()
     QCOMPARE(m_server.calls.size(), 3);
     QVERIFY(m_server.calls.at(1).startsWith(u"update "_s + made));
     QVERIFY(m_server.calls.at(2).startsWith(u"move "_s + made));
+}
+
+void TestQueuedSource::aRefusedCreationTakesItsChangesAlong()
+{
+    auto source = make();
+    EventDraft draft;
+    draft.summary = u"Pottery"_s;
+    draft.calendarId = u"work"_s;
+    draft.start = at(18);
+    draft.end = at(20);
+    source->createEvent(draft, [](const QString &) {});
+    const Event pottery = source->eventsBetween(at(18), at(19), QTimeZone::UTC).first();
+    EventEdit invite;
+    invite.guests = QStringList{u"pat@example.com"_s};
+    source->updateEvent(pottery, invite, EditScope::ThisEvent, [](const QString &) {});
+    QCOMPARE(source->changes().size(), 2);
+
+    m_server.refuseWith = u"read-only calendar"_s;
+    release(*source);
+    QCOMPARE(m_server.calls, QStringList{u"create Pottery"_s});
+    QVERIFY(source->changes().isEmpty());
+    QVERIFY(source->lastError().contains(u"read-only calendar"_s));
 }
 
 void TestQueuedSource::followingEditsShowFromTheOccurrenceOn()
