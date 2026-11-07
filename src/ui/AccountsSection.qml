@@ -26,6 +26,17 @@ Column {
         return account.provider === "microsoft" ? "microsoft:" + account.id : account.id
     }
 
+    /// Signs in to `account` again: mends a broken sign-in, and grants what Callie has asked for
+    /// since, such as reading contacts. CalDAV's opens its form, filled in.
+    function reconnect(account) {
+        if (account.provider !== "caldav") {
+            Accounts.reconnect(account.id)
+            return
+        }
+        root.calDavOpen = true
+        calDav.prefill(account)
+    }
+
     /// The provider, as the person knows it.
     function kindOf(provider) {
         return provider === "microsoft" ? qsTr("Microsoft") : provider === "caldav" ? qsTr(
@@ -54,6 +65,8 @@ Column {
             id: account
 
             required property var modelData
+            /// A CalDAV account's calendars, to choose which sync, are shown.
+            property bool showCalendars: false
 
             width: root.width
             spacing: Theme.space3
@@ -75,14 +88,25 @@ Column {
                 readonly property string problem: entry ? (entry.error || (entry.problems.length > 0
                                                                            ? entry.problems[0] :
                                                                              "")) : ""
+                /// Something about the account wants seeing to: a failed sync or a sign-in short
+                /// of what Callie asks for.
+                readonly property bool attention: problem !== "" || missing
+                /// When it last synced, as its tooltip says it.
+                readonly property string syncedText: !entry || isNaN(entry.lastSynced.getTime())
+                                                     ? qsTr("Not synced yet") : qsTr(
+                                                           "Synced %1").arg(Settings.times.time(
+                                                                                entry.lastSynced))
+                /// Remove was chosen from the menu and waits for Remove or Keep.
+                property bool confirming: false
 
                 width: root.width
-                height: Math.max(avatar.height, details.implicitHeight)
+                height: Math.max(avatar.height, details.implicitHeight, actions.implicitHeight)
 
                 Rectangle {
                     id: avatar
-                    width: 36
-                    height: 36
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 28
+                    height: 28
                     radius: width / 2
                     color: Theme.tint(Theme.accent, 0.25)
 
@@ -99,11 +123,12 @@ Column {
                         text: row.modelData.id.charAt(0).toUpperCase()
                         color: Theme.accent
                         font.family: Theme.displayFontFamily
-                        font.pixelSize: Theme.textLg
+                        font.pixelSize: Theme.textMd
                         font.weight: Theme.weightBold
                     }
                 }
 
+                // The address and provider on one line; a second only when something is wrong.
                 Column {
                     id: details
                     anchors {
@@ -113,36 +138,55 @@ Column {
                         rightMargin: Theme.space3
                         verticalCenter: parent.verticalCenter
                     }
-                    spacing: Theme.space1
 
-                    Text {
+                    // The address, then the provider, quieter.
+                    Row {
                         width: parent.width
-                        text: qsTr("%1 (%2)").arg(row.modelData.id).arg(root.kindOf(
-                                                                            row.modelData.provider))
-                        textFormat: Text.PlainText
-                        elide: Text.ElideMiddle
-                        color: Theme.text
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textMd
-                        font.weight: Theme.weightBold
+                        spacing: Theme.space2
+
+                        Text {
+                            id: name
+                            width: Math.min(implicitWidth, parent.width - (kind.visible ? kind.width
+                                                                                          + parent.spacing :
+                                                                                          0))
+                            text: row.confirming ? qsTr("Remove %1?").arg(row.modelData.id) :
+                                                   row.modelData.id
+
+                            textFormat: Text.PlainText
+                            elide: Text.ElideMiddle
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+
+                            HoverHandler {
+                                id: nameHover
+                            }
+                            // When it last synced, on resting on the address.
+                            Tip {
+                                visible: nameHover.hovered && !row.confirming
+                                delay: Theme.durSlow * 2
+                                text: row.syncedText
+                            }
+                        }
+                        Text {
+                            id: kind
+                            visible: !row.confirming
+                            text: root.kindOf(row.modelData.provider)
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                        }
                     }
                     Text {
+                        visible: row.attention && !row.confirming
                         width: parent.width
                         wrapMode: Text.Wrap
                         maximumLineCount: 2
                         elide: Text.ElideRight
-                        text: row.problem !== "" ? row.problem : row.missing ? qsTr(
-                                                                                   "Reconnect to grant new permissions") :
-                                                                               !row.entry || isNaN(
-                                                                                   row.entry.lastSynced.getTime(
-                                                                                       )) ? qsTr(
-                                                                                                "Not synced yet") :
-                                                                                            qsTr("Synced %1").arg(
-                                                                                                Settings.times.time(
-                                                                                                    row.entry.lastSynced))
-                        color: row.problem !== "" ? Theme.danger : row.missing ? Theme.accent :
-                                                                                 Theme.textMuted
-
+                        text: row.problem !== "" ? row.problem : qsTr(
+                                                       "Reconnect to grant new permissions")
+                        color: row.problem !== "" ? Theme.danger : Theme.accent
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textSm
                     }
@@ -156,54 +200,73 @@ Column {
                     }
                     spacing: Theme.space2
 
-                    // Signs in again: mends a broken sign-in, and grants what Callie
-                    // has asked for since, such as reading contacts.
+                    // Out in the row only when the account needs it; otherwise in the menu.
                     StickerButton {
-                        id: reconnect
-                        visible: row.manageable
+                        visible: row.manageable && row.attention && !row.confirming
                         enabled: !Accounts.busy
-                        accent: row.problem !== "" || row.missing
+                        accent: true
                         text: qsTr("Reconnect")
+                        onClicked: root.reconnect(row.modelData)
+                    }
+                    StickerButton {
+                        visible: row.confirming
+                        enabled: !Accounts.busy
+                        destructive: true
+                        armed: true
+                        text: qsTr("Remove")
                         onClicked: {
-                            if (!row.caldav) {
-                                Accounts.reconnect(row.modelData.id)
-                                return
-                            }
-                            root.calDavOpen = true
-                            calDav.prefill(row.modelData)
-                        }
-
-                        // A dot when the account has not granted all Callie asks for.
-                        Rectangle {
-                            visible: row.missing
-                            anchors {
-                                right: parent.right
-                                top: parent.top
-                                rightMargin: -width / 3
-                                topMargin: -height / 3
-                            }
-                            width: Theme.space3
-                            height: width
-                            radius: width / 2
-                            color: Theme.danger
-                            border.width: 2
-                            border.color: Theme.surface
+                            row.confirming = false
+                            Accounts.remove(row.modelData.provider, row.modelData.id)
                         }
                     }
-                    // Removing takes a second click, since the account's sign-in goes too.
-                    DangerButton {
-                        visible: row.microsoft ? Accounts.canRemove : row.manageable
-                        enabled: !Accounts.busy
-                        label: qsTr("Remove")
-                        armedLabel: qsTr("Click again to remove")
-                        onConfirmed: Accounts.remove(row.modelData.provider, row.modelData.id)
+                    StickerButton {
+                        visible: row.confirming
+                        text: qsTr("Keep")
+                        onClicked: row.confirming = false
+                    }
+                    StickerButton {
+                        id: more
+                        visible: !row.confirming && (row.manageable || row.caldav)
+                        glyph: "more"
+                        glyphStroke: Theme.smallGlyphStroke
+                        Accessible.name: qsTr("More for %1").arg(row.modelData.id)
+                        onClicked: moreMenu.open()
+
+                        MenuCard {
+                            id: moreMenu
+                            y: parent.height + Theme.space1
+                            x: parent.width - width
+
+                            MenuEntry {
+                                visible: row.manageable
+                                height: visible ? implicitHeight : 0
+                                enabled: !Accounts.busy
+                                text: qsTr("Reconnect")
+                                onTriggered: root.reconnect(row.modelData)
+                            }
+                            MenuEntry {
+                                visible: row.caldav && Accounts.calDavReady
+                                height: visible ? implicitHeight : 0
+                                text: account.showCalendars ? qsTr("Hide calendars") : qsTr(
+                                                                  "Choose calendars")
+                                onTriggered: account.showCalendars = !account.showCalendars
+                            }
+                            // Removing asks first, since the account's sign-in goes too.
+                            MenuEntry {
+                                visible: row.microsoft ? Accounts.canRemove : row.manageable
+                                height: visible ? implicitHeight : 0
+                                enabled: !Accounts.busy
+                                text: qsTr("Remove...")
+                                onTriggered: row.confirming = true
+                            }
+                        }
                     }
                 }
             }
 
-            // Under the account, lined up with its name.
+            // Under the account, lined up with its name, once asked for.
             CalDavCalendarList {
-                visible: row.caldav && Accounts.calDavReady
+                visible: row.caldav && Accounts.calDavReady && account.showCalendars
                 x: avatar.width + Theme.space3
                 width: parent.width - x
                 accountId: account.modelData.id
@@ -248,23 +311,33 @@ Column {
         spacing: Theme.space3
 
         StickerButton {
-            enabled: Accounts.unavailable === "" && !Accounts.busy
-            glyph: "plus"
-            text: qsTr("Connect a Google account")
-            onClicked: Accounts.connectGoogle()
-        }
-        StickerButton {
-            visible: Accounts.microsoftReady
+            objectName: "connectAccount"
             enabled: !Accounts.busy
             glyph: "plus"
-            text: qsTr("Connect a Microsoft account")
-            onClicked: Accounts.connectMicrosoft()
-        }
-        StickerButton {
-            enabled: Accounts.calDavReady && !Accounts.busy
-            glyph: "plus"
-            text: qsTr("Connect a CalDAV account")
-            onClicked: root.calDavOpen = true
+            text: qsTr("Connect an account")
+            onClicked: connectMenu.open()
+
+            MenuCard {
+                id: connectMenu
+                y: parent.height + Theme.space1
+
+                MenuEntry {
+                    enabled: Accounts.unavailable === ""
+                    text: qsTr("Google")
+                    onTriggered: Accounts.connectGoogle()
+                }
+                MenuEntry {
+                    visible: Accounts.microsoftReady
+                    height: visible ? implicitHeight : 0
+                    text: qsTr("Microsoft")
+                    onTriggered: Accounts.connectMicrosoft()
+                }
+                MenuEntry {
+                    enabled: Accounts.calDavReady
+                    text: qsTr("CalDAV: Fastmail, iCloud, Nextcloud and others")
+                    onTriggered: root.calDavOpen = true
+                }
+            }
         }
         StickerButton {
             visible: Accounts.signingIn
