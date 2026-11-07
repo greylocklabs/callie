@@ -44,6 +44,8 @@ public:
 
     /// Starts signing in to Zoom and emits authorizeUrlReady for the browser.
     Q_INVOKABLE void connectAccount();
+    /// Stops a sign-in still waiting on the browser, as when it was closed without one.
+    Q_INVOKABLE void cancelConnect();
     /// Forgets the connected account and its sign-in.
     Q_INVOKABLE void disconnectAccount();
 
