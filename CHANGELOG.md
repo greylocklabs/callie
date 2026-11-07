@@ -9,6 +9,9 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - Guests can be optional. Click a guest in the editor to make them optional, or required again;
   the event's details mark who is optional. `callie edit --optional` names them from the terminal.
+- Events can move to another calendar, from Calendar under More options in the editor or with
+  `callie edit --calendar`. A repeating event moves as a whole series. Within one Google account,
+  guests keep their invitations; elsewhere, an event with guests stays where it is.
 
 ### Fixed
 

@@ -40,6 +40,7 @@ public:
                    bool wholeSeries, Created done) override;
     void updateEvent(const Event &event, const EventEdit &edit, EditScope scope,
                      Created done) override;
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override;
 
     [[nodiscard]] bool syncing() const override;
     /// The oldest of the sources' last syncs, since that is how current all

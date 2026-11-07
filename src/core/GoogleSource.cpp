@@ -556,6 +556,23 @@ void GoogleSource::updateEvent(const Event &event, const EventEdit &edit, EditSc
                    std::move(done));
 }
 
+void GoogleSource::transferEvent(const Event &event, const QString &calendarId, Created done)
+{
+    if (!m_sync) {
+        done({tr("Callie is not connected to Google right now."), true});
+        return;
+    }
+    const auto from = splitCalendarId(event.calendarId);
+    const auto to = splitCalendarId(calendarId);
+    // Within one account Google moves it itself, so guests keep their invitations.
+    if (from && to && from->first == to->first) {
+        const QString target = event.seriesId.isEmpty() ? event.eventId : event.seriesId;
+        m_sync->transfer(from->first, from->second, target, to->second, std::move(done));
+        return;
+    }
+    CalendarSource::transferEvent(event, calendarId, std::move(done));
+}
+
 void GoogleSource::splitSeries(const Account &account, const QString &calendarId,
                                const Event &event, const EventEdit &edit, Created done)
 {

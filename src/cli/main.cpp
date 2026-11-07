@@ -1107,6 +1107,7 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
             options.guests = guests->split(u',', Qt::SkipEmptyParts);
         if (const auto optional = value("optional"))
             options.optionalGuests = optional->split(u',', Qt::SkipEmptyParts);
+        options.calendar = value("calendar");
         if (const auto video = value("video")) {
             const QString answer = video->toLower();
             if (!QStringList{u"on"_s, u"off"_s, u"yes"_s, u"no"_s}.contains(answer)) {
@@ -1222,7 +1223,9 @@ int main(int argc, char *argv[])
             {{u"json"_s},
              u"With agenda, search, invites and contacts: print JSON, with ids for other commands."_s,
              {}},
-            {{u"calendar"_s}, u"With add or import: the calendar, by name or id."_s, u"name"_s},
+            {{u"calendar"_s},
+             u"With add or import: the calendar, by name or id. With edit: one to move it to."_s,
+             u"name"_s},
             {{u"account"_s},
              u"With calendars new: make it on this CalDAV account's server."_s,
              u"id"_s},

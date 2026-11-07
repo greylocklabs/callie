@@ -101,6 +101,8 @@ public:
     /// Why guests added in the calendar are not sent invitations; empty when
     /// they are.
     Q_INVOKABLE QString noInvites(const QString &calendarId) const;
+    /// The shown calendars that take events, {id, name, color}, for an event to move to.
+    Q_INVOKABLE QVariantList calendarChoices() const;
 
 Q_SIGNALS:
     void sourceChanged();

@@ -27,7 +27,8 @@ public:
     QString sourceId() const override { return u"fake"_s; }
     QList<CalendarInfo> calendars() const override
     {
-        return {{u"work"_s, u"Work"_s, QColor(u"#5b8def"_s), true, true}};
+        return {{u"work"_s, u"Work"_s, QColor(u"#5b8def"_s), true, true},
+                {u"home"_s, u"Home"_s, QColor(u"#2fa98c"_s), true, true}};
     }
     QList<Event> eventsBetween(const QDateTime &from, const QDateTime &to,
                                const QTimeZone &) const override
@@ -82,6 +83,11 @@ public:
     {
         calls << u"update "_s + event.eventId + u' ' + edit.summary.value_or(QString()) +
                      (scope == EditScope::AllEvents ? u" all"_s : QString());
+        answer(done);
+    }
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override
+    {
+        calls << u"transfer "_s + event.eventId + u" to "_s + calendarId;
         answer(done);
     }
     void moveEvent(const Event &event, const QDateTime &start, const QDateTime &, bool,
@@ -144,6 +150,7 @@ private Q_SLOTS:
     void followingEditsShowFromTheOccurrenceOn();
     void editsAfterACreationGoesOutReachIt();
     void aRefusedCreationTakesItsChangesAlong();
+    void movesToAnotherCalendarShowAtOnce();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -533,6 +540,41 @@ void TestQueuedSource::aRefusedCreationTakesItsChangesAlong()
     QCOMPARE(m_server.calls, QStringList{u"create Pottery"_s});
     QVERIFY(source->changes().isEmpty());
     QVERIFY(source->lastError().contains(u"read-only calendar"_s));
+}
+
+void TestQueuedSource::movesToAnotherCalendarShowAtOnce()
+{
+    m_online = false;
+    {
+        auto source = make();
+        source->transferEvent(makeEvent(u"lunch"_s, 12), u"home"_s, [](const QString &) {});
+        const QList<Event> shownNow = source->eventsBetween(at(12), at(13), QTimeZone::UTC);
+        QCOMPARE(shownNow.size(), 1);
+        QCOMPARE(shownNow.first().calendarId, u"home"_s);
+        QCOMPARE(shownNow.first().color, QColor(u"#2fa98c"_s));
+    }
+    // Kept across a restart, and sent as it was asked.
+    auto source = make();
+    QCOMPARE(source->changes().first().kind, PendingChange::Kind::Transfer);
+    QVERIFY(source->changes().first().wholeSeries);
+    m_online = true;
+    release(*source);
+    QCOMPARE(m_server.calls, QStringList{u"transfer lunch to home"_s});
+
+    // An event not made yet is made in its new calendar.
+    m_server.calls.clear();
+    EventDraft draft;
+    draft.summary = u"Pottery"_s;
+    draft.calendarId = u"work"_s;
+    draft.start = at(18);
+    draft.end = at(20);
+    source->createEvent(draft, [](const QString &) {});
+    const Event pottery = source->eventsBetween(at(18), at(19), QTimeZone::UTC).first();
+    source->transferEvent(pottery, u"home"_s, [](const QString &) {});
+    QCOMPARE(source->changes().size(), 1);
+    QCOMPARE(source->changes().first().draft.calendarId, u"home"_s);
+    release(*source);
+    QCOMPARE(m_server.calls, QStringList{u"create Pottery"_s});
 }
 
 void TestQueuedSource::followingEditsShowFromTheOccurrenceOn()

@@ -149,6 +149,19 @@ public:
         done(tr("These calendars cannot move events."));
     }
 
+    /// Moves the event, its whole series if it repeats, to the calendar
+    /// `calendarId`. By default as copyThenDelete() does it, within this source.
+    virtual void transferEvent(const Event &event, const QString &calendarId, Created done)
+    {
+        copyThenDelete(*this, *this, event, calendarId, std::move(done));
+    }
+
+    /// Moves an event from `from` to `calendarId` in `to` by copying its series
+    /// there as a file and deleting the original. An event with guests is
+    /// refused, as the copy would not invite them.
+    static void copyThenDelete(CalendarSource &from, CalendarSource &to, const Event &event,
+                               const QString &calendarId, Created done);
+
     /// Changes the event, its occurrence, or the occurrences `scope` names.
     virtual void updateEvent(const Event &event, const EventEdit &edit, EditScope scope,
                              Created done)

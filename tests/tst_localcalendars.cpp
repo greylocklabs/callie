@@ -21,6 +21,7 @@ private Q_SLOTS:
     void importingAgainReplaces();
     void removingTrashesTheFolder();
     void exportsTheCalendarOrOneEvent();
+    void aSeriesMovesToAnotherCalendar();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -272,6 +273,48 @@ END:VCALENDAR
     QCOMPARE(series.size(), 2);
     QVERIFY(std::ranges::all_of(series, [](const auto &e) { return e->uid() == u"standup"; }));
     QVERIFY(local.exportEvents(id, u"gone"_s, &error).isEmpty());
+}
+
+void TestLocalCalendars::aSeriesMovesToAnotherCalendar()
+{
+    LocalCalendars local(root());
+    QString error;
+    const QString home = local.create(u"Home"_s, {}, &error);
+    const QString work = local.create(u"Work"_s, {}, &error);
+    QCOMPARE(local.importEvents(home, ics::parse(R"(BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//t//EN
+BEGIN:VEVENT
+UID:standup
+DTSTART:20261005T090000Z
+DTEND:20261005T091500Z
+RRULE:FREQ=DAILY;COUNT=5
+SUMMARY:Standup
+END:VEVENT
+BEGIN:VEVENT
+UID:standup
+RECURRENCE-ID:20261007T090000Z
+DTSTART:20261007T110000Z
+DTEND:20261007T111500Z
+SUMMARY:Standup, later
+END:VEVENT
+END:VCALENDAR
+)"),
+                                &error),
+             1);
+    const QDateTime from(QDate(2026, 10, 5), QTime(0, 0), QTimeZone::UTC);
+    const QList<Event> before = local.eventsBetween(from, from.addDays(7), QTimeZone::UTC);
+    QCOMPARE(before.size(), 5);
+
+    // Picked from one occurrence, the whole series moves, with the one it changed.
+    QString done = u"unset"_s;
+    local.transferEvent(before.at(2), work, [&done](const QString &e) { done = e; });
+    QTRY_COMPARE(done, QString());
+    const QList<Event> after = local.eventsBetween(from, from.addDays(7), QTimeZone::UTC);
+    QCOMPARE(after.size(), 5);
+    QVERIFY(std::ranges::all_of(after, [&work](const Event &e) { return e.calendarId == work; }));
+    QVERIFY(
+        std::ranges::any_of(after, [](const Event &e) { return e.summary == u"Standup, later"; }));
 }
 
 QTEST_MAIN(TestLocalCalendars)

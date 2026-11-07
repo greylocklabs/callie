@@ -255,6 +255,28 @@ void GoogleCalendarApi::patchEvent(const QString &accessToken, const QString &ca
          });
 }
 
+void GoogleCalendarApi::moveEvent(const QString &accessToken, const QString &calendarId,
+                                  const QString &eventId, const QString &destination,
+                                  EventResult result)
+{
+    QUrl url = m_baseUrl.resolved(QUrl(
+        QStringLiteral("calendars/%1/events/%2/move").arg(encoded(calendarId), encoded(eventId)),
+        QUrl::StrictMode));
+    url.setQuery(u"destination="_s + encoded(destination) + u"&sendUpdates=none"_s,
+                 QUrl::StrictMode);
+    QNetworkRequest request(url);
+    request.setRawHeader("Authorization", "Bearer " + accessToken.toUtf8());
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    send(m_network->post(request, QByteArray()),
+         [result = std::move(result)](const QJsonObject &body, const GoogleApiError &error) {
+             const GoogleEvent moved = parseGoogleEvent(body);
+             if (!error && moved.id.isEmpty())
+                 result({}, {200, tr("Google returned no event")});
+             else
+                 result(moved, error);
+         });
+}
+
 void GoogleCalendarApi::fetchInstances(const QString &accessToken, const QString &calendarId,
                                        const QString &eventId, const QDateTime &from,
                                        const QDateTime &to, InstancesResult result)

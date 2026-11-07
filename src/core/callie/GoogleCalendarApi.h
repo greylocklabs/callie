@@ -187,6 +187,11 @@ public:
                         const QString &eventId, const QDateTime &from, const QDateTime &to,
                         InstancesResult result);
 
+    /// Moves an event or a whole series to another calendar of the account,
+    /// keeping its id, guests and their answers, and telling no one.
+    void moveEvent(const QString &accessToken, const QString &calendarId, const QString &eventId,
+                   const QString &destination, EventResult result);
+
     using DoneResult = std::function<void(const GoogleApiError &error)>;
 
     /// Deletes an event, a whole series, or one occurrence, telling its guests.

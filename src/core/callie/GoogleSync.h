@@ -94,6 +94,11 @@ public:
     void update(const Account &account, const QString &calendarId, const QString &eventId,
                 const QJsonObject &fields, bool conference, Created done);
 
+    /// Moves an event or series to another of the account's calendars and
+    /// stores it there, then syncs for the occurrences it changes.
+    void transfer(const Account &account, const QString &calendarId, const QString &eventId,
+                  const QString &destination, Created done);
+
     /// Gives an event, occurrence or series new times, in the zone they carry.
     void move(const Account &account, const QString &calendarId, const QString &eventId,
               const QDateTime &start, const QDateTime &end, Created done);
