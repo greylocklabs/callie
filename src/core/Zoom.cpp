@@ -24,8 +24,17 @@ namespace {
 // Margin for clock skew and for requests that start just before expiry.
 constexpr int kExpiryMarginSeconds = 60;
 
-// One Zoom account at a time, so its keyring entry has a fixed name.
-const Account kZoomAccount{u"zoom"_s, u"meetings"_s};
+// Each Zoom account's sign-in is kept in the keyring under its email.
+Account keyFor(const QString &email)
+{
+    return {u"zoom"_s, email};
+}
+
+// The email a calendar's account goes by, without a provider's prefix such as "microsoft:".
+QString emailOf(const QString &account)
+{
+    return account.section(u':', -1).section(u'/', -1);
+}
 
 } // namespace
 
@@ -67,6 +76,18 @@ QString Zoom::withMeeting(const QString &where, const QUrl &join)
     return kept.isEmpty() ? join.toString() : kept + u' ' + join.toString();
 }
 
+QString Zoom::accountFor(const QString &calendarAccount) const
+{
+    const QStringList accounts = m_settings.zoomAccounts();
+    const QString email = emailOf(calendarAccount);
+    for (const QString &account : accounts) {
+        if (!email.isEmpty() && account.compare(email, Qt::CaseInsensitive) == 0)
+            return account;
+    }
+    return accounts.contains(m_settings.zoomDefault()) ? m_settings.zoomDefault()
+                                                       : accounts.value(0);
+}
+
 void Zoom::connectAccount()
 {
     if (!available() || m_auth)
@@ -79,19 +100,7 @@ void Zoom::connectAccount()
     connect(m_auth, &ZoomAuth::granted, this, [this](const ZoomTokens &tokens) {
         m_auth->deleteLater();
         m_auth = nullptr;
-        m_accessToken = tokens.accessToken;
-        m_expiresAt = tokens.expiresAt;
-        const QPointer<Zoom> self(this);
-        m_tokens.write(kZoomAccount, tokens.refreshToken,
-                       [self, accessToken = tokens.accessToken](const QString &error) {
-                           if (!self)
-                               return;
-                           if (!error.isEmpty()) {
-                               self->setError(tr("Could not keep the Zoom sign-in: %1").arg(error));
-                               return;
-                           }
-                           self->readEmail(accessToken);
-                       });
+        connected(tokens);
     });
     connect(m_auth, &ZoomAuth::failed, this, [this](const QString &message) {
         m_auth->deleteLater();
@@ -112,96 +121,112 @@ void Zoom::cancelConnect()
     Q_EMIT statusChanged();
 }
 
-void Zoom::readEmail(const QString &accessToken)
+void Zoom::connected(const ZoomTokens &tokens)
 {
+    // Which account signed in decides where its sign-in is kept.
     QNetworkRequest request(m_api.resolved(QUrl(u"users/me"_s)));
-    request.setRawHeader("Authorization", "Bearer " + accessToken.toUtf8());
+    request.setRawHeader("Authorization", "Bearer " + tokens.accessToken.toUtf8());
     QNetworkReply *reply = m_network->get(request);
-    connect(reply, &QNetworkReply::finished, this, [this, reply] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, tokens] {
         reply->deleteLater();
-        const QJsonObject body = QJsonDocument::fromJson(reply->readAll()).object();
-        // Connected even without the address, which only names the account.
-        const QString email = body[u"email"].toString();
-        m_settings.setZoomAccount(email.isEmpty() ? u"Zoom"_s : email);
-        // Connected to make meetings with, so the switch makes them from now on.
-        m_settings.setVideoCallService(u"zoom"_s);
-        Q_EMIT statusChanged();
+        const QString email =
+            QJsonDocument::fromJson(reply->readAll()).object()[u"email"].toString();
+        if (reply->error() != QNetworkReply::NoError || email.isEmpty()) {
+            setError(tr("Zoom did not say which account signed in: %1").arg(reply->errorString()));
+            return;
+        }
+        m_cache.insert(email.toLower(), {tokens.accessToken, tokens.expiresAt});
+        const QPointer<Zoom> self(this);
+        m_tokens.write(keyFor(email), tokens.refreshToken, [self, email](const QString &error) {
+            if (!self)
+                return;
+            if (!error.isEmpty()) {
+                self->setError(tr("Could not keep the Zoom sign-in: %1").arg(error));
+                return;
+            }
+            self->m_settings.addZoomAccount(email);
+            // Connected to make meetings with, so the switch makes them from now on.
+            self->m_settings.setVideoCallService(u"zoom"_s);
+            Q_EMIT self->statusChanged();
+        });
     });
 }
 
-void Zoom::disconnectAccount()
+void Zoom::disconnectAccount(const QString &email)
 {
-    m_accessToken.clear();
-    m_expiresAt = {};
-    m_settings.setZoomAccount({});
-    if (m_settings.videoCallService() == u"zoom")
+    m_cache.remove(email.toLower());
+    m_settings.removeZoomAccount(email);
+    if (m_settings.zoomAccounts().isEmpty() && m_settings.videoCallService() == u"zoom")
         m_settings.setVideoCallService(u"calendar"_s);
     const QPointer<Zoom> self(this);
-    m_tokens.remove(kZoomAccount, [self](const QString &error) {
+    m_tokens.remove(keyFor(email), [self](const QString &error) {
         if (self && !error.isEmpty())
             qCWarning(lcAuth) << "could not remove the Zoom sign-in:" << error;
     });
     setError({});
 }
 
-void Zoom::accessToken(TokenResult result)
+void Zoom::accessToken(const QString &email, TokenResult result)
 {
-    if (!m_accessToken.isEmpty() &&
-        QDateTime::currentDateTimeUtc().addSecs(kExpiryMarginSeconds) < m_expiresAt) {
+    const QString key = email.toLower();
+    const auto cached = m_cache.constFind(key);
+    if (cached != m_cache.cend() &&
+        QDateTime::currentDateTimeUtc().addSecs(kExpiryMarginSeconds) < cached->expiresAt) {
         QMetaObject::invokeMethod(
-            this, [result = std::move(result), token = m_accessToken] { result(token, {}); },
+            this, [result = std::move(result), token = cached->accessToken] { result(token, {}); },
             Qt::QueuedConnection);
         return;
     }
-    m_waiting.append(std::move(result));
-    // One refresh at a time, as each spends the refresh token it uses.
-    if (m_waiting.size() > 1)
+    QList<TokenResult> &waiting = m_waiting[key];
+    waiting.append(std::move(result));
+    // One refresh at a time for an account, as each spends the refresh token it uses.
+    if (waiting.size() > 1)
         return;
     const QPointer<Zoom> self(this);
-    m_tokens.read(kZoomAccount, [self](const QString &refreshToken, const QString &error) {
+    m_tokens.read(keyFor(email), [self, email, key](const QString &refreshToken,
+                                                    const QString &error) {
         if (!self)
             return;
         if (!error.isEmpty() || refreshToken.isEmpty()) {
-            self->finishToken({}, tr("Connect Zoom again in Settings."));
+            self->finishToken(key, {}, tr("Connect %1 to Zoom again in Settings.").arg(email));
             return;
         }
         auto *auth = new ZoomAuth(self->m_client, self);
         if (self->m_tokenUrl.isValid())
             auth->setTokenUrl(self->m_tokenUrl);
-        connect(auth, &ZoomAuth::granted, self, [self, auth](const ZoomTokens &tokens) {
+        connect(auth, &ZoomAuth::granted, self, [self, auth, email, key](const ZoomTokens &tokens) {
             auth->deleteLater();
-            self->m_accessToken = tokens.accessToken;
-            self->m_expiresAt = tokens.expiresAt;
+            self->m_cache.insert(key, {tokens.accessToken, tokens.expiresAt});
             // Stored before it is used, so a crash cannot leave only the spent one.
-            self->m_tokens.write(kZoomAccount, tokens.refreshToken,
-                                 [self, accessToken = tokens.accessToken](const QString &error) {
-                                     if (!self)
-                                         return;
-                                     if (!error.isEmpty())
-                                         qCWarning(lcAuth)
-                                             << "could not store the new Zoom token:" << error;
-                                     self->finishToken(accessToken, {});
-                                 });
+            self->m_tokens.write(
+                keyFor(email), tokens.refreshToken,
+                [self, key, accessToken = tokens.accessToken](const QString &error) {
+                    if (!self)
+                        return;
+                    if (!error.isEmpty())
+                        qCWarning(lcAuth) << "could not store the new Zoom token:" << error;
+                    self->finishToken(key, accessToken, {});
+                });
         });
-        connect(auth, &ZoomAuth::failed, self, [self, auth](const QString &message) {
+        connect(auth, &ZoomAuth::failed, self, [self, auth, key](const QString &message) {
             auth->deleteLater();
-            self->finishToken({}, message);
+            self->finishToken(key, {}, message);
         });
         auth->refresh(refreshToken);
     });
 }
 
-void Zoom::finishToken(const QString &accessToken, const QString &error)
+void Zoom::finishToken(const QString &key, const QString &accessToken, const QString &error)
 {
-    const QList<TokenResult> waiting = std::exchange(m_waiting, {});
+    const QList<TokenResult> waiting = m_waiting.take(key);
     for (const TokenResult &result : waiting)
         result(accessToken, error);
 }
 
-void Zoom::createMeeting(const QString &topic, const QDateTime &start, const QDateTime &end,
-                         bool anyTime, MeetingResult done)
+void Zoom::createMeeting(const QString &account, const QString &topic, const QDateTime &start,
+                         const QDateTime &end, bool anyTime, MeetingResult done)
 {
-    if (m_settings.zoomAccount().isEmpty()) {
+    if (!m_settings.zoomAccounts().contains(account)) {
         done({}, tr("Connect Zoom in Settings to make Zoom meetings."));
         return;
     }
@@ -214,38 +239,41 @@ void Zoom::createMeeting(const QString &topic, const QDateTime &start, const QDa
     }
     const QByteArray body = QJsonDocument(meeting).toJson(QJsonDocument::Compact);
     const QPointer<Zoom> self(this);
-    accessToken([self, body, done](const QString &accessToken, const QString &error) {
-        if (!self)
-            return;
-        if (!error.isEmpty()) {
-            done({}, tr("Zoom could not make the meeting: %1").arg(error));
-            return;
-        }
-        self->post(accessToken, body, false, done);
-    });
+    accessToken(account,
+                [self, account, body, done](const QString &accessToken, const QString &error) {
+                    if (!self)
+                        return;
+                    if (!error.isEmpty()) {
+                        done({}, tr("Zoom could not make the meeting: %1").arg(error));
+                        return;
+                    }
+                    self->post(account, accessToken, body, false, done);
+                });
 }
 
-void Zoom::post(const QString &token, const QByteArray &body, bool retried, MeetingResult done)
+void Zoom::post(const QString &account, const QString &token, const QByteArray &body, bool retried,
+                MeetingResult done)
 {
     QNetworkRequest request(m_api.resolved(QUrl(u"users/me/meetings"_s)));
     request.setRawHeader("Authorization", "Bearer " + token.toUtf8());
     request.setHeader(QNetworkRequest::ContentTypeHeader, u"application/json"_s);
     QNetworkReply *reply = m_network->post(request, body);
-    connect(reply, &QNetworkReply::finished, this, [this, reply, body, retried, done] {
+    connect(reply, &QNetworkReply::finished, this, [this, reply, account, body, retried, done] {
         reply->deleteLater();
         const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         const QJsonObject answer = QJsonDocument::fromJson(reply->readAll()).object();
         // A token turned down early is refreshed once and tried again.
         if (status == 401 && !retried) {
-            m_accessToken.clear();
+            m_cache.remove(account.toLower());
             const QPointer<Zoom> self(this);
-            accessToken([self, body, done](const QString &accessToken, const QString &error) {
+            accessToken(account, [self, account, body, done](const QString &accessToken,
+                                                             const QString &error) {
                 if (!self)
                     return;
                 if (!error.isEmpty())
                     done({}, tr("Zoom could not make the meeting: %1").arg(error));
                 else
-                    self->post(accessToken, body, true, done);
+                    self->post(account, accessToken, body, true, done);
             });
             return;
         }

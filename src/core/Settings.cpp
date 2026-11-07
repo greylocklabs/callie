@@ -46,7 +46,8 @@ const QString kLastSeenVersion = u"app/lastSeenVersion"_s;
 const QString kNewEventCalendar = u"events/newEventCalendar"_s;
 const QString kDefaultCalendar = u"events/defaultCalendar"_s;
 const QString kVideoCallService = u"calls/service"_s;
-const QString kZoomAccount = u"calls/zoomAccount"_s;
+const QString kZoomAccounts = u"calls/zoomAccounts"_s;
+const QString kZoomDefault = u"calls/zoomDefault"_s;
 const QString kNotify = u"reminders/notify"_s;
 const QString kCallCard = u"events/callCard"_s;
 const QString kReminderMinutes = u"reminders/defaultMinutes"_s;
@@ -114,7 +115,10 @@ void Settings::load()
     m_defaultCalendar = m_store.value(kDefaultCalendar).toString();
     m_videoCallService =
         m_store.value(kVideoCallService).toString() == u"zoom" ? u"zoom"_s : u"calendar"_s;
-    m_zoomAccount = m_store.value(kZoomAccount).toString();
+    m_zoomAccounts = m_store.value(kZoomAccounts).toStringList();
+    m_zoomDefault = m_store.value(kZoomDefault).toString();
+    if (!m_zoomAccounts.contains(m_zoomDefault))
+        m_zoomDefault = m_zoomAccounts.value(0);
     m_notify = m_store.value(kNotify, true).toBool();
     m_callCard = m_store.value(kCallCard, true).toBool();
     m_reminderMinutes = std::max(-1, m_store.value(kReminderMinutes, 10).toInt());
@@ -341,15 +345,37 @@ void Settings::setVideoCallService(const QString &service)
     Q_EMIT videoCallsChanged();
 }
 
-void Settings::setZoomAccount(const QString &email)
+void Settings::addZoomAccount(const QString &email)
 {
-    if (m_zoomAccount == email)
+    if (email.isEmpty() || m_zoomAccounts.contains(email, Qt::CaseInsensitive))
         return;
-    m_zoomAccount = email;
-    if (email.isEmpty())
-        m_store.remove(kZoomAccount);
-    else
-        m_store.setValue(kZoomAccount, email);
+    m_zoomAccounts << email;
+    m_store.setValue(kZoomAccounts, m_zoomAccounts);
+    if (m_zoomDefault.isEmpty()) {
+        m_zoomDefault = email;
+        m_store.setValue(kZoomDefault, email);
+    }
+    Q_EMIT videoCallsChanged();
+}
+
+void Settings::removeZoomAccount(const QString &email)
+{
+    if (!m_zoomAccounts.removeOne(email))
+        return;
+    m_store.setValue(kZoomAccounts, m_zoomAccounts);
+    if (m_zoomDefault == email) {
+        m_zoomDefault = m_zoomAccounts.value(0);
+        m_store.setValue(kZoomDefault, m_zoomDefault);
+    }
+    Q_EMIT videoCallsChanged();
+}
+
+void Settings::setZoomDefault(const QString &email)
+{
+    if (m_zoomDefault == email || !m_zoomAccounts.contains(email))
+        return;
+    m_zoomDefault = email;
+    m_store.setValue(kZoomDefault, email);
     Q_EMIT videoCallsChanged();
 }
 
@@ -629,7 +655,8 @@ void Settings::reset()
     const QString view = m_view;
     const QString defaultCalendar = m_defaultCalendar;
     const QString videoCallService = m_videoCallService;
-    const QString zoomAccount = m_zoomAccount;
+    const QStringList zoomAccounts = m_zoomAccounts;
+    const QString zoomDefault = m_zoomDefault;
     const bool notify = m_notify, keep = m_keepRunning, updates = m_checkForUpdates;
     const bool callCard = m_callCard;
     const int minutes = m_reminderMinutes;
@@ -647,10 +674,13 @@ void Settings::reset()
     m_accountPhotos = accountPhotos;
     if (!m_accountPhotos.isEmpty())
         m_store.setValue(kAccountPhotos, m_accountPhotos);
-    // A connected Zoom account keeps its sign-in in the keyring, so it stays connected.
-    m_zoomAccount = zoomAccount;
-    if (!m_zoomAccount.isEmpty())
-        m_store.setValue(kZoomAccount, m_zoomAccount);
+    // Connected Zoom accounts keep their sign-ins in the keyring, so they stay connected.
+    m_zoomAccounts = zoomAccounts;
+    m_zoomDefault = zoomDefault;
+    if (!m_zoomAccounts.isEmpty()) {
+        m_store.setValue(kZoomAccounts, m_zoomAccounts);
+        m_store.setValue(kZoomDefault, m_zoomDefault);
+    }
     if (format != m_timeFormat)
         Q_EMIT timeFormatChanged();
     if (zone != m_timeZoneId)

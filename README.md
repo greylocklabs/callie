@@ -84,7 +84,9 @@ account has Teams. Builds name the Microsoft app they sign in as with `CALLIE_MI
 
 Zoom connects under Video calls in the same tab, for its meetings rather than as a calendar. Once it
 is, the editor's video call switch makes a Zoom meeting and puts its link in Where, on any calendar.
-Builds name the Zoom app they make meetings as with `CALLIE_ZOOM_CLIENT_ID`.
+Several Zoom accounts can be connected, with Switch account on Zoom's sign-in page: an event's
+meeting is made as the one with its calendar's account's email, or as the one chosen for other
+calendars. Builds name the Zoom app they make meetings as with `CALLIE_ZOOM_CLIENT_ID`.
 
 CalDAV accounts connect there too: pick Fastmail, iCloud or Nextcloud, or give any server's
 address, then the user name and an app password, which goes in the system keyring. Callie keeps a

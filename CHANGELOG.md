@@ -14,6 +14,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
   guests keep their invitations; elsewhere, an event with guests stays where it is.
 - Zoom can make the meetings for events instead of Google Meet or Teams. Connect Zoom under Video
   calls in Settings, and the video call switch makes a Zoom meeting and puts its link in Where.
+  Connect several Zoom accounts, and each event's meeting is made as the one with its calendar's
+  account's email, or the one chosen for other calendars.
 
 ### Fixed
 

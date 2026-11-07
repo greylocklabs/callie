@@ -771,9 +771,16 @@ void TestEventEdit::theCallSwitchOffersZoomOnceChosen()
     QQuickItem *form = openEditor(u"Climbing"_s);
     QVERIFY(form);
     QVERIFY(find(m_window->contentItem(), "Toggle", "text", u"Add a Google Meet"_s));
-    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
     m_settings->setVideoCallService(u"zoom"_s);
     QTRY_VERIFY(find(m_window->contentItem(), "Toggle", "text", u"Add a Zoom meeting"_s));
+    // With two, it names the one the event's calendar's account has.
+    m_settings->addZoomAccount(u"sam@home.example"_s);
+    const QString climbing = form->property("calendar").toString();
+    const QString expected = climbing == u"personal" ? u"sam@home.example"_s : u"sam@example.com"_s;
+    QTRY_VERIFY(find(m_window->contentItem(), "Toggle", "text",
+                     u"Add a Zoom meeting (%1)"_s.arg(expected)));
+    m_settings->removeZoomAccount(u"sam@home.example"_s);
     // A Zoom link in Where is the event's call only while the switch makes Zoom meetings.
     QVariantMap typed = form->property("event").toMap();
     typed.insert(u"location"_s, u"Room 4 https://zoom.us/j/1"_s);
@@ -784,7 +791,7 @@ void TestEventEdit::theCallSwitchOffersZoomOnceChosen()
     QVERIFY(QMetaObject::invokeMethod(form, "load", Q_ARG(QVariant, typed)));
     QVERIFY(!form->property("hadCall").toBool());
     m_settings->setVideoCallService(u"calendar"_s);
-    m_settings->setZoomAccount({});
+    m_settings->removeZoomAccount(u"sam@example.com"_s);
 }
 
 void TestEventEdit::placesComeFromSuggestions()

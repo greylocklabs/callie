@@ -50,8 +50,8 @@ Column {
     /// in Where.
     property bool hadCall
     /// The switch makes Zoom meetings rather than the calendar's own.
-    readonly property bool zoomCalls: Settings.videoCallService === "zoom" && Settings.zoomAccount
-                                      !== ""
+    readonly property bool zoomCalls: Settings.videoCallService === "zoom"
+                                      && Settings.zoomAccounts.length > 0
     property bool moreOptions: false
     /// Waiting to ask which occurrences a repeating event's change is for.
     property bool asking: false
@@ -110,6 +110,9 @@ Column {
 
     /// What the video call switch makes, by name.
     function callLabel() {
+        // With more than one Zoom account, which one makes it, as the calendar decides.
+        if (zoomCalls && Settings.zoomAccounts.length > 1)
+            return qsTr("Add a Zoom meeting (%1)").arg(actions.zoomAccountFor(calendar))
         if (zoomCalls)
             return qsTr("Add a Zoom meeting")
         const service = actions.callServiceFor(event.calendarId || "")

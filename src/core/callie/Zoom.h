@@ -3,6 +3,7 @@
 #include "ZoomClientConfig.h"
 
 #include <QDateTime>
+#include <QHash>
 #include <QObject>
 #include <QUrl>
 
@@ -15,10 +16,11 @@ namespace callie {
 class Settings;
 class TokenStore;
 class ZoomAuth;
+struct ZoomTokens;
 
-/// Zoom meetings for events, made as the Zoom account connected in Settings.
-/// The refresh token stays in the keyring and is replaced at every refresh,
-/// as Zoom gives a new one each time.
+/// Zoom meetings for events, made as one of the Zoom accounts connected in Settings: the one
+/// with the email of the event's calendar's account, or the default. Each refresh token stays in
+/// the keyring and is replaced at every refresh, as Zoom gives a new one each time.
 class Zoom : public QObject
 {
     Q_OBJECT
@@ -42,18 +44,22 @@ public:
     [[nodiscard]] bool connecting() const { return m_auth != nullptr; }
     [[nodiscard]] QString error() const { return m_error; }
 
-    /// Starts signing in to Zoom and emits authorizeUrlReady for the browser.
+    /// Starts signing in to Zoom and emits authorizeUrlReady for the browser. Zoom's own page
+    /// can switch accounts, so each sign-in can add another.
     Q_INVOKABLE void connectAccount();
     /// Stops a sign-in still waiting on the browser, as when it was closed without one.
     Q_INVOKABLE void cancelConnect();
-    /// Forgets the connected account and its sign-in.
-    Q_INVOKABLE void disconnectAccount();
+    /// Forgets a connected account and its sign-in.
+    Q_INVOKABLE void disconnectAccount(const QString &email);
+    /// The Zoom account for an event in a calendar of `calendarAccount`: the one with its email,
+    /// or the default. Empty when none is connected.
+    Q_INVOKABLE QString accountFor(const QString &calendarAccount) const;
 
     /// Makes a meeting for an event, calling `done` once with its link or an error.
     /// With `anyTime`, as for an all-day or repeating event, the meeting has no fixed
     /// time, so its link works on every day of the event.
-    void createMeeting(const QString &topic, const QDateTime &start, const QDateTime &end,
-                       bool anyTime, MeetingResult done);
+    void createMeeting(const QString &account, const QString &topic, const QDateTime &start,
+                       const QDateTime &end, bool anyTime, MeetingResult done);
 
     /// Whether `url` joins a Zoom meeting.
     [[nodiscard]] static bool isMeeting(const QUrl &url);
@@ -71,10 +77,17 @@ Q_SIGNALS:
 private:
     using TokenResult = std::function<void(const QString &accessToken, const QString &error)>;
 
-    void accessToken(TokenResult result);
-    void finishToken(const QString &accessToken, const QString &error);
-    void post(const QString &token, const QByteArray &body, bool retried, MeetingResult done);
-    void readEmail(const QString &accessToken);
+    struct Cached
+    {
+        QString accessToken;
+        QDateTime expiresAt;
+    };
+
+    void connected(const ZoomTokens &tokens);
+    void accessToken(const QString &email, TokenResult result);
+    void finishToken(const QString &key, const QString &accessToken, const QString &error);
+    void post(const QString &account, const QString &token, const QByteArray &body, bool retried,
+              MeetingResult done);
     void setError(const QString &error);
 
     ZoomClientConfig m_client;
@@ -86,9 +99,9 @@ private:
     QUrl m_tokenUrl;
     ZoomAuth *m_auth = nullptr;
     QString m_error;
-    QString m_accessToken;
-    QDateTime m_expiresAt;
-    QList<TokenResult> m_waiting;
+    /// Access tokens and the requests waiting on a refresh, by lowercased email.
+    QHash<QString, Cached> m_cache;
+    QHash<QString, QList<TokenResult>> m_waiting;
 };
 
 } // namespace callie
