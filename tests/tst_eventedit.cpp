@@ -749,6 +749,12 @@ void TestEventEdit::aSeriesMovesToAnotherCalendar()
         (choice = find(m_window->contentItem(), "Dropdown", "objectName", u"calendarChoice"_s)));
     QTRY_VERIFY(choice->isVisible());
     QCOMPARE(choice->property("currentValue").toString(), u"work"_s);
+    QCOMPARE(form->property("calendarChoices").toList().size(), 3);
+    // Read again when an event is opened, so a calendar hidden since is not offered.
+    m_settings->setCalendarVisible(u"focus"_s, false);
+    QVERIFY(QMetaObject::invokeMethod(form, "load", Q_ARG(QVariant, form->property("event"))));
+    QCOMPARE(form->property("calendarChoices").toList().size(), 2);
+    m_settings->setCalendarVisible(u"focus"_s, true);
 
     // All that changes is the calendar, which takes the whole series without asking.
     QMetaObject::invokeMethod(choice, "activated", Q_ARG(QVariant, u"personal"_s));

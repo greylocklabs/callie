@@ -44,6 +44,8 @@ Column {
     property bool videoCall
     /// The calendar the event is to be in; another one moves it, whole series and all.
     property string calendar
+    /// The calendars it can move to, read whenever an event is opened.
+    property var calendarChoices: []
     property bool moreOptions: false
     /// Waiting to ask which occurrences a repeating event's change is for.
     property bool asking: false
@@ -91,6 +93,7 @@ Column {
         optionalGuests = optionalOf(e.guests)
         videoCall = (e.conferenceUrl || "").toString() !== ""
         calendar = e.calendarId || ""
+        calendarChoices = root.actions.calendarChoices()
         moreOptions = false
         asking = false
         root.actions.clearError()
@@ -683,8 +686,7 @@ Column {
         }
     }
     Row {
-        readonly property var choices: root.actions.calendarChoices()
-        visible: root.moreOptions && choices.length > 1
+        visible: root.moreOptions && root.calendarChoices.length > 1
         spacing: Theme.space3
 
         Text {
@@ -698,7 +700,7 @@ Column {
         }
         Dropdown {
             objectName: "calendarChoice"
-            model: parent.choices
+            model: root.calendarChoices
             currentValue: root.calendar
             maximumWidth: root.width - calendarLabel.width - parent.spacing
             Accessible.name: qsTr("Calendar")
