@@ -21,6 +21,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
   no longer lost with a sync failure.
 - An event drawn over one you cannot edit, such as one on a calendar shared with you, can be
   dragged again instead of showing that it cannot move.
+- A repeating all-day event on a local, subscribed, CalDAV or Microsoft calendar keeps its last
+  day west of UTC, where it used to end a day early.
 
 ## 0.6.9 - 2026-11-03
 

@@ -2,6 +2,7 @@
 #include "callie/Ics.h"
 
 #include <QJsonArray>
+#include <QRegularExpression>
 #include <QTest>
 
 using namespace callie;
@@ -365,6 +366,9 @@ END:VEVENT
     QCOMPARE(days.first(), QDate(2026, 10, 12));
     QVERIFY(days.contains(QDate(2026, 10, 22)));
     QCOMPARE(days.last(), QDate(2026, 12, 7));
+    // The last day is still written as a date, not a moment.
+    QVERIFY(QString::fromUtf8(ics::write(moved->group))
+                .contains(QRegularExpression(u"UNTIL=20261207[;\r]"_s)));
 }
 
 void TestIcs::monthlySeriesFollowTheirNewDay()
