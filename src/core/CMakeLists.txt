@@ -93,6 +93,7 @@ add_library(calliecore STATIC
     callie/LookedSource.h
     LookedSource.cpp
     callie/CombinedSource.h
+    CalendarSource.cpp
     CombinedSource.cpp
     callie/Ics.h
     Ics.cpp

@@ -338,6 +338,23 @@ void TestEventActions::editsReachTheWholeSeries()
         daily += e.summary == u"Daily";
     }
     QCOMPARE(daily, 5);
+
+    // A new calendar takes the whole series, after the rest of the change.
+    actions.update(standup, {{u"summary"_s, u"Huddle"_s}, {u"calendarId"_s, u"personal"_s}},
+                   u"this"_s);
+    QCOMPARE(updated.size(), 2);
+    QVERIFY(actions.error().isEmpty());
+    int moved = 0;
+    for (const Event &e : source.eventsBetween(week, week.addDays(7), QTimeZone::UTC)) {
+        if (e.summary == u"Daily" || e.summary == u"Huddle") {
+            QCOMPARE(e.calendarId, u"personal"_s);
+            ++moved;
+        }
+    }
+    QCOMPARE(moved, 5);
+
+    // Only the shown calendars that take events are offered.
+    QCOMPARE(actions.calendarChoices().size(), 3);
 }
 
 void TestEventActions::callsOnlyWhereTheCalendarHasThem()

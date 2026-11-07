@@ -1,5 +1,8 @@
 #include "EventActions.h"
 
+#include "EventModelForeign.h"
+#include "callie/Settings.h"
+
 #include "callie/Places.h"
 #include "callie/Repeat.h"
 #include "callie/Times.h"
@@ -263,7 +266,10 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
         return;
     const EventEdit edit = toEdit(changes);
     const QString eventId = event.value(u"eventId"_s).toString();
-    if (edit.isEmpty()) {
+    const QString calendarId = changes.value(u"calendarId"_s).toString();
+    const bool transfer =
+        !calendarId.isEmpty() && calendarId != event.value(u"calendarId"_s).toString();
+    if (edit.isEmpty() && !transfer) {
         Q_EMIT updated(eventId);
         return;
     }
@@ -272,13 +278,30 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
                             : scope == u"following" ? EditScope::ThisAndFollowing
                                                     : EditScope::ThisEvent;
     const QPointer<EventActions> self(this);
-    m_source->updateEvent(toEvent(event), edit, range, [this, self, eventId](const QString &error) {
+    const Event edited = toEvent(event);
+    // The event changes where it is, then moves; a failed change does not move it.
+    const auto changed = [this, self, eventId, edited, calendarId, transfer](const QString &error) {
         if (!self)
             return;
+        if (error.isEmpty() && transfer && m_source) {
+            m_source->transferEvent(edited, calendarId,
+                                    [this, self, eventId](const QString &error) {
+                                        if (!self)
+                                            return;
+                                        finish(eventId, error);
+                                        if (error.isEmpty())
+                                            Q_EMIT updated(eventId);
+                                    });
+            return;
+        }
         finish(eventId, error);
         if (error.isEmpty())
             Q_EMIT updated(eventId);
-    });
+    };
+    if (edit.isEmpty())
+        changed({});
+    else
+        m_source->updateEvent(edited, edit, range, changed);
 }
 
 EventDraft EventActions::toCopy(const QVariantMap &event, const QDateTime &start)
@@ -317,6 +340,21 @@ QString EventActions::noInvites(const QString &calendarId) const
                   "the event but not sent invitations.");
     return tr("This calendar is only on this computer, so guests are kept with the event but "
               "not sent invitations.");
+}
+
+QVariantList EventActions::calendarChoices() const
+{
+    QVariantList choices;
+    if (!m_source)
+        return choices;
+    const QStringList hidden = SettingsForeign::create(nullptr, nullptr)->hiddenCalendars();
+    for (const CalendarInfo &calendar : m_source->calendars()) {
+        if (calendar.writable && !hidden.contains(calendar.id))
+            choices << QVariantMap{{u"id"_s, calendar.id},
+                                   {u"name"_s, calendar.displayName},
+                                   {u"color"_s, calendar.color}};
+    }
+    return choices;
 }
 
 bool EventActions::canAddCall(const QString &calendarId) const

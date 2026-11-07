@@ -445,10 +445,29 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
         edit.recurrence = Repeat::rule(*options.repeat, day);
     }
 
-    if (edit.isEmpty())
+    QString calendarId;
+    if (options.calendar) {
+        calendarId = writableCalendar(*options.calendar);
+        if (calendarId.isEmpty())
+            return mistake(tr("no calendar you can add to is called %1").arg(*options.calendar));
+        if (calendarId == event.calendarId)
+            calendarId.clear();
+    }
+    if (edit.isEmpty() && calendarId.isEmpty())
         return mistake(tr("nothing to change; callie edit --help lists what can be"));
-    m_source.updateEvent(event, edit, *scope,
-                         [this, done](const Outcome &outcome) { report(outcome, done); });
+    // Changed where it is, then moved, as the app does it.
+    const auto transfer = [this, event, calendarId, done](const Outcome &outcome) {
+        if (!outcome.isEmpty() || calendarId.isEmpty()) {
+            report(outcome, done);
+            return;
+        }
+        m_source.transferEvent(event, calendarId,
+                               [this, done](const Outcome &moved) { report(moved, done); });
+    };
+    if (edit.isEmpty())
+        transfer({});
+    else
+        m_source.updateEvent(event, edit, *scope, transfer);
 }
 
 void Commands::remove(const QString &id, const QString &scopeText, const Done &done)

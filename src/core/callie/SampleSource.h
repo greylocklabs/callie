@@ -43,6 +43,7 @@ public:
     /// offered.
     void updateEvent(const Event &event, const EventEdit &edit, EditScope scope,
                      Created done) override;
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override;
 
 private:
     QList<Event> m_created;
@@ -56,6 +57,8 @@ private:
         EditScope scope = EditScope::ThisEvent;
     };
     QList<Edit> m_edits;
+    /// Calendars events were moved to, by series id, or uid for one on its own.
+    QHash<QString, QString> m_transferred;
     std::function<QDateTime()> m_now;
     QDateTime m_synced;
     QList<CalendarInfo> m_calendars;

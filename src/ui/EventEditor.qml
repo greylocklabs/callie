@@ -42,6 +42,8 @@ Column {
     /// The guests who need not come.
     property var optionalGuests: []
     property bool videoCall
+    /// The calendar the event is to be in; another one moves it, whole series and all.
+    property string calendar
     property bool moreOptions: false
     /// Waiting to ask which occurrences a repeating event's change is for.
     property bool asking: false
@@ -88,6 +90,7 @@ Column {
         guests = (e.attendees || []).slice()
         optionalGuests = optionalOf(e.guests)
         videoCall = (e.conferenceUrl || "").toString() !== ""
+        calendar = e.calendarId || ""
         moreOptions = false
         asking = false
         root.actions.clearError()
@@ -149,6 +152,8 @@ Column {
             c.optionalGuests = optional
         if (videoCall !== ((event.conferenceUrl || "").toString() !== ""))
             c.videoCall = videoCall
+        if (calendar !== (event.calendarId || ""))
+            c.calendarId = calendar
         return c
     }
 
@@ -173,7 +178,13 @@ Column {
     function save() {
         if (title.trim() === "" || !valid())
             return
-        // A repeating event saves through saveFor(), once asked which occurrences.
+        // A repeating event saves through saveFor(), once asked which occurrences, unless
+        // all that changes is its calendar, which takes the whole series.
+        const keys = Object.keys(changes("all"))
+        if (repeating && keys.length === 1 && keys[0] === "calendarId") {
+            saveFor("all")
+            return
+        }
         if (repeating) {
             asking = true
             return
@@ -669,6 +680,29 @@ Column {
         ZonePicker {
             zoneId: root.zone
             onPicked: id => root.zone = id
+        }
+    }
+    Row {
+        readonly property var choices: root.actions.calendarChoices()
+        visible: root.moreOptions && choices.length > 1
+        spacing: Theme.space3
+
+        Text {
+            id: calendarLabel
+            anchors.verticalCenter: parent.verticalCenter
+            text: qsTr("Calendar")
+            color: Theme.textFaint
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.textSm
+            font.weight: Theme.weightHeavy
+        }
+        Dropdown {
+            objectName: "calendarChoice"
+            model: parent.choices
+            currentValue: root.calendar
+            maximumWidth: root.width - calendarLabel.width - parent.spacing
+            Accessible.name: qsTr("Calendar")
+            onActivated: value => root.calendar = value
         }
     }
 

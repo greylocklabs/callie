@@ -135,6 +135,20 @@ void CombinedSource::moveEvent(const Event &event, const QDateTime &start, const
         source->moveEvent(event, start, end, wholeSeries, std::move(done));
 }
 
+void CombinedSource::transferEvent(const Event &event, const QString &calendarId, Created done)
+{
+    CalendarSource *from = owner(event.calendarId, done);
+    if (!from)
+        return;
+    CalendarSource *to = owner(calendarId, done);
+    if (!to)
+        return;
+    if (from == to)
+        from->transferEvent(event, calendarId, std::move(done));
+    else
+        copyThenDelete(*from, *to, event, calendarId, std::move(done));
+}
+
 void CombinedSource::updateEvent(const Event &event, const EventEdit &edit, EditScope scope,
                                  Created done)
 {

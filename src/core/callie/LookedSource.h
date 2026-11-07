@@ -46,6 +46,10 @@ public:
     {
         m_inner->updateEvent(event, edit, scope, std::move(done));
     }
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override
+    {
+        m_inner->transferEvent(event, calendarId, std::move(done));
+    }
 
     /// Puts the looks in `looks` (as Settings::calendarLooks) on a snapshot.
     static void applyLooks(SourceSnapshot &snapshot, const QVariantMap &looks);

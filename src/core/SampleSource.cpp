@@ -147,6 +147,14 @@ QList<Event> SampleSource::eventsBetween(const QDateTime &from, const QDateTime 
                 }
                 e.declined = e.responseStatus == u"declined";
             }
+            const QString series = e.seriesId.isEmpty() ? e.uid : e.seriesId;
+            if (const auto moved = m_transferred.constFind(series); moved != m_transferred.cend()) {
+                e.calendarId = *moved;
+                for (const CalendarInfo &calendar : m_calendars) {
+                    if (calendar.id == e.calendarId)
+                        e.color = calendar.color;
+                }
+            }
             if (e.end > from && e.start < to && !m_deleted.contains(e.eventId))
                 out.append(e);
         }
@@ -216,6 +224,22 @@ void SampleSource::updateEvent(const Event &event, const EventEdit &edit, EditSc
         }
     }
     m_edits.append({event, edit, scope});
+    done({});
+    Q_EMIT changed();
+}
+
+void SampleSource::transferEvent(const Event &event, const QString &calendarId, Created done)
+{
+    for (Event &created : m_created) {
+        if (created.uid != event.uid)
+            continue;
+        created.calendarId = calendarId;
+        for (const CalendarInfo &calendar : m_calendars) {
+            if (calendar.id == calendarId)
+                created.color = calendar.color;
+        }
+    }
+    m_transferred.insert(event.seriesId.isEmpty() ? event.uid : event.seriesId, calendarId);
     done({});
     Q_EMIT changed();
 }

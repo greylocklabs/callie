@@ -78,6 +78,7 @@ private Q_SLOTS:
     void moveShiftsTheOccurrenceOrTheSeries();
     void editPatchesOnlyWhatChanged();
     void optionalGuestsGoToGoogle();
+    void aMoveWithinTheAccountIsGooglesOwn();
     void editingTheSeriesKeepsItsFirstDay();
     void editingOnlyTheEndKeepsTheSeriesClock();
     void allDayClearsTheTime();
@@ -779,6 +780,58 @@ void TestGoogleSource::optionalGuestsGoToGoogle()
                        [&error](const QString &e) { error = e; });
     QVERIFY(error.contains(u"guests"_s));
     QCOMPARE(harness.apiServer.requests.size(), sent);
+}
+
+void TestGoogleSource::aMoveWithinTheAccountIsGooglesOwn()
+{
+    QVERIFY(
+        m_cache->setCalendars(kAccount, {calendar(u"mine"_s, true), calendar(u"work"_s, true)}));
+    SyncHarness harness(*m_cache);
+    harness.store.secrets.insert(kAccount.id, u"rt"_s);
+    harness.apiServer.handler = [](const FakeHttpServer::Request &request) {
+        if (request.target.contains("/move"))
+            return FakeHttpServer::Response(200, R"({"id":"standup","summary":"Standup",
+                "status":"confirmed","recurrence":["RRULE:FREQ=WEEKLY;BYDAY=MO"],
+                "start":{"dateTime":"2026-10-05T09:30:00-04:00","timeZone":"America/New_York"},
+                "end":{"dateTime":"2026-10-05T09:45:00-04:00","timeZone":"America/New_York"}})");
+        return FakeHttpServer::Response(200, R"({"items":[]})");
+    };
+    GoogleSource source(*m_cache, {kAccount});
+    source.setSync(&harness.sync);
+    const QDateTime from(QDate(2026, 10, 5), QTime(0, 0), QTimeZone::UTC);
+    const auto find = [&source, &from](const QString &summary) {
+        for (const Event &e : source.eventsBetween(from, from.addDays(7), QTimeZone::UTC)) {
+            if (e.summary == summary)
+                return e;
+        }
+        return Event();
+    };
+    const auto calendarNamed = [&source](const QString &name) {
+        for (const CalendarInfo &c : source.calendars()) {
+            if (c.displayName == name)
+                return c.id;
+        }
+        return QString();
+    };
+    // An occurrence moves its whole series.
+    const Event tuesday = find(u"Standup"_s);
+    QVERIFY(!tuesday.seriesId.isEmpty());
+    QString error = u"unset"_s;
+    source.transferEvent(tuesday, calendarNamed(u"WORK"_s),
+                         [&error](const QString &e) { error = e; });
+    QTRY_COMPARE_WITH_TIMEOUT(error, QString(), 5000);
+
+    const auto move =
+        std::find_if(harness.apiServer.requests.cbegin(), harness.apiServer.requests.cend(),
+                     [](const auto &r) { return r.target.contains("/move"); });
+    QVERIFY(move != harness.apiServer.requests.cend());
+    QCOMPARE(move->method, QByteArray("POST"));
+    QVERIFY(move->target.contains("/calendars/mine/events/standup/move?"));
+    QVERIFY(move->target.contains("destination=work"));
+    QVERIFY(move->target.contains("sendUpdates=none"));
+    // Shown in its new calendar at once, and no longer in the old one.
+    const Event moved = find(u"Standup"_s);
+    QCOMPARE(moved.calendarId, calendarNamed(u"WORK"_s));
 }
 
 void TestGoogleSource::editingTheSeriesKeepsItsFirstDay()

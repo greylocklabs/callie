@@ -37,6 +37,8 @@ struct EditOptions
     std::optional<QStringList> guests;
     std::optional<QStringList> optionalGuests;
     std::optional<bool> video;
+    /// A calendar to move the event to, by name or id; it takes the whole series.
+    std::optional<QString> calendar;
 };
 
 /// The event commands, on any calendar source, so they can be tried on

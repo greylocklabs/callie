@@ -12,7 +12,7 @@ namespace callie {
 /// A change made in Callie that has not reached the calendar's server yet.
 struct PendingChange
 {
-    enum class Kind { Create, Respond, Delete, Move, Update };
+    enum class Kind { Create, Respond, Delete, Move, Update, Transfer };
 
     QString id;
     Kind kind = Kind::Create;
@@ -29,6 +29,8 @@ struct PendingChange
     /// An update's changes, and the occurrences they are for.
     EventEdit edit;
     EditScope scope = EditScope::ThisEvent;
+    /// A transfer's new calendar.
+    QString calendarId;
     /// Not sent before this, so it can still be taken back.
     QDateTime notBefore;
 
@@ -81,6 +83,7 @@ public:
                    bool wholeSeries, Created done) override;
     void updateEvent(const Event &event, const EventEdit &edit, EditScope scope,
                      Created done) override;
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override;
     [[nodiscard]] bool syncing() const override { return m_inner->syncing(); }
     [[nodiscard]] QDateTime lastSynced() const override { return m_inner->lastSynced(); }
     [[nodiscard]] QString lastError() const override;

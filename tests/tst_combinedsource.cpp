@@ -19,6 +19,7 @@ private Q_SLOTS:
     void changesGoToTheCalendarsSource();
     void statusSpeaksForAll();
     void newsComesFromTheSourcesSet();
+    void anEventMovesToAnotherSourceAsACopy();
 };
 
 namespace {
@@ -69,10 +70,19 @@ public:
         calls << u"create "_s + draft.summary;
         done({});
     }
-    void deleteEvent(const Event &event, bool, Created done) override
+    void deleteEvent(const Event &event, bool wholeSeries, Created done) override
     {
-        calls << u"delete "_s + event.summary;
+        calls << u"delete "_s + event.summary + (wholeSeries ? u" all"_s : QString());
         done({});
+    }
+    QByteArray exportEvents(const QString &calendarId, const QString &uid, QString *) const override
+    {
+        return "export " + calendarId.toUtf8() + ' ' + uid.toUtf8();
+    }
+    void importEvents(const QString &calendarId, const QByteArray &data, Imported done) override
+    {
+        calls << u"import "_s + calendarId + u": "_s + QString::fromUtf8(data);
+        done(refuseImport.isEmpty() ? 1 : 0, refuseImport);
     }
     bool syncing() const override { return busy; }
     QDateTime lastSynced() const override { return synced; }
@@ -87,6 +97,7 @@ public:
     bool busy = false;
     QDateTime synced;
     QString error;
+    QString refuseImport;
 
 private:
     QString m_calendarId;
@@ -199,6 +210,41 @@ void TestCombinedSource::newsComesFromTheSourcesSet()
     QCOMPARE(errors.size(), 1);
     Q_EMIT local.errorOccurred(u"disk full"_s);
     QCOMPARE(errors.size(), 2);
+}
+
+void TestCombinedSource::anEventMovesToAnotherSourceAsACopy()
+{
+    OneCalendar google(u"me@example.com/work"_s, u"Standup"_s);
+    OneCalendar local(u"local:home"_s, u"Dentist"_s);
+    CombinedSource combined;
+    combined.setSources({&google, &local});
+    const auto transfer = [&combined](const Event &event, const QString &to) {
+        QString error = u"unset"_s;
+        combined.transferEvent(event, to, [&error](const QString &e) { error = e; });
+        return error;
+    };
+
+    // The copy goes in first, then the whole original goes.
+    QCOMPARE(transfer(google.item(), u"local:home"_s), QString());
+    QCOMPARE(local.calls, QStringList{u"import local:home: export me@example.com/work Standup"_s});
+    QCOMPARE(google.calls, QStringList{u"delete Standup all"_s});
+
+    // A copy that does not go in leaves the original where it was.
+    google.calls.clear();
+    local.calls.clear();
+    local.refuseImport = u"disk full"_s;
+    QCOMPARE(transfer(google.item(), u"local:home"_s), u"disk full"_s);
+    QVERIFY(google.calls.isEmpty());
+
+    // Guests would not be invited by a copy, so an event with them stays put.
+    local.refuseImport.clear();
+    local.calls.clear();
+    Event meeting = google.item();
+    meeting.attendees = {u"pat@example.com"_s};
+    QVERIFY(transfer(meeting, u"local:home"_s).contains(u"guests"_s));
+    QVERIFY(local.calls.isEmpty());
+
+    QVERIFY(!transfer(google.item(), u"nowhere"_s).isEmpty());
 }
 
 QTEST_MAIN(TestCombinedSource)

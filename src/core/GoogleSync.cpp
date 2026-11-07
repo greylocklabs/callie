@@ -391,6 +391,47 @@ void GoogleSync::remove(const Account &account, const Target &target, Created do
         done);
 }
 
+void GoogleSync::transfer(const Account &account, const QString &calendarId, const QString &eventId,
+                          const QString &destination, Created done)
+{
+    const QPointer<GoogleSync> self(this);
+    withToken(
+        account, false,
+        [this, self, account, calendarId, eventId, destination, done](const QString &token,
+                                                                      const Retry &retry) {
+            m_api.moveEvent(
+                token, calendarId, eventId, destination,
+                [this, self, account, calendarId, eventId, destination, done,
+                 retry](const GoogleEvent &moved, const GoogleApiError &error) {
+                    if (!self)
+                        return;
+                    if (error.unauthorized()) {
+                        retry();
+                        return;
+                    }
+                    if (error) {
+                        done({tr("Google could not move the event: %1").arg(error.message),
+                              worthRetrying(error)});
+                        return;
+                    }
+                    // Gone from where it was, series and all, and shown where it went.
+                    GoogleEvent gone;
+                    gone.id = eventId;
+                    gone.status = u"cancelled"_s;
+                    if (!m_cache.storeEvents(account, calendarId, {gone}) ||
+                        !m_cache.storeEvents(account, destination, {moved})) {
+                        done(m_cache.errorString());
+                        return;
+                    }
+                    Q_EMIT changed(account);
+                    done({});
+                    // The occurrences it changes on their own come with a sync.
+                    sync(account, [](const QStringList &) {});
+                });
+        },
+        done);
+}
+
 void GoogleSync::start(const std::shared_ptr<Run> &run)
 {
     qCInfo(lcSync) << "syncing" << run->account.id;

@@ -81,6 +81,11 @@ public:
                      (edit.recurrence ? u" repeat"_s : QString()));
         SampleSource::updateEvent(event, edit, scope, std::move(done));
     }
+    void transferEvent(const Event &event, const QString &calendarId, Created done) override
+    {
+        calls.append(u"transfer "_s + calendarId);
+        SampleSource::transferEvent(event, calendarId, std::move(done));
+    }
 };
 
 /// The first visible item under `item` whose class starts with `type` and
@@ -137,6 +142,7 @@ private Q_SLOTS:
     void newerReleaseIsOffered();
     void guestsComeFromSuggestions();
     void guestsCanBeMadeOptional();
+    void aSeriesMovesToAnotherCalendar();
     void placesComeFromSuggestions();
     void callsInNotesJoinWithoutAVideoCall();
     void trayAsksWhichOccurrences();
@@ -731,6 +737,26 @@ void TestEventEdit::guestsCanBeMadeOptional()
     const QVariantMap c = changes.toMap();
     QCOMPARE(c.value(u"optionalGuests"_s).toStringList(), QStringList{u"priya@example.com"_s});
     QVERIFY(!c.contains(u"guests"_s));
+}
+
+void TestEventEdit::aSeriesMovesToAnotherCalendar()
+{
+    QQuickItem *form = openEditor(u"Standup"_s);
+    QVERIFY(form);
+    form->setProperty("moreOptions", true);
+    QQuickItem *choice = nullptr;
+    QTRY_VERIFY(
+        (choice = find(m_window->contentItem(), "Dropdown", "objectName", u"calendarChoice"_s)));
+    QTRY_VERIFY(choice->isVisible());
+    QCOMPARE(choice->property("currentValue").toString(), u"work"_s);
+
+    // All that changes is the calendar, which takes the whole series without asking.
+    QMetaObject::invokeMethod(choice, "activated", Q_ARG(QVariant, u"personal"_s));
+    QCOMPARE(form->property("calendar").toString(), u"personal"_s);
+    m_source->calls.clear();
+    QVERIFY(QMetaObject::invokeMethod(form, "save"));
+    QVERIFY(!form->property("asking").toBool());
+    QTRY_COMPARE(m_source->calls, QStringList{u"transfer personal"_s});
 }
 
 void TestEventEdit::placesComeFromSuggestions()

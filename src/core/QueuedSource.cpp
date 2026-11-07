@@ -34,6 +34,7 @@ const char *kindName(PendingChange::Kind kind)
     case PendingChange::Kind::Delete: return "delete";
     case PendingChange::Kind::Move: return "move";
     case PendingChange::Kind::Update: return "update";
+    case PendingChange::Kind::Transfer: return "transfer";
     }
     return "create";
 }
@@ -168,7 +169,8 @@ QJsonObject changeJson(const PendingChange &c)
             {u"end"_s, timeJson(c.end)},
             {u"notBefore"_s, timeJson(c.notBefore)},
             {u"edit"_s, editJson(c.edit)},
-            {u"scope"_s, int(c.scope)}};
+            {u"scope"_s, int(c.scope)},
+            {u"calendarId"_s, c.calendarId}};
 }
 
 std::optional<PendingChange> changeFrom(const QJsonObject &json)
@@ -185,6 +187,8 @@ std::optional<PendingChange> changeFrom(const QJsonObject &json)
         c.kind = PendingChange::Kind::Move;
     else if (kind == u"update")
         c.kind = PendingChange::Kind::Update;
+    else if (kind == u"transfer")
+        c.kind = PendingChange::Kind::Transfer;
     else
         return std::nullopt;
     c.id = json[u"id"].toString();
@@ -203,6 +207,7 @@ std::optional<PendingChange> changeFrom(const QJsonObject &json)
     c.start = timeFrom(json[u"start"]);
     c.end = timeFrom(json[u"end"]);
     c.notBefore = timeFrom(json[u"notBefore"]);
+    c.calendarId = json[u"calendarId"].toString();
     c.edit = editFrom(json[u"edit"].toObject());
     c.scope = EditScope(std::clamp(json[u"scope"].toInt(), 0, int(EditScope::AllEvents)));
     return c;
@@ -268,6 +273,7 @@ QString PendingChange::describeDone() const
     case Kind::Delete: return QObject::tr("Deleted %1").arg(name);
     case Kind::Move: return QObject::tr("Moved %1").arg(name);
     case Kind::Update: return QObject::tr("Changed %1").arg(name);
+    case Kind::Transfer: return QObject::tr("Moved %1 to another calendar").arg(name);
     }
     return name;
 }
@@ -281,6 +287,7 @@ QString PendingChange::describe() const
     case Kind::Delete: return QObject::tr("Delete %1").arg(name);
     case Kind::Move: return QObject::tr("Move %1").arg(name);
     case Kind::Update: return QObject::tr("Change %1").arg(name);
+    case Kind::Transfer: return QObject::tr("Move %1 to another calendar").arg(name);
     }
     return name;
 }
@@ -396,6 +403,19 @@ void QueuedSource::apply(QList<Event> &events, const QList<PendingChange> &chang
                 }
                 e.start = start.toTimeZone(tz);
                 e.end = start.addSecs(length).toTimeZone(tz);
+            }
+            break;
+        }
+        case PendingChange::Kind::Transfer: {
+            const auto calendar = std::find_if(
+                calendars.cbegin(), calendars.cend(),
+                [&change](const CalendarInfo &c) { return c.id == change.calendarId; });
+            for (Event &e : events) {
+                if (!targets(e, change))
+                    continue;
+                e.calendarId = change.calendarId;
+                if (calendar != calendars.cend())
+                    e.color = calendar->color;
             }
             break;
         }
@@ -573,6 +593,32 @@ void QueuedSource::moveEvent(const Event &event, const QDateTime &start, const Q
     add(change, done);
 }
 
+void QueuedSource::transferEvent(const Event &event, const QString &calendarId, Created done)
+{
+    // An event not created yet is created in its new calendar instead.
+    for (qsizetype i = 0; i < m_changes.size(); ++i) {
+        PendingChange &change = m_changes[i];
+        if (change.kind == PendingChange::Kind::Create && change.event.eventId == event.eventId &&
+            change.id != m_sending && !builtOn(m_changes, i)) {
+            const PendingChange before = change;
+            change.draft.calendarId = change.event.calendarId = calendarId;
+            change.notBefore = std::max(change.notBefore, m_now().addSecs(kHoldSecs));
+            save();
+            done({});
+            folded(i, before, doneText(PendingChange::Kind::Transfer, event));
+            Q_EMIT changed();
+            return;
+        }
+    }
+    PendingChange change;
+    change.kind = PendingChange::Kind::Transfer;
+    change.event = event;
+    change.calendarId = calendarId;
+    // A calendar holds a series whole, so it moves whole.
+    change.wholeSeries = true;
+    add(change, done);
+}
+
 void QueuedSource::folded(qsizetype index, const PendingChange &before, const QString &what)
 {
     // Only the latest few can still be undone from the toast.
@@ -703,6 +749,9 @@ void QueuedSource::send(const PendingChange &change)
         break;
     case PendingChange::Kind::Update:
         m_inner->updateEvent(change.event, change.edit, change.scope, done);
+        break;
+    case PendingChange::Kind::Transfer:
+        m_inner->transferEvent(change.event, change.calendarId, done);
         break;
     }
 }

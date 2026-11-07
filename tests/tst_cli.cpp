@@ -136,6 +136,7 @@ private Q_SLOTS:
     void addGoesInTheDefaultCalendar();
     void editMovesAndKeepsTheLength();
     void editMarksOptionalGuests();
+    void editMovesToAnotherCalendar();
     void editAllDayEndsOnItsLastDay();
     void repeatIsForTheWholeSeries();
     void mistakesAreReportedNotMade();
@@ -454,6 +455,23 @@ void TestCli::editMarksOptionalGuests()
     QCOMPARE(guests.size(), 3);
     QVERIFY(guests.at(0).optional);
     QVERIFY(!guests.at(1).optional);
+}
+
+void TestCli::editMovesToAnotherCalendar()
+{
+    const QString id = u"sample-3-16-0-2026-10-07"_s;
+    QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).calendarId, u"personal"_s);
+    EditOptions options;
+    options.calendar = u"Work"_s;
+    QCOMPARE(run([&](auto done) { m_commands->edit(id, options, {}, done); }), 0);
+    QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).calendarId, u"work"_s);
+
+    // Only a calendar that takes events, and moving to where it is changes nothing.
+    options.calendar = u"Nope"_s;
+    QCOMPARE(run([&](auto done) { m_commands->edit(id, options, {}, done); }), 2);
+    QVERIFY(m_err.contains(u"Nope"_s));
+    options.calendar = u"work"_s;
+    QCOMPARE(run([&](auto done) { m_commands->edit(id, options, {}, done); }), 2);
 }
 
 void TestCli::editAllDayEndsOnItsLastDay()
