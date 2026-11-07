@@ -7,7 +7,7 @@
   "oauth_information": {
     "usage": "USER_OPERATION",
     "development_redirect_uri": "http://127.0.0.1/",
-    "production_redirect_uri": "http://127.0.0.1/",
+    "production_redirect_uri": "https://callieapp.org/",
     "oauth_allow_list": ["http://127.0.0.1/"],
     "strict_mode": false,
     "subdomain_strict_mode": false,

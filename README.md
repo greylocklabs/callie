@@ -257,7 +257,7 @@ configures, or taking over for one run when set while Callie runs.
 ### Zoom
 
 Create a General app, managed by the user, in the Zoom App Marketplace, from the manifest in
-`packaging/zoom/manifest.json`. It sets the OAuth redirect URL `http://127.0.0.1/`, which Zoom
+`packaging/zoom/manifest.json`. It allows the loopback redirect `http://127.0.0.1/`, which Zoom
 matches on any port, the scopes `meeting:write:meeting` and `user:read:user`, and PKCE as a public
 client, so the app has no secret. Its client id goes in `CALLIE_ZOOM_CLIENT_ID`, read the same way
 as Microsoft's.
