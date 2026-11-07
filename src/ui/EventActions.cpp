@@ -264,7 +264,7 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
 {
     if (!m_source || m_busy)
         return;
-    const EventEdit edit = toEdit(changes);
+    EventEdit edit = toEdit(changes);
     const QString eventId = event.value(u"eventId"_s).toString();
     const QString calendarId = changes.value(u"calendarId"_s).toString();
     const bool transfer =
@@ -298,10 +298,52 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
         if (error.isEmpty())
             Q_EMIT updated(eventId);
     };
-    if (edit.isEmpty())
-        changed({});
-    else
-        m_source->updateEvent(edited, edit, range, changed);
+    const auto send = [this, self, edited, range, changed](const EventEdit &edit) {
+        if (!self)
+            return;
+        if (edit.isEmpty() || !m_source)
+            changed({});
+        else
+            m_source->updateEvent(edited, edit, range, changed);
+    };
+
+    // With Zoom chosen, the switch makes a Zoom meeting, and its link goes in Where.
+    if (edit.videoCall) {
+        const QString where = edit.location.value_or(event.value(u"location"_s).toString());
+        Zoom *zoom = ZoomForeign::s_instance;
+        const Settings *settings = SettingsForeign::create(nullptr, nullptr);
+        if (*edit.videoCall && zoom && settings->videoCallService() == u"zoom" &&
+            !settings->zoomAccount().isEmpty()) {
+            edit.videoCall.reset();
+            zoom->createMeeting(edit.summary.value_or(edited.summary),
+                                edit.start.value_or(edited.start), edit.end.value_or(edited.end),
+                                edit.allDay.value_or(edited.allDay),
+                                [this, self, eventId, edit, where,
+                                 send](const QUrl &join, const QString &error) mutable {
+                                    if (!self)
+                                        return;
+                                    if (!error.isEmpty()) {
+                                        finish(eventId, error);
+                                        return;
+                                    }
+                                    edit.location = Zoom::withMeeting(where, join);
+                                    send(edit);
+                                });
+            return;
+        }
+        // Turned off, a Zoom link leaves Where, and the calendar's own call goes if it has one.
+        if (!*edit.videoCall && hasZoomMeeting(where)) {
+            edit.location = Zoom::withoutMeetings(where);
+            if (event.value(u"conferenceUrl"_s).toUrl().isEmpty())
+                edit.videoCall.reset();
+        }
+    }
+    send(edit);
+}
+
+bool EventActions::hasZoomMeeting(const QString &text)
+{
+    return Zoom::hasMeeting(text);
 }
 
 EventDraft EventActions::toCopy(const QVariantMap &event, const QDateTime &start)

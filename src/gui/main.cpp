@@ -34,6 +34,7 @@
 #include "callie/SampleSource.h"
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
+#include "callie/Zoom.h"
 #include "greylock/Autostart.h"
 #include "greylock/Desktop.h"
 #include "greylock/Identity.h"
@@ -327,6 +328,10 @@ int main(int argc, char *argv[])
     placesOnline();
     QObject::connect(&settings, &callie::Settings::placesChanged, &places, placesOnline);
     callie::PlaceSearchForeign::s_instance = &places;
+    // Screenshots and sample data make no meetings.
+    callie::Zoom zoom(standalone ? callie::ZoomClientConfig{} : callie::ZoomClientConfig::resolve(),
+                      tokens, settings);
+    callie::ZoomForeign::s_instance = &zoom;
     QTimer syncTimer;
     // Without a client every refresh would fail, so show the cache and say why once.
     const bool canSync = client.isValid();

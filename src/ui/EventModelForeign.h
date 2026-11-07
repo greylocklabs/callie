@@ -9,6 +9,8 @@
 #include "callie/SearchModel.h"
 #include "callie/Settings.h"
 #include "callie/TodayModel.h"
+#include "callie/TokenStore.h"
+#include "callie/Zoom.h"
 
 #include <QCoreApplication>
 #include <QQmlEngine>
@@ -122,6 +124,30 @@ public:
     }
 
     static inline callie::PlaceSearch *s_instance = nullptr;
+};
+
+/// Zoom meetings, as a QML singleton. main.cpp picks the instance; without one,
+/// such as in tests, no Zoom app is configured and Zoom is not offered.
+struct ZoomForeign
+{
+    Q_GADGET
+    QML_FOREIGN(callie::Zoom)
+    QML_NAMED_ELEMENT(Zoom)
+    QML_SINGLETON
+
+public:
+    static callie::Zoom *create(QQmlEngine *, QJSEngine *)
+    {
+        if (!s_instance) {
+            static callie::KeychainTokenStore tokens;
+            s_instance = new callie::Zoom({}, tokens, *SettingsForeign::create(nullptr, nullptr),
+                                          QCoreApplication::instance());
+        }
+        QJSEngine::setObjectOwnership(s_instance, QJSEngine::CppOwnership);
+        return s_instance;
+    }
+
+    static inline callie::Zoom *s_instance = nullptr;
 };
 
 /// Lets QML name the source type; sources are created in C++ only.

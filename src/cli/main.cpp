@@ -25,6 +25,7 @@
 #include "callie/Subscriptions.h"
 #include "callie/Times.h"
 #include "callie/TokenStore.h"
+#include "callie/Zoom.h"
 #include "greylock/Releases.h"
 #include "greylock/UpdateCheck.h"
 
@@ -1031,6 +1032,10 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
                                : QTimeZone(settings.timeZoneId().toUtf8());
     cli::Commands commands(*backend->source, settings, out, err, now(), zone);
     commands.setPaint(paint());
+    // Sample data makes no meetings.
+    KeychainTokenStore zoomTokens;
+    Zoom zoom(sample ? ZoomClientConfig{} : ZoomClientConfig::resolve(), zoomTokens, settings);
+    commands.setZoom(&zoom);
     const bool json = parser.isSet(u"json"_s);
 
     if (command == u"calendars") {

@@ -73,6 +73,23 @@ endif()
 configure_file(MicrosoftBuildConfig.h.in
     "${CMAKE_CURRENT_BINARY_DIR}/generated/callie/MicrosoftBuildConfig.h" @ONLY)
 
+# Zoom's app, read the same way: CALLIE_ZOOM_CLIENT_ID. Without one, Callie offers no Zoom.
+set(CALLIE_ZOOM_CLIENT_ID "" CACHE STRING "Zoom Marketplace OAuth app client id")
+set(callie_zoom_client_id "${CALLIE_ZOOM_CLIENT_ID}")
+if(callie_zoom_client_id STREQUAL "")
+    set(callie_zoom_client_id "$ENV{CALLIE_ZOOM_CLIENT_ID}")
+endif()
+if(NOT callie_zoom_client_id MATCHES "^[A-Za-z0-9_-]*$")
+    message(FATAL_ERROR "Zoom client id contains unexpected characters")
+endif()
+if(callie_zoom_client_id STREQUAL "")
+    message(STATUS "Zoom app: not configured, set it at runtime to make Zoom meetings")
+else()
+    message(STATUS "Zoom app: configured")
+endif()
+configure_file(ZoomBuildConfig.h.in
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/callie/ZoomBuildConfig.h" @ONLY)
+
 # Deliberately not a QML module. The CLI links this, and pulling QtQml in would
 # cost it startup time for no benefit. QML exposure happens in src/ui.
 add_library(calliecore STATIC
@@ -155,6 +172,12 @@ add_library(calliecore STATIC
     OAuthReplyHandler.cpp
     callie/MicrosoftTokenProvider.h
     MicrosoftTokenProvider.cpp
+    callie/ZoomClientConfig.h
+    ZoomClientConfig.cpp
+    callie/ZoomAuth.h
+    ZoomAuth.cpp
+    callie/Zoom.h
+    Zoom.cpp
     callie/GraphApi.h
     GraphApi.cpp
     callie/GraphEvents.h

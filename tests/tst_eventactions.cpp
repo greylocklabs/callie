@@ -1,8 +1,14 @@
 #include "EventActions.h"
 
+#include "EventModelForeign.h"
+#include "FakeHttpServer.h"
+#include "FakeTokenStore.h"
 #include "callie/SampleSource.h"
+#include "callie/Settings.h"
+#include "callie/Zoom.h"
 
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QUrlQuery>
 
@@ -84,6 +90,7 @@ class TestEventActions : public QObject
     Q_OBJECT
 
 private Q_SLOTS:
+    void initTestCase();
     void webPagesOpenOnlyOverHttps();
     void answerReachesTheSource();
     void callsOnlyWhereTheCalendarHasThem();
@@ -96,7 +103,12 @@ private Q_SLOTS:
     void duplicateLandsInAWritableCalendar();
     void editsReachTheWholeSeries();
     void mailGoesToTheOtherGuests();
+    void zoomMeetingsGoInWhere();
     void failureIsReportedForItsEvent();
+
+private:
+    QTemporaryDir m_dir;
+    std::unique_ptr<Settings> m_settings;
 };
 
 void TestEventActions::answerReachesTheSource()
@@ -355,6 +367,72 @@ void TestEventActions::editsReachTheWholeSeries()
 
     // Only the shown calendars that take events are offered.
     QCOMPARE(actions.calendarChoices().size(), 3);
+}
+
+void TestEventActions::initTestCase()
+{
+    m_settings = std::make_unique<Settings>(m_dir.filePath(u"settings.ini"_s));
+    SettingsForeign::s_instance = m_settings.get();
+}
+
+void TestEventActions::zoomMeetingsGoInWhere()
+{
+    FakeHttpServer server;
+    server.handler = [](const FakeHttpServer::Request &request) {
+        if (request.target.startsWith("/oauth/token"))
+            return FakeHttpServer::Response(
+                200, R"({"access_token":"at","refresh_token":"rt2","expires_in":3600})");
+        return FakeHttpServer::Response(201, R"({"join_url":"https://zoom.us/j/42"})");
+    };
+    FakeTokenStore tokens;
+    tokens.secrets.insert(u"meetings"_s, u"rt1"_s);
+    Zoom zoom(ZoomClientConfig{u"app"_s}, tokens, *m_settings);
+    zoom.setEndpoints(server.url(u"/v2/"_s), server.url(u"/oauth/authorize"_s),
+                      server.url(u"/oauth/token"_s));
+    ZoomForeign::s_instance = &zoom;
+    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->setVideoCallService(u"zoom"_s);
+
+    SampleSource source;
+    EventActions actions;
+    actions.setProperty("source", QVariant::fromValue<CalendarSource *>(&source));
+    const QDateTime week(QDate(2026, 10, 5), QTime(0, 0), QTimeZone::UTC);
+    const auto dentist = [&source, &week] {
+        for (const Event &e : source.eventsBetween(week, week.addDays(7), QTimeZone::UTC)) {
+            if (e.summary == u"Dentist")
+                return e;
+        }
+        return Event();
+    };
+    const auto asMap = [](const Event &e) {
+        return QVariantMap{
+            {u"uid"_s, e.uid},         {u"eventId"_s, e.eventId},   {u"calendarId"_s, e.calendarId},
+            {u"summary"_s, e.summary}, {u"location"_s, e.location}, {u"start"_s, e.start},
+            {u"end"_s, e.end}};
+    };
+    const QString where = dentist().location;
+    QSignalSpy updated(&actions, &EventActions::updated);
+
+    // The meeting's link goes after what Where already says.
+    actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 1);
+    QVERIFY(actions.error().isEmpty());
+    QCOMPARE(dentist().location, where + u" https://zoom.us/j/42"_s);
+    QVERIFY(EventActions::hasZoomMeeting(dentist().location));
+
+    // Turned off, the link leaves Where, which is otherwise as it was.
+    actions.update(asMap(dentist()), {{u"videoCall"_s, false}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 2);
+    QCOMPARE(dentist().location, where);
+
+    // With the calendar's own call chosen, Zoom is left alone.
+    m_settings->setVideoCallService(u"calendar"_s);
+    const qsizetype asked = server.requests.size();
+    actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 3);
+    QCOMPARE(server.requests.size(), asked);
+    ZoomForeign::s_instance = nullptr;
+    m_settings->setZoomAccount({});
 }
 
 void TestEventActions::callsOnlyWhereTheCalendarHasThem()

@@ -18,6 +18,7 @@ private Q_SLOTS:
     void choicesSurviveARestart();
     void workingHoursStayInOrder();
     void accountPhotosAreKept();
+    void videoCallsKeepToWhatWorks();
     void developerSettingsAreKept();
     void placeSettingsAreKept();
     void placeSettingsSurviveARealRestart();
@@ -314,6 +315,28 @@ void TestSettings::accountPhotosAreKept()
     // No photo of its own any more: back to the letter.
     settings.setAccountPhoto(u"me@example.com"_s, {});
     QVERIFY(settings.accountPhotos().isEmpty());
+}
+
+void TestSettings::videoCallsKeepToWhatWorks()
+{
+    {
+        Settings settings(path());
+        QCOMPARE(settings.videoCallService(), u"calendar"_s);
+        QSignalSpy changed(&settings, &Settings::videoCallsChanged);
+        settings.setVideoCallService(u"skype"_s);
+        QCOMPARE(settings.videoCallService(), u"calendar"_s);
+        QVERIFY(changed.isEmpty());
+        settings.setVideoCallService(u"zoom"_s);
+        settings.setZoomAccount(u"sam@example.com"_s);
+        QCOMPARE(changed.size(), 2);
+    }
+    Settings settings(path());
+    QCOMPARE(settings.videoCallService(), u"zoom"_s);
+    // A reset is for choices; Zoom stays connected, as its sign-in is in the keyring.
+    settings.reset();
+    QCOMPARE(settings.videoCallService(), u"calendar"_s);
+    QCOMPARE(settings.zoomAccount(), u"sam@example.com"_s);
+    QCOMPARE(Settings(path()).zoomAccount(), u"sam@example.com"_s);
 }
 
 void TestSettings::keyboardSettingsKeepToWhatWorks()

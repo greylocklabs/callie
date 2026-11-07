@@ -70,6 +70,12 @@ class Settings : public QObject
     /// in the one used last.
     Q_PROPERTY(QString defaultCalendar READ defaultCalendar WRITE setDefaultCalendar NOTIFY
                    defaultCalendarChanged)
+    /// What the video call switch makes: "calendar" for the calendar's own
+    /// meeting, Google Meet or Teams, or "zoom" for a Zoom meeting.
+    Q_PROPERTY(QString videoCallService READ videoCallService WRITE setVideoCallService NOTIFY
+                   videoCallsChanged)
+    /// The Zoom account connected for meetings, by email; empty when none is.
+    Q_PROPERTY(QString zoomAccount READ zoomAccount WRITE setZoomAccount NOTIFY videoCallsChanged)
     /// The Callie version that last ran, so the next one can say what is new.
     Q_PROPERTY(QString lastSeenVersion READ lastSeenVersion WRITE setLastSeenVersion NOTIFY
                    lastSeenVersionChanged)
@@ -192,6 +198,10 @@ public:
     void setNewEventCalendar(const QString &id);
     [[nodiscard]] QString defaultCalendar() const { return m_defaultCalendar; }
     void setDefaultCalendar(const QString &id);
+    [[nodiscard]] QString videoCallService() const { return m_videoCallService; }
+    void setVideoCallService(const QString &service);
+    [[nodiscard]] QString zoomAccount() const { return m_zoomAccount; }
+    void setZoomAccount(const QString &email);
 
     [[nodiscard]] QString lastSeenVersion() const { return m_lastSeenVersion; }
     void setLastSeenVersion(const QString &version);
@@ -247,6 +257,7 @@ Q_SIGNALS:
     void lastSeenVersionChanged();
     void newEventCalendarChanged();
     void defaultCalendarChanged();
+    void videoCallsChanged();
     void notifyChanged();
     void callCardChanged();
     void reminderMinutesChanged();
@@ -289,6 +300,8 @@ private:
     QString m_lastSeenVersion;
     QString m_newEventCalendar;
     QString m_defaultCalendar;
+    QString m_videoCallService;
+    QString m_zoomAccount;
     bool m_notify = true;
     bool m_callCard = true;
     int m_reminderMinutes = 10;

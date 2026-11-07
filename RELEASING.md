@@ -27,7 +27,8 @@ The packages take the Google OAuth client from the repository's `CALLIE_GOOGLE_C
 `CALLIE_GOOGLE_CLIENT_SECRET` Actions secrets, so the installed app can sign in. A tag build without
 them fails rather than publish packages that cannot connect a Google account. The Microsoft app id
 comes from the `CALLIE_MICROSOFT_CLIENT_ID` secret the same way; without it the packages build, and
-only Microsoft accounts cannot connect.
+only Microsoft accounts cannot connect. The Zoom app id comes from `CALLIE_ZOOM_CLIENT_ID`; without
+it, Callie does not offer Zoom.
 
 ## AUR
 
