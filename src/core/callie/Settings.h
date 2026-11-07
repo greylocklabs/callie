@@ -74,8 +74,10 @@ class Settings : public QObject
     /// meeting, Google Meet or Teams, or "zoom" for a Zoom meeting.
     Q_PROPERTY(QString videoCallService READ videoCallService WRITE setVideoCallService NOTIFY
                    videoCallsChanged)
-    /// The Zoom account connected for meetings, by email; empty when none is.
-    Q_PROPERTY(QString zoomAccount READ zoomAccount WRITE setZoomAccount NOTIFY videoCallsChanged)
+    /// The Zoom accounts connected for meetings, by email, in the order they were connected.
+    Q_PROPERTY(QStringList zoomAccounts READ zoomAccounts NOTIFY videoCallsChanged)
+    /// The Zoom account for an event whose calendar's account no Zoom account matches.
+    Q_PROPERTY(QString zoomDefault READ zoomDefault WRITE setZoomDefault NOTIFY videoCallsChanged)
     /// The Callie version that last ran, so the next one can say what is new.
     Q_PROPERTY(QString lastSeenVersion READ lastSeenVersion WRITE setLastSeenVersion NOTIFY
                    lastSeenVersionChanged)
@@ -200,8 +202,13 @@ public:
     void setDefaultCalendar(const QString &id);
     [[nodiscard]] QString videoCallService() const { return m_videoCallService; }
     void setVideoCallService(const QString &service);
-    [[nodiscard]] QString zoomAccount() const { return m_zoomAccount; }
-    void setZoomAccount(const QString &email);
+    [[nodiscard]] QStringList zoomAccounts() const { return m_zoomAccounts; }
+    /// Adds a connected Zoom account; the first becomes the default.
+    void addZoomAccount(const QString &email);
+    /// Forgets a Zoom account; the default passes to the first one left.
+    void removeZoomAccount(const QString &email);
+    [[nodiscard]] QString zoomDefault() const { return m_zoomDefault; }
+    void setZoomDefault(const QString &email);
 
     [[nodiscard]] QString lastSeenVersion() const { return m_lastSeenVersion; }
     void setLastSeenVersion(const QString &version);
@@ -301,7 +308,8 @@ private:
     QString m_newEventCalendar;
     QString m_defaultCalendar;
     QString m_videoCallService;
-    QString m_zoomAccount;
+    QStringList m_zoomAccounts;
+    QString m_zoomDefault;
     bool m_notify = true;
     bool m_callCard = true;
     int m_reminderMinutes = 10;

@@ -206,50 +206,65 @@ Popup {
                 }
             }
 
-            Item {
-                width: parent.width
-                height: zoomButton.height
+            // Each Zoom account connected, which makes the meetings for its own calendars.
+            Repeater {
+                model: Settings.zoomAccounts
 
-                Text {
-                    anchors {
-                        left: parent.left
-                        right: zoomButton.left
-                        rightMargin: Theme.space3
-                        verticalCenter: parent.verticalCenter
+                Item {
+                    id: zoomRow
+                    required property string modelData
+                    width: parent.width
+                    height: disconnect.height
+
+                    Text {
+                        anchors {
+                            left: parent.left
+                            right: disconnect.left
+                            rightMargin: Theme.space3
+                            verticalCenter: parent.verticalCenter
+                        }
+                        text: qsTr("Zoom: %1").arg(zoomRow.modelData)
+                        textFormat: Text.PlainText
+                        elide: Text.ElideMiddle
+                        color: Theme.text
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textMd
+                        font.weight: Theme.weightStrong
                     }
-                    text: Settings.zoomAccount !== "" ? qsTr("Zoom: %1").arg(Settings.zoomAccount) :
-                                                        qsTr("Zoom is not connected")
-                    textFormat: Text.PlainText
-                    elide: Text.ElideMiddle
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                StickerButton {
-                    id: zoomButton
-                    objectName: "zoomConnect"
-                    anchors.right: parent.right
-                    text: {
-                        if (Settings.zoomAccount !== "")
-                            return qsTr("Disconnect")
-                        return Zoom.connecting ? qsTr("Cancel") : qsTr("Connect Zoom")
-                    }
-                    onClicked: {
-                        if (Settings.zoomAccount !== "")
-                            Zoom.disconnectAccount()
-                        else if (Zoom.connecting)
-                            Zoom.cancelConnect()
-                        else
-                            Zoom.connectAccount()
+                    StickerButton {
+                        id: disconnect
+                        anchors.right: parent.right
+                        text: qsTr("Disconnect")
+                        Accessible.name: qsTr("Disconnect %1").arg(zoomRow.modelData)
+                        onClicked: Zoom.disconnectAccount(zoomRow.modelData)
                     }
                 }
+            }
+            StickerButton {
+                objectName: "zoomConnect"
+                glyph: Zoom.connecting ? "" : "plus"
+                text: {
+                    if (Zoom.connecting)
+                        return qsTr("Cancel")
+                    return Settings.zoomAccounts.length > 0 ? qsTr("Connect another Zoom account") :
+                                                              qsTr("Connect Zoom")
+                }
+                onClicked: Zoom.connecting ? Zoom.cancelConnect() : Zoom.connectAccount()
             }
             Text {
                 visible: Zoom.connecting
                 width: parent.width
                 wrapMode: Text.Wrap
                 text: qsTr("Finish signing in to Zoom in your browser.")
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSm
+            }
+            Text {
+                visible: Zoom.connecting && Settings.zoomAccounts.length > 0
+                width: parent.width
+                wrapMode: Text.Wrap
+                text: qsTr("To add a different account, choose Switch account on Zoom's page.")
                 color: Theme.textMuted
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.textSm
@@ -264,7 +279,7 @@ Popup {
                 font.pixelSize: Theme.textSm
             }
             Row {
-                visible: Settings.zoomAccount !== ""
+                visible: Settings.zoomAccounts.length > 0
                 width: parent.width
                 spacing: Theme.space4
 
@@ -293,6 +308,33 @@ Popup {
                     maximumWidth: parent.width - makeWith.width - parent.spacing
                     Accessible.name: qsTr("What the video call switch makes")
                     onActivated: value => Settings.videoCallService = value
+                }
+            }
+            // A calendar whose account has no Zoom account of its own uses this one.
+            Row {
+                visible: Settings.zoomAccounts.length > 1
+                width: parent.width
+                spacing: Theme.space4
+
+                Text {
+                    id: otherwise
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("For other calendars, use")
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textMd
+                    font.weight: Theme.weightStrong
+                }
+                Dropdown {
+                    objectName: "zoomDefault"
+                    model: Settings.zoomAccounts.map(email => ({
+                        "id": email,
+                        "name": email
+                    }))
+                    currentValue: Settings.zoomDefault
+                    maximumWidth: parent.width - otherwise.width - parent.spacing
+                    Accessible.name: qsTr("The Zoom account for other calendars")
+                    onActivated: value => Settings.zoomDefault = value
                 }
             }
         }

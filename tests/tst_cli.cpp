@@ -488,12 +488,12 @@ void TestCli::editVideoMakesAZoomMeetingWhenChosen()
         return FakeHttpServer::Response(201, R"({"join_url":"https://zoom.us/j/7"})");
     };
     FakeTokenStore tokens;
-    tokens.secrets.insert(u"meetings"_s, u"rt1"_s);
+    tokens.secrets.insert(u"sam@example.com"_s, u"rt1"_s);
     Zoom zoom(ZoomClientConfig{u"app"_s}, tokens, *m_settings);
     zoom.setEndpoints(server.url(u"/v2/"_s), server.url(u"/oauth/authorize"_s),
                       server.url(u"/oauth/token"_s));
     m_commands->setZoom(&zoom);
-    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
     m_settings->setVideoCallService(u"zoom"_s);
 
     const QString id = u"sample-3-16-0-2026-10-07"_s;

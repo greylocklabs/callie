@@ -29,6 +29,8 @@ private Q_SLOTS:
     void anAllDayMeetingHasNoTime();
     void aTokenTurnedDownIsRefreshedOnce();
     void disconnectingForgetsTheSignIn();
+    void eachAccountKeepsItsOwnSignIn();
+    void aCalendarsAccountPicksItsZoomAccount();
     void findsZoomLinks();
 
 private:
@@ -39,11 +41,12 @@ private:
     std::unique_ptr<Zoom> m_zoom;
 
     /// A meeting made through m_zoom, as {join link, error}.
-    std::pair<QUrl, QString> meeting(const QDateTime &start, bool allDay = false)
+    std::pair<QUrl, QString> meeting(const QDateTime &start, bool allDay = false,
+                                     const QString &account = u"sam@example.com"_s)
     {
         std::optional<std::pair<QUrl, QString>> result;
         m_zoom->createMeeting(
-            u"Review"_s, start, start.addSecs(45 * 60), allDay,
+            account, u"Review"_s, start, start.addSecs(45 * 60), allDay,
             [&result](const QUrl &join, const QString &error) { result = {join, error}; });
         if (!QTest::qWaitFor([&result] { return result.has_value(); }, 5000))
             return {{}, u"no answer"_s};
@@ -120,7 +123,7 @@ void TestZoom::connectingSignsInAsAPublicClient()
     });
     m_zoom->connectAccount();
     QVERIFY(m_zoom->connecting());
-    QTRY_COMPARE_WITH_TIMEOUT(m_settings->zoomAccount(), u"sam@example.com"_s, 5000);
+    QTRY_COMPARE_WITH_TIMEOUT(m_settings->zoomAccounts(), QStringList{u"sam@example.com"_s}, 5000);
     QVERIFY(!m_zoom->connecting());
     QCOMPARE(m_zoom->error(), QString());
 
@@ -137,7 +140,7 @@ void TestZoom::connectingSignsInAsAPublicClient()
     QVERIFY(exchange.first().body.contains("code_verifier"));
 
     // Kept for later, and Zoom now makes the meetings.
-    QCOMPARE(m_tokens->secrets.value(u"meetings"_s), u"rt1"_s);
+    QCOMPARE(m_tokens->secrets.value(u"sam@example.com"_s), u"rt1"_s);
     QCOMPARE(m_settings->videoCallService(), u"zoom"_s);
     QCOMPARE(requestsTo("/v2/users/me").first().headers.value("authorization"),
              QByteArray("Bearer at"));
@@ -164,7 +167,7 @@ void TestZoom::aSignInLeftInTheBrowserCanBeCanceled()
     QTRY_VERIFY(reply->isFinished());
     reply->deleteLater();
     QVERIFY(requestsTo("/oauth/token").isEmpty());
-    QCOMPARE(m_settings->zoomAccount(), QString());
+    QVERIFY(m_settings->zoomAccounts().isEmpty());
 
     // And it can be started again.
     m_zoom->connectAccount();
@@ -174,8 +177,8 @@ void TestZoom::aSignInLeftInTheBrowserCanBeCanceled()
 
 void TestZoom::meetingsComeFromARefreshedSignIn()
 {
-    m_settings->setZoomAccount(u"sam@example.com"_s);
-    m_tokens->secrets.insert(u"meetings"_s, u"rt1"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
+    m_tokens->secrets.insert(u"sam@example.com"_s, u"rt1"_s);
     const QDateTime start(QDate(2026, 11, 13), QTime(14, 30), QTimeZone("America/New_York"));
     const auto [join, error] = meeting(start);
     QCOMPARE(error, QString());
@@ -190,7 +193,7 @@ void TestZoom::meetingsComeFromARefreshedSignIn()
     QCOMPARE(form.queryItemValue(u"refresh_token"_s), u"rt1"_s);
     QCOMPARE(form.queryItemValue(u"client_id"_s), u"zoom-app"_s);
     // Zoom's new refresh token replaces the spent one.
-    QTRY_COMPARE(m_tokens->secrets.value(u"meetings"_s), u"rt2"_s);
+    QTRY_COMPARE(m_tokens->secrets.value(u"sam@example.com"_s), u"rt2"_s);
 
     const auto made = requestsTo("/v2/users/me/meetings");
     QCOMPARE(made.size(), 1);
@@ -209,8 +212,8 @@ void TestZoom::meetingsComeFromARefreshedSignIn()
 
 void TestZoom::anAllDayMeetingHasNoTime()
 {
-    m_settings->setZoomAccount(u"sam@example.com"_s);
-    m_tokens->secrets.insert(u"meetings"_s, u"rt1"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
+    m_tokens->secrets.insert(u"sam@example.com"_s, u"rt1"_s);
     QCOMPARE(meeting(QDateTime(QDate(2026, 11, 13), QTime(0, 0)), true).second, QString());
     const QJsonObject body =
         QJsonDocument::fromJson(requestsTo("/v2/users/me/meetings").first().body).object();
@@ -220,8 +223,8 @@ void TestZoom::anAllDayMeetingHasNoTime()
 
 void TestZoom::aTokenTurnedDownIsRefreshedOnce()
 {
-    m_settings->setZoomAccount(u"sam@example.com"_s);
-    m_tokens->secrets.insert(u"meetings"_s, u"rt1"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
+    m_tokens->secrets.insert(u"sam@example.com"_s, u"rt1"_s);
     int meetings = 0;
     m_server->handler = [&meetings](const FakeHttpServer::Request &request) {
         if (request.target.startsWith("/oauth/token"))
@@ -250,13 +253,71 @@ void TestZoom::aTokenTurnedDownIsRefreshedOnce()
 
 void TestZoom::disconnectingForgetsTheSignIn()
 {
-    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
     m_settings->setVideoCallService(u"zoom"_s);
-    m_tokens->secrets.insert(u"meetings"_s, u"rt1"_s);
-    m_zoom->disconnectAccount();
-    QCOMPARE(m_settings->zoomAccount(), QString());
+    m_tokens->secrets.insert(u"sam@example.com"_s, u"rt1"_s);
+    m_zoom->disconnectAccount(u"sam@example.com"_s);
+    QVERIFY(m_settings->zoomAccounts().isEmpty());
     QCOMPARE(m_settings->videoCallService(), u"calendar"_s);
-    QTRY_VERIFY(!m_tokens->secrets.contains(u"meetings"_s));
+    QTRY_VERIFY(!m_tokens->secrets.contains(u"sam@example.com"_s));
+}
+
+void TestZoom::eachAccountKeepsItsOwnSignIn()
+{
+    m_settings->addZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"sam@work.example"_s);
+    m_tokens->secrets.insert(u"sam@example.com"_s, u"home"_s);
+    m_tokens->secrets.insert(u"sam@work.example"_s, u"work"_s);
+    m_server->handler = [](const FakeHttpServer::Request &request) {
+        // Each sign-in refreshes into a token of its own.
+        if (request.target.startsWith("/oauth/token")) {
+            const QString spent =
+                QUrlQuery(QString::fromUtf8(request.body)).queryItemValue(u"refresh_token"_s);
+            return FakeHttpServer::Response(200, (u"{\"access_token\":\"at-"_s + spent +
+                                                  u"\",\"refresh_token\":\""_s + spent +
+                                                  u"2\",\"expires_in\":3600}"_s)
+                                                     .toUtf8());
+        }
+        return FakeHttpServer::Response(201, R"({"join_url":"https://zoom.us/j/1"})");
+    };
+    const QDateTime start = QDateTime::currentDateTimeUtc();
+    QCOMPARE(meeting(start, false, u"sam@work.example"_s).second, QString());
+    QCOMPARE(meeting(start, false, u"sam@example.com"_s).second, QString());
+    const auto made = requestsTo("/v2/users/me/meetings");
+    QCOMPARE(made.size(), 2);
+    QCOMPARE(made.at(0).headers.value("authorization"), QByteArray("Bearer at-work"));
+    QCOMPARE(made.at(1).headers.value("authorization"), QByteArray("Bearer at-home"));
+    QTRY_COMPARE(m_tokens->secrets.value(u"sam@work.example"_s), u"work2"_s);
+    QTRY_COMPARE(m_tokens->secrets.value(u"sam@example.com"_s), u"home2"_s);
+
+    // One goes; the other stays, and becomes the default.
+    m_zoom->disconnectAccount(u"sam@example.com"_s);
+    QCOMPARE(m_settings->zoomAccounts(), QStringList{u"sam@work.example"_s});
+    QCOMPARE(m_settings->zoomDefault(), u"sam@work.example"_s);
+    QTRY_VERIFY(!m_tokens->secrets.contains(u"sam@example.com"_s));
+    QVERIFY(m_tokens->secrets.contains(u"sam@work.example"_s));
+    // An account no longer connected makes nothing.
+    QVERIFY(!meeting(start, false, u"sam@example.com"_s).second.isEmpty());
+}
+
+void TestZoom::aCalendarsAccountPicksItsZoomAccount()
+{
+    QCOMPARE(m_zoom->accountFor(u"sam@example.com"_s), QString());
+    m_settings->addZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"Sam@Work.example"_s);
+    // The first connected is the default, for calendars of other accounts.
+    QCOMPARE(m_settings->zoomDefault(), u"sam@example.com"_s);
+    QCOMPARE(m_zoom->accountFor(u"sam@work.example"_s), u"Sam@Work.example"_s);
+    QCOMPARE(m_zoom->accountFor(u"microsoft:sam@work.example"_s), u"Sam@Work.example"_s);
+    QCOMPARE(m_zoom->accountFor(u"caldav:https://dav.example/sam@work.example"_s),
+             u"Sam@Work.example"_s);
+    QCOMPARE(m_zoom->accountFor(u"other@example.com"_s), u"sam@example.com"_s);
+    QCOMPARE(m_zoom->accountFor(QString()), u"sam@example.com"_s);
+    m_settings->setZoomDefault(u"Sam@Work.example"_s);
+    QCOMPARE(m_zoom->accountFor(u"other@example.com"_s), u"Sam@Work.example"_s);
+    // Only a connected account can be the default.
+    m_settings->setZoomDefault(u"nobody@example.com"_s);
+    QCOMPARE(m_settings->zoomDefault(), u"Sam@Work.example"_s);
 }
 
 void TestZoom::findsZoomLinks()

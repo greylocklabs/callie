@@ -387,12 +387,12 @@ void TestEventActions::zoomMeetingsGoInWhere()
         return FakeHttpServer::Response(201, R"({"join_url":"https://zoom.us/j/42"})");
     };
     FakeTokenStore tokens;
-    tokens.secrets.insert(u"meetings"_s, u"rt1"_s);
+    tokens.secrets.insert(u"sam@example.com"_s, u"rt1"_s);
     Zoom zoom(ZoomClientConfig{u"app"_s}, tokens, *m_settings);
     zoom.setEndpoints(server.url(u"/v2/"_s), server.url(u"/oauth/authorize"_s),
                       server.url(u"/oauth/token"_s));
     ZoomForeign::s_instance = &zoom;
-    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->addZoomAccount(u"sam@example.com"_s);
     m_settings->setVideoCallService(u"zoom"_s);
 
     SampleSource source;
@@ -467,8 +467,23 @@ void TestEventActions::zoomMeetingsGoInWhere()
     actions.update(asMap(dentist()), {{u"videoCall"_s, false}}, u"this"_s);
     QTRY_COMPARE(updated.size(), 8);
     QCOMPARE(dentist().location, typed);
+
+    // With a Zoom account of the calendar's own, the meeting is made as that one.
+    m_settings->setVideoCallService(u"zoom"_s);
+    tokens.secrets.insert(u"sam@home.example"_s, u"home"_s);
+    m_settings->addZoomAccount(u"sam@home.example"_s);
+    QCOMPARE(actions.zoomAccountFor(dentist().calendarId), u"sam@home.example"_s);
+    actions.update(asMap(dentist()), {{u"location"_s, where}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 9);
+    actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 10);
+    const auto refresh = std::ranges::find_if(server.requests, [](const auto &request) {
+        return request.target.startsWith("/oauth/token") && request.body.contains("home");
+    });
+    QVERIFY(refresh != server.requests.cend());
+    m_settings->removeZoomAccount(u"sam@home.example"_s);
     ZoomForeign::s_instance = nullptr;
-    m_settings->setZoomAccount({});
+    m_settings->removeZoomAccount(u"sam@example.com"_s);
 }
 
 void TestEventActions::callsOnlyWhereTheCalendarHasThem()

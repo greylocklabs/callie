@@ -105,6 +105,8 @@ public:
     Q_INVOKABLE QVariantList calendarChoices() const;
     /// Whether `text`, such as an event's Where, holds a Zoom meeting link.
     Q_INVOKABLE static bool hasZoomMeeting(const QString &text);
+    /// The Zoom account a meeting for an event in the calendar `calendarId` is made as.
+    Q_INVOKABLE QString zoomAccountFor(const QString &calendarId) const;
 
 Q_SIGNALS:
     void sourceChanged();

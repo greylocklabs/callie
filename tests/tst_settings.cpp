@@ -327,7 +327,7 @@ void TestSettings::videoCallsKeepToWhatWorks()
         QCOMPARE(settings.videoCallService(), u"calendar"_s);
         QVERIFY(changed.isEmpty());
         settings.setVideoCallService(u"zoom"_s);
-        settings.setZoomAccount(u"sam@example.com"_s);
+        settings.addZoomAccount(u"sam@example.com"_s);
         QCOMPARE(changed.size(), 2);
     }
     Settings settings(path());
@@ -335,8 +335,8 @@ void TestSettings::videoCallsKeepToWhatWorks()
     // A reset is for choices; Zoom stays connected, as its sign-in is in the keyring.
     settings.reset();
     QCOMPARE(settings.videoCallService(), u"calendar"_s);
-    QCOMPARE(settings.zoomAccount(), u"sam@example.com"_s);
-    QCOMPARE(Settings(path()).zoomAccount(), u"sam@example.com"_s);
+    QCOMPARE(settings.zoomAccounts(), QStringList{u"sam@example.com"_s});
+    QCOMPARE(Settings(path()).zoomAccounts(), QStringList{u"sam@example.com"_s});
 }
 
 void TestSettings::keyboardSettingsKeepToWhatWorks()

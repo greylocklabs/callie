@@ -313,7 +313,7 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
         Zoom *zoom = ZoomForeign::s_instance;
         const Settings *settings = SettingsForeign::create(nullptr, nullptr);
         const bool zoomCalls =
-            zoom && settings->videoCallService() == u"zoom" && !settings->zoomAccount().isEmpty();
+            zoom && settings->videoCallService() == u"zoom" && !settings->zoomAccounts().isEmpty();
         // Where that already has a Zoom meeting keeps it rather than gaining another.
         if (*edit.videoCall && zoomCalls && Zoom::hasMeeting(where))
             edit.videoCall.reset();
@@ -323,7 +323,9 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
                                      ? !edit.recurrence->isEmpty()
                                      : !edited.seriesId.isEmpty() ||
                                            !event.value(u"recurrence"_s).toStringList().isEmpty();
-            zoom->createMeeting(edit.summary.value_or(edited.summary),
+            // Made as the Zoom account of the calendar it ends up in.
+            zoom->createMeeting(zoomAccountFor(transfer ? calendarId : edited.calendarId),
+                                edit.summary.value_or(edited.summary),
                                 edit.start.value_or(edited.start), edit.end.value_or(edited.end),
                                 edit.allDay.value_or(edited.allDay) || repeats,
                                 [this, self, eventId, edit, where,
@@ -348,6 +350,17 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
         }
     }
     send(edit);
+}
+
+QString EventActions::zoomAccountFor(const QString &calendarId) const
+{
+    if (!m_source)
+        return {};
+    // Which account is the settings' to say, so a Zoom made only for that does.
+    Zoom *zoom = ZoomForeign::create(nullptr, nullptr);
+    const QList<CalendarInfo> calendars = m_source->calendars();
+    const auto calendar = std::ranges::find(calendars, calendarId, &CalendarInfo::id);
+    return zoom->accountFor(calendar == calendars.cend() ? QString() : calendar->account);
 }
 
 bool EventActions::hasZoomMeeting(const QString &text)
