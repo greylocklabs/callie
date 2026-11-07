@@ -770,6 +770,15 @@ void TestGoogleSource::optionalGuestsGoToGoogle()
     QVERIFY(guests.at(1)[u"optional"].toBool());
     QVERIFY(!guests.at(2).toObject().contains(u"optional"));
     QVERIFY(guests.at(3)[u"resource"].toBool());
+
+    // With no guest list to mark, nothing is sent rather than an empty list.
+    const qsizetype sent = harness.apiServer.requests.size();
+    Event unknown = review;
+    unknown.eventId = u"elsewhere"_s;
+    source.updateEvent(unknown, edit, EditScope::ThisEvent,
+                       [&error](const QString &e) { error = e; });
+    QVERIFY(error.contains(u"guests"_s));
+    QCOMPARE(harness.apiServer.requests.size(), sent);
 }
 
 void TestGoogleSource::editingTheSeriesKeepsItsFirstDay()
