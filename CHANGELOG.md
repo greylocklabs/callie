@@ -3,6 +3,12 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- Settings' tabs line up under its title, with more room between them.
+
 ## 0.7.1 - 2026-11-07
 
 ### Changed
