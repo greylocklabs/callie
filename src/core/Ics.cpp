@@ -504,6 +504,19 @@ bool shiftSeries(Group &group, const QDateTime &from, const QDateTime &to, qint6
     return true;
 }
 
+/// Puts an all-day series' last day on the clock its days are on. A date-only UNTIL reads as
+/// midnight UTC, which west of UTC comes before the last day starts and drops it.
+void floatAllDayEnds(KEvent &series)
+{
+    if (!series.allDay() || !series.recurs())
+        return;
+    for (KCalendarCore::RecurrenceRule *rule : series.recurrence()->rRules()) {
+        const QDateTime end = rule->endDt();
+        if (rule->duration() == 0 && end.isValid())
+            rule->setEndDt(QDateTime(end.date(), QTime(0, 0), series.dtStart().timeZone()));
+    }
+}
+
 bool setRecurrence(KEvent &series, const QStringList &lines, QString *error)
 {
     if (lines.isEmpty()) {
@@ -526,6 +539,7 @@ bool setRecurrence(KEvent &series, const QStringList &lines, QString *error)
         recurrence->addRRule(rule);
     }
     recurrence->setStartDateTime(series.dtStart(), series.allDay());
+    floatAllDayEnds(series);
     return true;
 }
 
@@ -642,8 +656,10 @@ Group parse(QByteArrayView text, QString *error)
         return {};
     }
     Group events;
-    for (const KEvent::Ptr &event : calendar->rawEvents())
+    for (const KEvent::Ptr &event : calendar->rawEvents()) {
         events.append(KEvent::Ptr(event->clone()));
+        floatAllDayEnds(*events.last());
+    }
     return events;
 }
 

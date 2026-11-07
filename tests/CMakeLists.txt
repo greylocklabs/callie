@@ -24,9 +24,9 @@ target_link_libraries(tst_startatlogin PRIVATE callieui)
 callie_add_test(tst_lookedsource)
 callie_add_test(tst_combinedsource)
 callie_add_test(tst_ics)
-# Times with no zone go to Google in the computer's own, so that is checked
-# away from UTC too.
-add_test(NAME tst_ics_new_york COMMAND tst_ics eventsGoToGoogleWithTheirRepeats)
+# Times with no zone go to Google in the computer's own, and an all-day series'
+# last day starts after midnight UTC west of it, so all of it runs away from UTC too.
+add_test(NAME tst_ics_new_york COMMAND tst_ics)
 set_tests_properties(tst_ics_new_york PROPERTIES ENVIRONMENT
                      "TZ=America/New_York;QT_QPA_PLATFORM=offscreen")
 callie_add_test(tst_localcalendars)
