@@ -3,6 +3,17 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- Settings lists its tabs down the left and keeps one size, scrolling a tab only when the window is
+  too small for it. Calendars on this computer, subscriptions and importing have a Calendars tab,
+  and Zoom and the join card a Video calls tab.
+- Each account takes one line in Settings, with Reconnect and Remove under its "..." button and a
+  line of its own only when something needs seeing to. One Connect an account button offers Google,
+  Microsoft and CalDAV.
+
 ## 0.7.0 - 2026-11-06
 
 ### Added
