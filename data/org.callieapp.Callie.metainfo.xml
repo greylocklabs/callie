@@ -42,6 +42,18 @@
   </categories>
 
   <releases>
+    <release version="0.7.0" date="2026-11-06">
+      <description>
+        <ul>
+          <li>Guests can be optional. Click a guest in the editor to make them optional, or required again; the event's details mark who is optional. callie edit --optional names them from the terminal.</li>
+          <li>Events can move to another calendar, from Calendar under More options in the editor or with callie edit --calendar. A repeating event moves as a whole series. Within one Google account, guests keep their invitations; elsewhere, an event with guests stays where it is.</li>
+          <li>Zoom can make the meetings for events instead of Google Meet or Teams. Connect Zoom under Video calls in Settings, and the video call switch makes a Zoom meeting and puts its link in Where. Connect several Zoom accounts, and each event's meeting is made as the one with its calendar's account's email, or the one chosen for other calendars.</li>
+          <li>Changes made to a new event before Callie's next sync, such as renaming it or adding guests, are no longer lost with a sync failure.</li>
+          <li>An event drawn over one you cannot edit, such as one on a calendar shared with you, can be dragged again instead of showing that it cannot move.</li>
+          <li>A repeating all-day event on a local, subscribed, CalDAV or Microsoft calendar keeps its last day west of UTC, where it used to end a day early.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.6.9" date="2026-11-03">
       <description>
         <ul>
