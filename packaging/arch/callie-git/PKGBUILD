@@ -56,7 +56,7 @@ build() {
     -DCALLIE_TUI=ON \
     -DCMAKE_PREFIX_PATH="$srcdir/ftxui" \
     -DCALLIE_MICROSOFT_CLIENT_ID=63b30b16-ab77-4338-bd6e-467d31393af1 \
-    -DCALLIE_ZOOM_CLIENT_ID=q_RFpUlbQsuidJ8zNiV5DQ \
+    -DCALLIE_ZOOM_CLIENT_ID=TDZ21ihrRciShr2L35KVKg \
     -DCALLIE_GOOGLE_CLIENT_ID="$_google_client_id" \
     -DCALLIE_GOOGLE_CLIENT_SECRET="$_google_client_secret"
   cmake --build build
