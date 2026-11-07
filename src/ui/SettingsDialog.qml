@@ -104,14 +104,15 @@ Popup {
         Column {
             id: tabs
 
+            // Each label starts under the title, its highlight reaching out past it.
             anchors {
                 left: parent.left
-                leftMargin: Theme.space4
+                leftMargin: Theme.space6 - Theme.space3
                 top: header.bottom
-                topMargin: Theme.space5
+                topMargin: Theme.space6
             }
             width: root.tabsWidth
-            spacing: Theme.space1
+            spacing: Theme.space2
 
             Repeater {
                 id: tabRepeater
@@ -162,7 +163,7 @@ Popup {
                     readonly property bool selected: root.tab === modelData.id
 
                     width: tabs.width
-                    height: Theme.listRowHeight
+                    height: Theme.listRowHeight + Theme.space2
                     hoverEnabled: true
                     Accessible.name: modelData.label
                     Accessible.role: Accessible.PageTab
@@ -176,7 +177,7 @@ Popup {
                     }
                     contentItem: Text {
                         leftPadding: Theme.space3
-                        rightPadding: Theme.space5
+                        rightPadding: Theme.space6
                         verticalAlignment: Text.AlignVCenter
                         text: tabButton.modelData.label
                         color: tabButton.selected ? Theme.text : Theme.textMuted
@@ -193,10 +194,10 @@ Popup {
 
             anchors {
                 left: tabs.right
-                leftMargin: Theme.space5
+                leftMargin: Theme.space6
                 right: parent.right
                 top: header.bottom
-                topMargin: Theme.space5
+                topMargin: Theme.space6
                 bottom: parent.bottom
             }
             contentWidth: availableWidth
