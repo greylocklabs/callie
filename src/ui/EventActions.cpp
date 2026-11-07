@@ -339,8 +339,9 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
                                 });
             return;
         }
-        // Turned off, a Zoom link leaves Where, and the calendar's own call goes if it has one.
-        if (edit.videoCall && !*edit.videoCall && hasZoomMeeting(where)) {
+        // Turned off with Zoom chosen, a Zoom link leaves Where, and the calendar's own call goes
+        // if it has one. Otherwise a link typed in Where is left as it is.
+        if (edit.videoCall && !*edit.videoCall && zoomCalls && hasZoomMeeting(where)) {
             edit.location = Zoom::withoutMeetings(where);
             if (event.value(u"conferenceUrl"_s).toUrl().isEmpty())
                 edit.videoCall.reset();

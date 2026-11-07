@@ -774,6 +774,15 @@ void TestEventEdit::theCallSwitchOffersZoomOnceChosen()
     m_settings->setZoomAccount(u"sam@example.com"_s);
     m_settings->setVideoCallService(u"zoom"_s);
     QTRY_VERIFY(find(m_window->contentItem(), "Toggle", "text", u"Add a Zoom meeting"_s));
+    // A Zoom link in Where is the event's call only while the switch makes Zoom meetings.
+    QVariantMap typed = form->property("event").toMap();
+    typed.insert(u"location"_s, u"Room 4 https://zoom.us/j/1"_s);
+    typed.insert(u"conferenceUrl"_s, QUrl());
+    QVERIFY(QMetaObject::invokeMethod(form, "load", Q_ARG(QVariant, typed)));
+    QVERIFY(form->property("hadCall").toBool());
+    m_settings->setVideoCallService(u"calendar"_s);
+    QVERIFY(QMetaObject::invokeMethod(form, "load", Q_ARG(QVariant, typed)));
+    QVERIFY(!form->property("hadCall").toBool());
     m_settings->setVideoCallService(u"calendar"_s);
     m_settings->setZoomAccount({});
 }
