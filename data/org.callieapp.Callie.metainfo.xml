@@ -42,6 +42,13 @@
   </categories>
 
   <releases>
+    <release version="0.7.2" date="2026-11-07">
+      <description>
+        <ul>
+          <li>Settings' tabs line up under its title, with more room between them.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.1" date="2026-11-07">
       <description>
         <ul>
