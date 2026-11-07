@@ -30,10 +30,12 @@ Account keyFor(const QString &email)
     return {u"zoom"_s, email};
 }
 
-// The email a calendar's account goes by, without a provider's prefix such as "microsoft:".
+// The email a calendar's account goes by: the first address in it, as in "microsoft:sam@x.org"
+// or CalDAV's "sam@fastmail.com (fastmail.com)".
 QString emailOf(const QString &account)
 {
-    return account.section(u':', -1).section(u'/', -1);
+    static const QRegularExpression address(u"[^\\s:/()<>]+@[^\\s:/()<>]+"_s);
+    return address.match(account).captured();
 }
 
 } // namespace
