@@ -2,6 +2,8 @@
 #include "FakeCalDavServer.h"
 #include "FakeTokenStore.h"
 
+#include "FakeHttpServer.h"
+#include "FakeTokenStore.h"
 #include "callie/CalDavSource.h"
 #include "callie/CombinedSource.h"
 #include "callie/ContactBook.h"
@@ -9,6 +11,7 @@
 #include "callie/LocalCalendars.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
+#include "callie/Zoom.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -137,6 +140,7 @@ private Q_SLOTS:
     void editMovesAndKeepsTheLength();
     void editMarksOptionalGuests();
     void editMovesToAnotherCalendar();
+    void editVideoMakesAZoomMeetingWhenChosen();
     void editAllDayEndsOnItsLastDay();
     void repeatIsForTheWholeSeries();
     void mistakesAreReportedNotMade();
@@ -472,6 +476,42 @@ void TestCli::editMovesToAnotherCalendar()
     QVERIFY(m_err.contains(u"Nope"_s));
     options.calendar = u"work"_s;
     QCOMPARE(run([&](auto done) { m_commands->edit(id, options, {}, done); }), 2);
+}
+
+void TestCli::editVideoMakesAZoomMeetingWhenChosen()
+{
+    FakeHttpServer server;
+    server.handler = [](const FakeHttpServer::Request &request) {
+        if (request.target.startsWith("/oauth/token"))
+            return FakeHttpServer::Response(
+                200, R"({"access_token":"at","refresh_token":"rt2","expires_in":3600})");
+        return FakeHttpServer::Response(201, R"({"join_url":"https://zoom.us/j/7"})");
+    };
+    FakeTokenStore tokens;
+    tokens.secrets.insert(u"meetings"_s, u"rt1"_s);
+    Zoom zoom(ZoomClientConfig{u"app"_s}, tokens, *m_settings);
+    zoom.setEndpoints(server.url(u"/v2/"_s), server.url(u"/oauth/authorize"_s),
+                      server.url(u"/oauth/token"_s));
+    m_commands->setZoom(&zoom);
+    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->setVideoCallService(u"zoom"_s);
+
+    const QString id = u"sample-3-16-0-2026-10-07"_s;
+    const QString where = named(u"Dentist"_s, QDate(2026, 10, 7)).location;
+    // Zoom answers over the network, so the command ends a moment later.
+    const auto edit = [this, &id](const EditOptions &options) {
+        int code = -1;
+        m_commands->edit(id, options, {}, [&code](int c) { code = c; });
+        return QTest::qWaitFor([&code] { return code != -1; }, 5000) ? code : -1;
+    };
+    EditOptions options;
+    options.video = true;
+    QCOMPARE(edit(options), 0);
+    QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).location, where + u" https://zoom.us/j/7"_s);
+    options.video = false;
+    QCOMPARE(edit(options), 0);
+    QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).location, where);
+    m_commands->setZoom(nullptr);
 }
 
 void TestCli::editAllDayEndsOnItsLastDay()

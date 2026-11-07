@@ -18,6 +18,7 @@ class CalDavSource;
 class ContactBook;
 class LocalCalendars;
 class Settings;
+class Zoom;
 
 namespace cli {
 
@@ -57,6 +58,8 @@ public:
 
     /// Colors for a terminal; output is plain without them.
     void setPaint(const Paint &paint) { m_paint = paint; }
+    /// Zoom, for --video when Zoom makes the meetings; without it, the calendar's own call.
+    void setZoom(Zoom *zoom) { m_zoom = zoom; }
 
     /// The next `days` days, by day. With `json`, a JSON array whose ids are
     /// what the other commands take.
@@ -134,6 +137,7 @@ private:
     QDateTime m_now;
     QTimeZone m_zone;
     Paint m_paint;
+    Zoom *m_zoom = nullptr;
 };
 
 } // namespace cli

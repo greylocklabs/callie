@@ -46,6 +46,11 @@ Column {
     property string calendar
     /// The calendars it can move to, read whenever an event is opened.
     property var calendarChoices: []
+    /// The event had a call when opened: its calendar's own, or a Zoom link in Where.
+    property bool hadCall
+    /// The switch makes Zoom meetings rather than the calendar's own.
+    readonly property bool zoomCalls: Settings.videoCallService === "zoom" && Settings.zoomAccount
+                                      !== ""
     property bool moreOptions: false
     /// Waiting to ask which occurrences a repeating event's change is for.
     property bool asking: false
@@ -91,12 +96,26 @@ Column {
         customTyped = false
         guests = (e.attendees || []).slice()
         optionalGuests = optionalOf(e.guests)
-        videoCall = (e.conferenceUrl || "").toString() !== ""
         calendar = e.calendarId || ""
         calendarChoices = root.actions.calendarChoices()
+        hadCall = (e.conferenceUrl || "").toString() !== "" || root.actions.hasZoomMeeting(
+                    e.location || "")
+        videoCall = hadCall
         moreOptions = false
         asking = false
         root.actions.clearError()
+    }
+
+    /// What the video call switch makes, by name.
+    function callLabel() {
+        if (zoomCalls)
+            return qsTr("Add a Zoom meeting")
+        const service = actions.callServiceFor(event.calendarId || "")
+        if (service === "meet")
+            return qsTr("Add a Google Meet")
+        if (service === "teams")
+            return qsTr("Add a Teams meeting")
+        return qsTr("Add a video call")
     }
 
     /// The addresses of the guests in `list` who need not come.
@@ -153,7 +172,7 @@ Column {
         const optional = optionalGuests.filter(g => guests.indexOf(g) >= 0).sort()
         if (JSON.stringify(optional) !== JSON.stringify(optionalOf(event.guests).sort()))
             c.optionalGuests = optional
-        if (videoCall !== ((event.conferenceUrl || "").toString() !== ""))
+        if (videoCall !== hadCall)
             c.videoCall = videoCall
         if (calendar !== (event.calendarId || ""))
             c.calendarId = calendar
@@ -438,14 +457,10 @@ Column {
     Toggle {
         id: callToggle
 
-        // Says what it makes: a new meeting on the calendar's own service.
-        visible: root.actions.canAddCall(root.event.calendarId || "")
+        // Says what it makes: a Zoom meeting, or a new one on the calendar's own service.
+        visible: root.zoomCalls || root.actions.canAddCall(root.event.calendarId || "")
         width: parent.width
-        text: ({
-                   "meet": qsTr("Add a Google Meet"),
-                   "teams": qsTr("Add a Teams meeting")
-               })[root.actions.callServiceFor(root.event.calendarId || "")] || qsTr(
-            "Add a video call")
+        text: root.callLabel()
         checked: root.videoCall
         onToggled: root.videoCall = checked
     }

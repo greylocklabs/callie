@@ -82,6 +82,10 @@ Outlook.com and Microsoft 365 accounts sign in the same way, with Connect a Micr
 invitations from Outlook, invitations can be answered, and events can have a Teams link where the
 account has Teams. Builds name the Microsoft app they sign in as with `CALLIE_MICROSOFT_CLIENT_ID`.
 
+Zoom connects under Video calls in the same tab, for its meetings rather than as a calendar. Once it
+is, the editor's video call switch makes a Zoom meeting and puts its link in Where, on any calendar.
+Builds name the Zoom app they make meetings as with `CALLIE_ZOOM_CLIENT_ID`.
+
 CalDAV accounts connect there too: pick Fastmail, iCloud or Nextcloud, or give any server's
 address, then the user name and an app password, which goes in the system keyring. Callie keeps a
 copy of each calendar under `$XDG_DATA_HOME/callie/caldav`, laid out like the calendars on this
@@ -249,6 +253,13 @@ and personal Microsoft accounts", as a public client with the redirect URIs `htt
 `People.Read` and `offline_access`. It has no secret. Its application id goes in
 `CALLIE_MICROSOFT_CLIENT_ID`, read the same way as Google's: built in when set while CMake
 configures, or taking over for one run when set while Callie runs.
+
+### Zoom
+
+Create a General app, managed by the user, in the Zoom App Marketplace. Give it the OAuth redirect
+URL `http://127.0.0.1/`, which Zoom matches on any port, and the scopes `meeting:write:meeting` and
+`user:read:user`, and let it sign in with PKCE as a public client, so it has no secret. Its client id
+goes in `CALLIE_ZOOM_CLIENT_ID`, read the same way as Microsoft's.
 
 ### Editors
 

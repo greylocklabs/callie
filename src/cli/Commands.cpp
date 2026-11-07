@@ -1,5 +1,7 @@
 #include "Commands.h"
 
+#include "callie/Zoom.h"
+
 #include "callie/CalDavSource.h"
 #include "callie/ContactBook.h"
 #include "callie/Ics.h"
@@ -464,10 +466,40 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
         m_source.transferEvent(event, calendarId,
                                [this, done](const Outcome &moved) { report(moved, done); });
     };
-    if (edit.isEmpty())
-        transfer({});
-    else
-        m_source.updateEvent(event, edit, *scope, transfer);
+    const auto send = [this, event, range = *scope, transfer](const EventEdit &edit) {
+        if (edit.isEmpty())
+            transfer({});
+        else
+            m_source.updateEvent(event, edit, range, transfer);
+    };
+
+    // With Zoom chosen, --video makes a Zoom meeting, its link put in Where, as the app does.
+    if (edit.videoCall) {
+        const QString where = edit.location.value_or(event.location);
+        const bool zoom = m_zoom && m_settings.videoCallService() == u"zoom" &&
+                          !m_settings.zoomAccount().isEmpty();
+        if (*edit.videoCall && zoom) {
+            edit.videoCall.reset();
+            m_zoom->createMeeting(
+                edit.summary.value_or(event.summary), edit.start.value_or(event.start),
+                edit.end.value_or(event.end), edit.allDay.value_or(event.allDay),
+                [this, edit, where, send, done](const QUrl &join, const QString &error) mutable {
+                    if (!error.isEmpty()) {
+                        report(Outcome(error), done);
+                        return;
+                    }
+                    edit.location = Zoom::withMeeting(where, join);
+                    send(edit);
+                });
+            return;
+        }
+        if (!*edit.videoCall && Zoom::hasMeeting(where)) {
+            edit.location = Zoom::withoutMeetings(where);
+            if (!event.conferenceUrl.isValid())
+                edit.videoCall.reset();
+        }
+    }
+    send(edit);
 }
 
 void Commands::remove(const QString &id, const QString &scopeText, const Done &done)

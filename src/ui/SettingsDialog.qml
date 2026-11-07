@@ -194,6 +194,99 @@ Popup {
             }
         }
 
+        // Zoom, connected for its meetings rather than as a calendar.
+        Section {
+            title: qsTr("Video calls")
+            visible: root.tab === "accounts" && Zoom.available
+
+            Connections {
+                target: Zoom
+                function onAuthorizeUrlReady(url) {
+                    Qt.openUrlExternally(url)
+                }
+            }
+
+            Item {
+                width: parent.width
+                height: zoomButton.height
+
+                Text {
+                    anchors {
+                        left: parent.left
+                        right: zoomButton.left
+                        rightMargin: Theme.space3
+                        verticalCenter: parent.verticalCenter
+                    }
+                    text: Settings.zoomAccount !== "" ? qsTr("Zoom: %1").arg(Settings.zoomAccount) :
+                                                        qsTr("Zoom is not connected")
+                    textFormat: Text.PlainText
+                    elide: Text.ElideMiddle
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textMd
+                    font.weight: Theme.weightStrong
+                }
+                StickerButton {
+                    id: zoomButton
+                    objectName: "zoomConnect"
+                    anchors.right: parent.right
+                    enabled: !Zoom.connecting
+                    text: {
+                        if (Settings.zoomAccount !== "")
+                            return qsTr("Disconnect")
+                        return Zoom.connecting ? qsTr("Waiting for Zoom") : qsTr("Connect Zoom")
+                    }
+                    onClicked: {
+                        if (Settings.zoomAccount !== "")
+                            Zoom.disconnectAccount()
+                        else
+                            Zoom.connectAccount()
+                    }
+                }
+            }
+            Text {
+                visible: Zoom.error !== ""
+                width: parent.width
+                wrapMode: Text.Wrap
+                text: Zoom.error
+                color: Theme.danger
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSm
+            }
+            Row {
+                visible: Settings.zoomAccount !== ""
+                width: parent.width
+                spacing: Theme.space4
+
+                Text {
+                    id: makeWith
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("The video call switch makes")
+                    color: Theme.text
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.textMd
+                    font.weight: Theme.weightStrong
+                }
+                Dropdown {
+                    objectName: "videoCallService"
+                    model: [
+                        {
+                            "id": "calendar",
+                            "name": qsTr("The calendar's own call")
+                        },
+                        {
+                            "id": "zoom",
+                            "name": qsTr("A Zoom meeting")
+                        }
+                    ]
+                    currentValue: Settings.videoCallService
+                    maximumWidth: parent.width - makeWith.width - parent.spacing
+                    Accessible.name: qsTr("What the video call switch makes")
+                    onActivated: value => Settings.videoCallService = value
+                }
+            }
+        }
+
         Section {
             title: qsTr("Theme")
             visible: root.tab === "appearance"

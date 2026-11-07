@@ -143,6 +143,7 @@ private Q_SLOTS:
     void guestsComeFromSuggestions();
     void guestsCanBeMadeOptional();
     void aSeriesMovesToAnotherCalendar();
+    void theCallSwitchOffersZoomOnceChosen();
     void placesComeFromSuggestions();
     void callsInNotesJoinWithoutAVideoCall();
     void trayAsksWhichOccurrences();
@@ -763,6 +764,18 @@ void TestEventEdit::aSeriesMovesToAnotherCalendar()
     QVERIFY(QMetaObject::invokeMethod(form, "save"));
     QVERIFY(!form->property("asking").toBool());
     QTRY_COMPARE(m_source->calls, QStringList{u"transfer personal"_s});
+}
+
+void TestEventEdit::theCallSwitchOffersZoomOnceChosen()
+{
+    QQuickItem *form = openEditor(u"Climbing"_s);
+    QVERIFY(form);
+    QVERIFY(find(m_window->contentItem(), "Toggle", "text", u"Add a Google Meet"_s));
+    m_settings->setZoomAccount(u"sam@example.com"_s);
+    m_settings->setVideoCallService(u"zoom"_s);
+    QTRY_VERIFY(find(m_window->contentItem(), "Toggle", "text", u"Add a Zoom meeting"_s));
+    m_settings->setVideoCallService(u"calendar"_s);
+    m_settings->setZoomAccount({});
 }
 
 void TestEventEdit::placesComeFromSuggestions()

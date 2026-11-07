@@ -12,6 +12,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - Events can move to another calendar, from Calendar under More options in the editor or with
   `callie edit --calendar`. A repeating event moves as a whole series. Within one Google account,
   guests keep their invitations; elsewhere, an event with guests stays where it is.
+- Zoom can make the meetings for events instead of Google Meet or Teams. Connect Zoom under Video
+  calls in Settings, and the video call switch makes a Zoom meeting and puts its link in Where.
 
 ### Fixed
 

@@ -103,6 +103,8 @@ public:
     Q_INVOKABLE QString noInvites(const QString &calendarId) const;
     /// The shown calendars that take events, {id, name, color}, for an event to move to.
     Q_INVOKABLE QVariantList calendarChoices() const;
+    /// Whether `text`, such as an event's Where, holds a Zoom meeting link.
+    Q_INVOKABLE static bool hasZoomMeeting(const QString &text);
 
 Q_SIGNALS:
     void sourceChanged();
