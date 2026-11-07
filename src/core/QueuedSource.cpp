@@ -110,6 +110,8 @@ QJsonObject editJson(const EventEdit &edit)
         json.insert(u"recurrence"_s, QJsonArray::fromStringList(*edit.recurrence));
     if (edit.guests)
         json.insert(u"guests"_s, QJsonArray::fromStringList(*edit.guests));
+    if (edit.optionalGuests)
+        json.insert(u"optionalGuests"_s, QJsonArray::fromStringList(*edit.optionalGuests));
     if (edit.videoCall)
         json.insert(u"videoCall"_s, *edit.videoCall);
     return json;
@@ -140,6 +142,8 @@ EventEdit editFrom(const QJsonObject &json)
         edit.recurrence = strings(json[u"recurrence"]);
     if (json.contains(u"guests"))
         edit.guests = strings(json[u"guests"]);
+    if (json.contains(u"optionalGuests"))
+        edit.optionalGuests = strings(json[u"optionalGuests"]);
     if (json.contains(u"videoCall"))
         edit.videoCall = json[u"videoCall"].toBool();
     return edit;
@@ -590,7 +594,7 @@ void QueuedSource::updateEvent(const Event &event, const EventEdit &edit, EditSc
             change.id == m_sending || builtOn(m_changes, i))
             continue;
         // What a creation cannot say goes out after it.
-        if (edit.recurrence || edit.guests || edit.videoCall)
+        if (edit.recurrence || edit.guests || edit.optionalGuests || edit.videoCall)
             break;
         const PendingChange before = change;
         applyEdit(change.event, event, edit);

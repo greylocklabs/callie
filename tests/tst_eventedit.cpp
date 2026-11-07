@@ -136,6 +136,7 @@ private Q_SLOTS:
     void buttonsTellTheirShortcuts();
     void newerReleaseIsOffered();
     void guestsComeFromSuggestions();
+    void guestsCanBeMadeOptional();
     void placesComeFromSuggestions();
     void callsInNotesJoinWithoutAVideoCall();
     void trayAsksWhichOccurrences();
@@ -701,6 +702,35 @@ void TestEventEdit::guestsComeFromSuggestions()
         form->property("guests").toStringList(),
         (QStringList{u"priya@example.com"_s, u"sam@new.example"_s, u"jordan@example.com"_s}));
     QVERIFY(form->isVisible());
+}
+
+void TestEventEdit::guestsCanBeMadeOptional()
+{
+    // Jordan is optional at the sample's calls.
+    QQuickItem *form = openEditor(u"Standup"_s);
+    QVERIFY(form);
+    QCOMPARE(form->property("optionalGuests").toStringList(), QStringList{u"jordan@example.com"_s});
+    QVERIFY(find(m_window->contentItem(), "QQuickText", "text", u"optional"_s));
+
+    // Clicking a guest's address makes them optional, and again makes them required.
+    QQuickItem *priya = find(m_window->contentItem(), "QQuickText", "text", u"priya@example.com"_s);
+    QVERIFY(priya);
+    click(m_window, priya);
+    QTRY_COMPARE(form->property("optionalGuests").toStringList(),
+                 (QStringList{u"jordan@example.com"_s, u"priya@example.com"_s}));
+    QQuickItem *jordan =
+        find(m_window->contentItem(), "QQuickText", "text", u"jordan@example.com"_s);
+    QVERIFY(jordan);
+    click(m_window, jordan);
+    QTRY_COMPARE(form->property("optionalGuests").toStringList(),
+                 QStringList{u"priya@example.com"_s});
+
+    QVariant changes;
+    QMetaObject::invokeMethod(form, "changes", Q_RETURN_ARG(QVariant, changes),
+                              Q_ARG(QVariant, u"this"_s));
+    const QVariantMap c = changes.toMap();
+    QCOMPARE(c.value(u"optionalGuests"_s).toStringList(), QStringList{u"priya@example.com"_s});
+    QVERIFY(!c.contains(u"guests"_s));
 }
 
 void TestEventEdit::placesComeFromSuggestions()

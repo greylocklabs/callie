@@ -249,6 +249,8 @@ EventEdit EventActions::toEdit(const QVariantMap &changes)
         }
         edit.guests = guests;
     }
+    if (has(u"optionalGuests"_s))
+        edit.optionalGuests = changes.value(u"optionalGuests"_s).toStringList();
     if (has(u"videoCall"_s))
         edit.videoCall = changes.value(u"videoCall"_s).toBool();
     return edit;

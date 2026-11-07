@@ -189,6 +189,7 @@ Event toEvent(const KEvent &source, const KEvent *series, const QDateTime &start
             .response = response(attendee.status()),
             .organizer = sameAddress(attendee.email(), organizer.email()),
             .self = sameAddress(attendee.email(), calendar.self),
+            .optional = attendee.role() == KCalendarCore::Attendee::OptParticipant,
         };
         organizerListed = organizerListed || guest.organizer;
         if (guest.self) {
@@ -528,6 +529,22 @@ bool setRecurrence(KEvent &series, const QStringList &lines, QString *error)
     return true;
 }
 
+/// Makes the guests in `optional` optional and the rest required, leaving the organizer.
+void setOptional(KEvent &event, const QStringList &optional)
+{
+    KCalendarCore::Attendee::List attendees = event.attendees();
+    for (KCalendarCore::Attendee &attendee : attendees) {
+        if (sameAddress(attendee.email(), event.organizer().email()))
+            continue;
+        const bool wanted = std::ranges::any_of(optional, [&attendee](const QString &email) {
+            return sameAddress(attendee.email(), email);
+        });
+        attendee.setRole(wanted ? KCalendarCore::Attendee::OptParticipant
+                                : KCalendarCore::Attendee::ReqParticipant);
+    }
+    event.setAttendees(attendees);
+}
+
 /// Replaces the guests other than `self`, keeping the answers of those who stay.
 void setGuests(KEvent &event, const QStringList &emails)
 {
@@ -565,6 +582,8 @@ bool applyDetails(KEvent &event, const EventEdit &edit, QString *error)
         event.setDescription(*edit.description);
     if (edit.guests)
         setGuests(event, *edit.guests);
+    if (edit.optionalGuests)
+        setOptional(event, *edit.optionalGuests);
     return true;
 }
 

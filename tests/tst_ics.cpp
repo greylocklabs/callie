@@ -18,6 +18,7 @@ private Q_SLOTS:
     void allDayEndsTheDayAfter();
     void seriesSkipExceptionsAndTakeChanges();
     void guestsRemindersAndCalls();
+    void optionalGuestsAreAParticipantRole();
     void writesWhatItReads();
     void removesOneOrAll();
     void movesOneOrAll();
@@ -180,6 +181,39 @@ END:VEVENT
     QCOMPARE(review.reminders, QList<int>{10});
     QVERIFY(review.remindersKnown);
     QCOMPARE(review.conferenceUrl, QUrl(u"https://meet.example.com/abc"_s));
+}
+
+void TestIcs::optionalGuestsAreAParticipantRole()
+{
+    const ics::Group events = ics::parse(calendar(R"(BEGIN:VEVENT
+UID:review
+DTSTART:20261006T130000Z
+DTEND:20261006T140000Z
+SUMMARY:Review
+ORGANIZER:mailto:sam@example.com
+ATTENDEE;PARTSTAT=ACCEPTED:mailto:sam@example.com
+ATTENDEE;ROLE=OPT-PARTICIPANT:mailto:pat@example.com
+ATTENDEE:mailto:alex@example.com
+END:VEVENT
+)"));
+    const Event review = week(events).value(0);
+    QCOMPARE(review.guests.size(), 3);
+    QVERIFY(!review.guests.at(0).optional);
+    QVERIFY(review.guests.at(1).optional);
+    QVERIFY(!review.guests.at(2).optional);
+
+    EventEdit edit;
+    edit.optionalGuests = QStringList{u"alex@example.com"_s, u"sam@example.com"_s};
+    QString error;
+    const auto changed = ics::update(events, review, edit, EditScope::ThisEvent, {}, &error);
+    QVERIFY2(changed, qPrintable(error));
+    // Written back as a role, and the organizer is never optional.
+    const QByteArray written = ics::write(changed->group);
+    QVERIFY(written.contains("ROLE=OPT-PARTICIPANT"));
+    const Event after = week(ics::parse(written)).value(0);
+    QVERIFY(!after.guests.at(0).optional);
+    QVERIFY(!after.guests.at(1).optional);
+    QVERIFY(after.guests.at(2).optional);
 }
 
 void TestIcs::writesWhatItReads()

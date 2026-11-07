@@ -166,23 +166,35 @@ std::optional<EditFields> editFields(const Event &event, const EventEdit &edit,
     if (edit.recurrence)
         fields.insert(u"recurrence"_s, QJsonArray::fromStringList(*edit.recurrence));
 
-    if (edit.guests) {
+    if (edit.guests || edit.optionalGuests) {
         // Guests who stay keep their answers; the user stays on the list.
         const QJsonArray before =
             QJsonDocument::fromJson(stored ? stored->attendees : QByteArray()).array();
         QJsonArray after;
         for (const QJsonValue &guest : before) {
-            if (guest[u"self"].toBool() || guest[u"resource"].toBool() ||
+            if (!edit.guests || guest[u"self"].toBool() || guest[u"resource"].toBool() ||
                 edit.guests->contains(guest[u"email"].toString(), Qt::CaseInsensitive))
                 after.append(guest);
         }
-        for (const QString &email : *edit.guests) {
+        for (const QString &email : edit.guests.value_or(QStringList())) {
             const bool known =
                 std::any_of(after.cbegin(), after.cend(), [&email](const QJsonValue &g) {
                     return g[u"email"].toString().compare(email, Qt::CaseInsensitive) == 0;
                 });
             if (!known)
                 after.append(QJsonObject{{u"email"_s, email}});
+        }
+        if (edit.optionalGuests) {
+            for (QJsonValueRef ref : after) {
+                QJsonObject guest = ref.toObject();
+                if (guest[u"self"].toBool() || guest[u"resource"].toBool())
+                    continue;
+                if (edit.optionalGuests->contains(guest[u"email"].toString(), Qt::CaseInsensitive))
+                    guest.insert(u"optional"_s, true);
+                else
+                    guest.remove(u"optional"_s);
+                ref = guest;
+            }
         }
         fields.insert(u"attendees"_s, after);
     }

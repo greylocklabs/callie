@@ -278,7 +278,9 @@ Element detailsView(const TuiState &state, const Look &look)
     if (!event.guests.isEmpty()) {
         Elements guests;
         for (const Guest &guest : event.guests) {
-            const QString name = guest.name.isEmpty() ? guest.email : guest.name;
+            QString name = guest.name.isEmpty() ? guest.email : guest.name;
+            if (guest.optional)
+                name = QObject::tr("%1, optional").arg(name);
             guests.push_back(hbox({label(name), label(u"  "_s + answerName(guest.response)) |
                                                     color(rgb(look.c.textFaint))}));
         }

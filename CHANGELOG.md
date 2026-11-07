@@ -5,6 +5,11 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 ## Unreleased
 
+### Added
+
+- Guests can be optional. Click a guest in the editor to make them optional, or required again;
+  the event's details mark who is optional. `callie edit --optional` names them from the terminal.
+
 ### Fixed
 
 - Changes made to a new event before Callie's next sync, such as renaming it or adding guests, are

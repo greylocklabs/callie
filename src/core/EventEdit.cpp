@@ -34,6 +34,11 @@ void applyEdit(Event &occurrence, const Event &edited, const EventEdit &edit)
         }
         occurrence.guests = guests;
     }
+    if (edit.optionalGuests) {
+        for (Guest &guest : occurrence.guests)
+            guest.optional =
+                !guest.self && edit.optionalGuests->contains(guest.email, Qt::CaseInsensitive);
+    }
     if (edit.videoCall && !*edit.videoCall)
         occurrence.conferenceUrl.clear();
 

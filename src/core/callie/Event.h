@@ -18,6 +18,8 @@ struct Guest
     QString response;
     bool organizer = false;
     bool self = false;
+    /// Invited without being needed there.
+    bool optional = false;
 
     friend bool operator==(const Guest &, const Guest &) = default;
 };

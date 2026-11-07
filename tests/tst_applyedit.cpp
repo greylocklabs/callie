@@ -15,6 +15,7 @@ private Q_SLOTS:
     void otherOccurrencesMoveByDaysToTheNewTime();
     void allDayKeepsItsDays();
     void guestsKeepTheirAnswers();
+    void optionalGuestsAreMarked();
 };
 
 namespace {
@@ -94,6 +95,31 @@ void TestApplyEdit::guestsKeepTheirAnswers()
     QCOMPARE(e.guests.at(1).response, u"accepted"_s);
     QCOMPARE(e.guests.at(2).email, u"alex@x.com"_s);
     QCOMPARE(e.guests.at(2).response, u"needsAction"_s);
+}
+
+void TestApplyEdit::optionalGuestsAreMarked()
+{
+    Event e = occurrence(u"a"_s, 6, 10);
+    e.guests = {{u"me@x.com"_s, u"Me"_s, u"accepted"_s, false, true},
+                {u"pat@x.com"_s, u"Pat"_s, u"accepted"_s, false, false, true},
+                {u"sam@x.com"_s, u"Sam"_s, u"declined"_s, false, false}};
+
+    // A change to who comes leaves each guest as they were, and a new one required.
+    EventEdit add;
+    add.guests = QStringList{u"pat@x.com"_s, u"sam@x.com"_s, u"alex@x.com"_s};
+    applyEdit(e, e, add);
+    QVERIFY(e.guests.at(1).optional);
+    QVERIFY(!e.guests.at(2).optional);
+    QVERIFY(!e.guests.at(3).optional);
+
+    // Naming the optional ones makes every other guest required; the user is never optional.
+    EventEdit swap;
+    swap.optionalGuests = QStringList{u"SAM@x.com"_s, u"me@x.com"_s};
+    applyEdit(e, e, swap);
+    QVERIFY(!e.guests.at(0).optional);
+    QVERIFY(!e.guests.at(1).optional);
+    QVERIFY(e.guests.at(2).optional);
+    QVERIFY(!e.guests.at(3).optional);
 }
 
 QTEST_GUILESS_MAIN(TestApplyEdit)

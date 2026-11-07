@@ -111,7 +111,7 @@ QList<Event> SampleSource::eventsBetween(const QDateTime &from, const QDateTime 
                     {QStringLiteral("priya@example.com"), QStringLiteral("Priya"),
                      QStringLiteral("accepted"), true, false},
                     {QStringLiteral("jordan@example.com"), QStringLiteral("Jordan"),
-                     QStringLiteral("needsAction"), false, false},
+                     QStringLiteral("needsAction"), false, false, true},
                     {QStringLiteral("sam@work.example"), QStringLiteral("Sam"), e.responseStatus,
                      false, true},
                 };

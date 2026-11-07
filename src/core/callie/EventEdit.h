@@ -37,13 +37,16 @@ struct EventEdit
     /// Every guest's address but the user's; replaces the list, keeping the
     /// answers of guests who stay.
     std::optional<QStringList> guests;
+    /// The guests who need not come; every other guest is required. Unset, each
+    /// guest stays as they were and a new one is required.
+    std::optional<QStringList> optionalGuests;
     /// True adds a video call to the event, false removes it.
     std::optional<bool> videoCall;
 
     [[nodiscard]] bool isEmpty() const
     {
         return !summary && !location && !description && !start && !end && !allDay && !recurrence &&
-               !guests && !videoCall;
+               !guests && !optionalGuests && !videoCall;
     }
     /// Whether the times change, which moves the event.
     [[nodiscard]] bool movesTimes() const { return start || end || allDay; }
