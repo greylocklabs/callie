@@ -166,7 +166,8 @@ std::optional<EditFields> editFields(const Event &event, const EventEdit &edit,
     if (edit.recurrence)
         fields.insert(u"recurrence"_s, QJsonArray::fromStringList(*edit.recurrence));
 
-    if (edit.guests || edit.optionalGuests) {
+    // Marking guests without the list there is would send an empty one, taking every guest off.
+    if (edit.guests || (edit.optionalGuests && stored)) {
         // Guests who stay keep their answers; the user stays on the list.
         const QJsonArray before =
             QJsonDocument::fromJson(stored ? stored->attendees : QByteArray()).array();
@@ -537,6 +538,11 @@ void GoogleSource::updateEvent(const Event &event, const EventEdit &edit, EditSc
     std::optional<GoogleEvent> stored = m_cache.event(account, calendarId, target);
     if (!stored && !event.seriesId.isEmpty())
         stored = m_cache.event(account, calendarId, event.seriesId);
+    // Google takes the whole guest list, so marking guests needs the list there is.
+    if (edit.optionalGuests && !edit.guests && !stored) {
+        done(tr("Callie does not have this event's guests yet; try again after a sync."));
+        return;
+    }
     const std::optional<EditFields> change = editFields(event, edit, stored, series);
     if (!change) {
         done(tr("Callie does not have this series' times yet; try again after a sync."));
