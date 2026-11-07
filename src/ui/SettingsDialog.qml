@@ -10,10 +10,10 @@ Popup {
     id: root
 
     anchors.centerIn: Overlay.overlay
-    // Wide enough for every tab on one row, where the window allows.
-    width: Math.min(Overlay.overlay ? Overlay.overlay.width - 2 * Theme.space6 : 600, Math.max(600,
-                                                                                               tabsWidth
-                                                                                               + 2 * Theme.space6))
+    // One size for every tab, so the dialog does not jump between them; a tab longer than that
+    // scrolls, as on a small screen.
+    width: Math.min(Overlay.overlay ? Overlay.overlay.width - 2 * Theme.space6 : 760, 760)
+    height: Math.min(Overlay.overlay ? Overlay.overlay.height - 2 * Theme.space6 : 620, 620)
     padding: 0
     modal: true
     focus: true
@@ -24,11 +24,11 @@ Popup {
     /// An .ics file was picked to import.
     signal importRequested(url file)
 
-    /// The tabs side by side, which the dialog widens to hold.
+    /// The tab list's width: its longest label's.
     readonly property real tabsWidth: {
-        let width = Theme.space2 * Math.max(0, tabRepeater.count - 1)
+        let width = 0
         for (let i = 0; i < tabRepeater.count; ++i)
-            width += tabRepeater.itemAt(i) ? tabRepeater.itemAt(i).implicitWidth : 0
+            width = Math.max(width, tabRepeater.itemAt(i) ? tabRepeater.itemAt(i).implicitWidth : 0)
         return width
     }
     /// Which group of settings shows: "general", "appearance" or "accounts".
@@ -74,12 +74,12 @@ Popup {
         }
     }
 
-    contentItem: Column {
-        padding: Theme.space6
-        spacing: Theme.space5
-
+    contentItem: Item {
         Item {
-            width: parent.width - 2 * parent.padding
+            id: header
+            x: Theme.space6
+            y: Theme.space6
+            width: parent.width - 2 * Theme.space6
             height: title.implicitHeight
 
             Text {
@@ -100,10 +100,18 @@ Popup {
             }
         }
 
-        // Wraps onto a second line rather than running off a narrow dialog.
-        Flow {
-            width: root.width - 2 * Theme.space6
-            spacing: Theme.space2
+        // The tabs down the left, so there is room for all of them however narrow the window.
+        Column {
+            id: tabs
+
+            anchors {
+                left: parent.left
+                leftMargin: Theme.space4
+                top: header.bottom
+                topMargin: Theme.space5
+            }
+            width: root.tabsWidth
+            spacing: Theme.space1
 
             Repeater {
                 id: tabRepeater
@@ -134,884 +142,944 @@ Popup {
                         "label": qsTr("Accounts")
                     },
                     {
+                        "id": "calendars",
+                        "label": qsTr("Calendars")
+                    },
+                    {
+                        "id": "calls",
+                        "label": qsTr("Video calls")
+                    },
+                    {
                         "id": "developer",
                         "label": qsTr("Developer")
                     }
                 ]
 
-                PillButton {
+                AbstractButton {
                     id: tabButton
+
                     required property var modelData
-                    label: tabButton.modelData.label
-                    selected: root.tab === tabButton.modelData.id
-                    onClicked: root.tab = tabButton.modelData.id
+                    readonly property bool selected: root.tab === modelData.id
+
+                    width: tabs.width
+                    height: Theme.listRowHeight
+                    hoverEnabled: true
+                    Accessible.name: modelData.label
+                    Accessible.role: Accessible.PageTab
+                    onClicked: root.tab = modelData.id
+
+                    background: Rectangle {
+                        radius: Theme.radiusMd
+                        color: tabButton.selected ? Theme.tint(Theme.accent, 0.18) :
+                                                    tabButton.hovered ? Theme.surfaceAlt :
+                                                                        "transparent"
+                    }
+                    contentItem: Text {
+                        leftPadding: Theme.space3
+                        rightPadding: Theme.space5
+                        verticalAlignment: Text.AlignVCenter
+                        text: tabButton.modelData.label
+                        color: tabButton.selected ? Theme.text : Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textMd
+                        font.weight: tabButton.selected ? Theme.weightBold : Theme.weightStrong
+                    }
                 }
             }
         }
 
-        AccountsSection {
-            visible: root.tab === "accounts"
-            width: root.width - 2 * Theme.space6
-            report: root.syncReport
-        }
+        ScrollView {
+            id: pane
 
-        Section {
-            title: qsTr("On this computer")
-            visible: root.tab === "accounts"
-
-            LocalSection {
-                width: parent.width
+            anchors {
+                left: tabs.right
+                leftMargin: Theme.space5
+                right: parent.right
+                top: header.bottom
+                topMargin: Theme.space5
+                bottom: parent.bottom
             }
-        }
+            contentWidth: availableWidth
+            clip: true
 
-        Section {
-            title: qsTr("Import")
-            // Sample data has nowhere to put the events.
-            visible: root.tab === "accounts" && Local.available
+            Column {
+                id: page
 
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "Add the events of an .ics file to any calendar you can change. Dropping the file on the window works too.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            StickerButton {
-                glyph: "plus"
-                text: qsTr("Choose a file...")
-                onClicked: icsDialog.open()
-            }
-        }
+                width: pane.availableWidth - Theme.space6
+                bottomPadding: Theme.space6
+                spacing: Theme.space5
 
-        Section {
-            title: qsTr("Subscriptions")
-            visible: root.tab === "accounts"
-
-            SubscriptionsSection {
-                width: parent.width
-            }
-        }
-
-        // Zoom, connected for its meetings rather than as a calendar.
-        Section {
-            title: qsTr("Video calls")
-            visible: root.tab === "accounts" && Zoom.available
-
-            Connections {
-                target: Zoom
-                function onAuthorizeUrlReady(url) {
-                    Qt.openUrlExternally(url)
+                AccountsSection {
+                    visible: root.tab === "accounts"
+                    width: page.width
+                    report: root.syncReport
                 }
-            }
 
-            // Each Zoom account connected, which makes the meetings for its own calendars.
-            Repeater {
-                model: Settings.zoomAccounts
+                Section {
+                    title: qsTr("On this computer")
+                    visible: root.tab === "calendars"
 
-                Item {
-                    id: zoomRow
-                    required property string modelData
-                    width: parent.width
-                    height: disconnect.height
+                    LocalSection {
+                        width: parent.width
+                    }
+                }
+
+                Section {
+                    title: qsTr("Import")
+                    // Sample data has nowhere to put the events.
+                    visible: root.tab === "calendars" && Local.available
 
                     Text {
-                        anchors {
-                            left: parent.left
-                            right: disconnect.left
-                            rightMargin: Theme.space3
-                            verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "Add the events of an .ics file to any calendar you can change. Dropping the file on the window works too.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    StickerButton {
+                        glyph: "plus"
+                        text: qsTr("Choose a file...")
+                        onClicked: icsDialog.open()
+                    }
+                }
+
+                Section {
+                    title: qsTr("Subscriptions")
+                    visible: root.tab === "calendars"
+
+                    SubscriptionsSection {
+                        width: parent.width
+                    }
+                }
+
+                // Zoom, connected for its meetings rather than as a calendar.
+                Section {
+                    title: qsTr("Zoom")
+                    visible: root.tab === "calls" && Zoom.available
+
+                    Connections {
+                        target: Zoom
+                        function onAuthorizeUrlReady(url) {
+                            Qt.openUrlExternally(url)
                         }
-                        text: qsTr("Zoom: %1").arg(zoomRow.modelData)
-                        textFormat: Text.PlainText
-                        elide: Text.ElideMiddle
+                    }
+
+                    // Each Zoom account connected, which makes the meetings for its own calendars.
+                    Repeater {
+                        model: Settings.zoomAccounts
+
+                        Item {
+                            id: zoomRow
+                            required property string modelData
+                            width: parent.width
+                            height: disconnect.height
+
+                            Text {
+                                anchors {
+                                    left: parent.left
+                                    right: disconnect.left
+                                    rightMargin: Theme.space3
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                text: qsTr("Zoom: %1").arg(zoomRow.modelData)
+                                textFormat: Text.PlainText
+                                elide: Text.ElideMiddle
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textMd
+                                font.weight: Theme.weightStrong
+                            }
+                            StickerButton {
+                                id: disconnect
+                                anchors.right: parent.right
+                                text: qsTr("Disconnect")
+                                Accessible.name: qsTr("Disconnect %1").arg(zoomRow.modelData)
+                                onClicked: Zoom.disconnectAccount(zoomRow.modelData)
+                            }
+                        }
+                    }
+                    StickerButton {
+                        objectName: "zoomConnect"
+                        glyph: Zoom.connecting ? "" : "plus"
+                        text: {
+                            if (Zoom.connecting)
+                                return qsTr("Cancel")
+                            return Settings.zoomAccounts.length > 0 ? qsTr(
+                                                                          "Connect another Zoom account") :
+                                                                      qsTr("Connect Zoom")
+                        }
+                        onClicked: Zoom.connecting ? Zoom.cancelConnect() : Zoom.connectAccount()
+                    }
+                    Text {
+                        visible: Zoom.connecting
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr("Finish signing in to Zoom in your browser.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Text {
+                        visible: Zoom.connecting && Settings.zoomAccounts.length > 0
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "To add a different account, choose Switch account on Zoom's page.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Text {
+                        visible: Zoom.error !== ""
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: Zoom.error
+                        color: Theme.danger
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Row {
+                        visible: Settings.zoomAccounts.length > 0
+                        width: parent.width
+                        spacing: Theme.space4
+
+                        Text {
+                            id: makeWith
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("The video call switch makes")
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+                        }
+                        Dropdown {
+                            objectName: "videoCallService"
+                            model: [
+                                {
+                                    "id": "calendar",
+                                    "name": qsTr("The calendar's own call")
+                                },
+                                {
+                                    "id": "zoom",
+                                    "name": qsTr("A Zoom meeting")
+                                }
+                            ]
+                            currentValue: Settings.videoCallService
+                            maximumWidth: parent.width - makeWith.width - parent.spacing
+                            Accessible.name: qsTr("What the video call switch makes")
+                            onActivated: value => Settings.videoCallService = value
+                        }
+                    }
+                    // A calendar whose account has no Zoom account of its own uses this one.
+                    Row {
+                        visible: Settings.zoomAccounts.length > 1
+                        width: parent.width
+                        spacing: Theme.space4
+
+                        Text {
+                            id: otherwise
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("For other calendars, use")
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+                        }
+                        Dropdown {
+                            objectName: "zoomDefault"
+                            model: Settings.zoomAccounts.map(email => ({
+                                "id": email,
+                                "name": email
+                            }))
+                            currentValue: Settings.zoomDefault
+                            maximumWidth: parent.width - otherwise.width - parent.spacing
+                            Accessible.name: qsTr("The Zoom account for other calendars")
+                            onActivated: value => Settings.zoomDefault = value
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Theme")
+                    visible: root.tab === "appearance"
+
+                    Dropdown {
+                        model: Themes.available
+                        currentValue: Themes.current
+                        Accessible.name: qsTr("Theme")
+                        onActivated: value => Themes.use(value)
+                    }
+
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.space2
+
+                        StickerButton {
+                            text: Themes.editable ? qsTr("Edit colors") : qsTr("Customize colors")
+                            onClicked: {
+                                if (Themes.customize())
+                                    root.editColorsRequested()
+                            }
+                        }
+                        StickerButton {
+                            text: qsTr("Import...")
+                            onClicked: importDialog.open()
+                        }
+                        StickerButton {
+                            text: qsTr("Export...")
+                            onClicked: exportDialog.open()
+                        }
+                        // Deleting takes a second click, since the file is gone for good.
+                        DangerButton {
+                            visible: Themes.editable
+                            label: qsTr("Delete theme")
+                            armedLabel: qsTr("Click again to delete")
+                            onConfirmed: Themes.removeCurrent()
+                        }
+                    }
+
+                    Text {
+                        visible: Themes.error !== ""
+                        width: parent.width
+                        text: Themes.error
+                        wrapMode: Text.Wrap
+                        color: Theme.danger
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
+
+                Section {
+                    title: qsTr("Time")
+                    visible: root.tab === "general"
+
+                    Row {
+                        spacing: Theme.space2
+                        Accessible.role: Accessible.RadioButton
+
+                        Repeater {
+                            model: [
+                                {
+                                    "label": qsTr("Like my region"),
+                                    "format": Settings.Locale
+                                },
+                                {
+                                    "label": qsTr("24-hour"),
+                                    "format": Settings.TwentyFourHour
+                                },
+                                {
+                                    "label": qsTr("AM/PM"),
+                                    "format": Settings.TwelveHour
+                                }
+                            ]
+
+                            PillButton {
+                                required property var modelData
+                                label: modelData.label
+                                selected: Settings.timeFormat === modelData.format
+                                onClicked: Settings.timeFormat = modelData.format
+                            }
+                        }
+                    }
+
+                    Row {
+                        // Clears the raised edge of the selected clock button above.
+                        topPadding: Theme.space3
+                        spacing: Theme.space4
+
+                        Text {
+                            // Centered beside the picker, below the row's top padding.
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.verticalCenterOffset: parent.topPadding / 2
+                            text: qsTr("Time zone")
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+                        }
+                        ZonePicker {
+                            zoneId: Settings.timeZoneId
+                            onPicked: id => Settings.timeZoneId = id
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Events")
+                    visible: root.tab === "general"
+
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Show events I declined")
+                        checked: Settings.showDeclined
+                        onToggled: Settings.showDeclined = checked
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Fade events that have ended")
+                        checked: Settings.dimPast
+                        onToggled: Settings.dimPast = checked
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: Theme.space4
+
+                        Text {
+                            id: openPlacesIn
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("Open places in")
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+                        }
+                        Dropdown {
+                            model: [
+                                {
+                                    "id": "system",
+                                    "name": qsTr("My map app")
+                                },
+                                {
+                                    "id": "google",
+                                    "name": qsTr("Google Maps")
+                                },
+                                {
+                                    "id": "osm",
+                                    "name": qsTr("OpenStreetMap")
+                                },
+                                {
+                                    "id": "apple",
+                                    "name": qsTr("Apple Maps")
+                                }
+                            ]
+                            currentValue: Settings.mapApp
+                            maximumWidth: parent.width - openPlacesIn.width - parent.spacing
+                            Accessible.name: qsTr("Open places in")
+                            onActivated: value => Settings.mapApp = value
+                        }
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Search OpenStreetMap for places")
+                        checked: Settings.searchPlacesOnline
+                        onToggled: Settings.searchPlacesOnline = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "Sends what you type as an event's place to OpenStreetMap's Photon server, run by komoot. Off, only places from your own events are suggested.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
+
+                Section {
+                    title: qsTr("New events")
+                    visible: root.tab === "general" && newEvents.calendars.length > 1
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.space4
+
+                        Text {
+                            id: startIn
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("Start them in")
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightStrong
+                        }
+                        // The last one used is also chosen when the chosen calendar is
+                        // gone or hidden, since new events then go there.
+                        Dropdown {
+                            model: [
+                                {
+                                    "id": "",
+                                    "name": qsTr("The last one used")
+                                }
+                            ].concat(newEvents.calendars)
+                            currentValue: newEvents.calendars.some(c => c.id
+                                                                        === Settings.defaultCalendar)
+                                          ? Settings.defaultCalendar : ""
+                            maximumWidth: parent.width - startIn.width - parent.spacing
+                            Accessible.name: qsTr("Start new events in")
+                            onActivated: value => Settings.defaultCalendar = value
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Week")
+                    visible: root.tab === "week"
+
+                    Text {
+                        text: qsTr("Starts on")
                         color: Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textMd
                         font.weight: Theme.weightStrong
                     }
-                    StickerButton {
-                        id: disconnect
-                        anchors.right: parent.right
-                        text: qsTr("Disconnect")
-                        Accessible.name: qsTr("Disconnect %1").arg(zoomRow.modelData)
-                        onClicked: Zoom.disconnectAccount(zoomRow.modelData)
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.space2
+                        Accessible.role: Accessible.RadioButton
+
+                        Repeater {
+                            model: [
+                                {
+                                    "label": qsTr("Like my region"),
+                                    "day": 0
+                                },
+                                {
+                                    "label": Qt.locale().dayName(1),
+                                    "day": 1
+                                },
+                                {
+                                    "label": Qt.locale().dayName(0),
+                                    "day": 7
+                                },
+                                {
+                                    "label": Qt.locale().dayName(6),
+                                    "day": 6
+                                }
+                            ]
+
+                            PillButton {
+                                required property var modelData
+                                label: modelData.label
+                                selected: Settings.weekStart === modelData.day
+                                onClicked: Settings.weekStart = modelData.day
+                            }
+                        }
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Hide weekends")
+                        checked: Settings.hideWeekends
+                        onToggled: Settings.hideWeekends = checked
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Show week numbers")
+                        checked: Settings.weekNumbers
+                        onToggled: Settings.weekNumbers = checked
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Give today more room")
+                        checked: Settings.widenToday
+                        onToggled: Settings.widenToday = checked
                     }
                 }
-            }
-            StickerButton {
-                objectName: "zoomConnect"
-                glyph: Zoom.connecting ? "" : "plus"
-                text: {
-                    if (Zoom.connecting)
-                        return qsTr("Cancel")
-                    return Settings.zoomAccounts.length > 0 ? qsTr("Connect another Zoom account") :
-                                                              qsTr("Connect Zoom")
-                }
-                onClicked: Zoom.connecting ? Zoom.cancelConnect() : Zoom.connectAccount()
-            }
-            Text {
-                visible: Zoom.connecting
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr("Finish signing in to Zoom in your browser.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Text {
-                visible: Zoom.connecting && Settings.zoomAccounts.length > 0
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr("To add a different account, choose Switch account on Zoom's page.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Text {
-                visible: Zoom.error !== ""
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: Zoom.error
-                color: Theme.danger
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Row {
-                visible: Settings.zoomAccounts.length > 0
-                width: parent.width
-                spacing: Theme.space4
 
-                Text {
-                    id: makeWith
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("The video call switch makes")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                Dropdown {
-                    objectName: "videoCallService"
-                    model: [
-                        {
-                            "id": "calendar",
-                            "name": qsTr("The calendar's own call")
-                        },
-                        {
-                            "id": "zoom",
-                            "name": qsTr("A Zoom meeting")
-                        }
-                    ]
-                    currentValue: Settings.videoCallService
-                    maximumWidth: parent.width - makeWith.width - parent.spacing
-                    Accessible.name: qsTr("What the video call switch makes")
-                    onActivated: value => Settings.videoCallService = value
-                }
-            }
-            // A calendar whose account has no Zoom account of its own uses this one.
-            Row {
-                visible: Settings.zoomAccounts.length > 1
-                width: parent.width
-                spacing: Theme.space4
+                Section {
+                    title: qsTr("Developer")
+                    visible: root.tab === "developer"
 
-                Text {
-                    id: otherwise
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("For other calendars, use")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                Dropdown {
-                    objectName: "zoomDefault"
-                    model: Settings.zoomAccounts.map(email => ({
-                        "id": email,
-                        "name": email
-                    }))
-                    currentValue: Settings.zoomDefault
-                    maximumWidth: parent.width - otherwise.width - parent.spacing
-                    Accessible.name: qsTr("The Zoom account for other calendars")
-                    onActivated: value => Settings.zoomDefault = value
-                }
-            }
-        }
-
-        Section {
-            title: qsTr("Theme")
-            visible: root.tab === "appearance"
-
-            Dropdown {
-                model: Themes.available
-                currentValue: Themes.current
-                Accessible.name: qsTr("Theme")
-                onActivated: value => Themes.use(value)
-            }
-
-            Flow {
-                width: parent.width
-                spacing: Theme.space2
-
-                StickerButton {
-                    text: Themes.editable ? qsTr("Edit colors") : qsTr("Customize colors")
-                    onClicked: {
-                        if (Themes.customize())
-                            root.editColorsRequested()
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Developer mode")
+                        checked: Settings.developerMode
+                        onToggled: Settings.developerMode = checked
                     }
-                }
-                StickerButton {
-                    text: qsTr("Import...")
-                    onClicked: importDialog.open()
-                }
-                StickerButton {
-                    text: qsTr("Export...")
-                    onClicked: exportDialog.open()
-                }
-                // Deleting takes a second click, since the file is gone for good.
-                DangerButton {
-                    visible: Themes.editable
-                    label: qsTr("Delete theme")
-                    armedLabel: qsTr("Click again to delete")
-                    onConfirmed: Themes.removeCurrent()
-                }
-            }
-
-            Text {
-                visible: Themes.error !== ""
-                width: parent.width
-                text: Themes.error
-                wrapMode: Text.Wrap
-                color: Theme.danger
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
-
-        Section {
-            title: qsTr("Time")
-            visible: root.tab === "general"
-
-            Row {
-                spacing: Theme.space2
-                Accessible.role: Accessible.RadioButton
-
-                Repeater {
-                    model: [
-                        {
-                            "label": qsTr("Like my region"),
-                            "format": Settings.Locale
-                        },
-                        {
-                            "label": qsTr("24-hour"),
-                            "format": Settings.TwentyFourHour
-                        },
-                        {
-                            "label": qsTr("AM/PM"),
-                            "format": Settings.TwelveHour
-                        }
-                    ]
-
-                    PillButton {
-                        required property var modelData
-                        label: modelData.label
-                        selected: Settings.timeFormat === modelData.format
-                        onClicked: Settings.timeFormat = modelData.format
-                    }
-                }
-            }
-
-            Row {
-                // Clears the raised edge of the selected clock button above.
-                topPadding: Theme.space3
-                spacing: Theme.space4
-
-                Text {
-                    // Centered beside the picker, below the row's top padding.
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.verticalCenterOffset: parent.topPadding / 2
-                    text: qsTr("Time zone")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                ZonePicker {
-                    zoneId: Settings.timeZoneId
-                    onPicked: id => Settings.timeZoneId = id
-                }
-            }
-        }
-
-        Section {
-            title: qsTr("Events")
-            visible: root.tab === "general"
-
-            Toggle {
-                width: parent.width
-                text: qsTr("Show events I declined")
-                checked: Settings.showDeclined
-                onToggled: Settings.showDeclined = checked
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Fade events that have ended")
-                checked: Settings.dimPast
-                onToggled: Settings.dimPast = checked
-            }
-            Row {
-                width: parent.width
-                spacing: Theme.space4
-
-                Text {
-                    id: openPlacesIn
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Open places in")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                Dropdown {
-                    model: [
-                        {
-                            "id": "system",
-                            "name": qsTr("My map app")
-                        },
-                        {
-                            "id": "google",
-                            "name": qsTr("Google Maps")
-                        },
-                        {
-                            "id": "osm",
-                            "name": qsTr("OpenStreetMap")
-                        },
-                        {
-                            "id": "apple",
-                            "name": qsTr("Apple Maps")
-                        }
-                    ]
-                    currentValue: Settings.mapApp
-                    maximumWidth: parent.width - openPlacesIn.width - parent.spacing
-                    Accessible.name: qsTr("Open places in")
-                    onActivated: value => Settings.mapApp = value
-                }
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Search OpenStreetMap for places")
-                checked: Settings.searchPlacesOnline
-                onToggled: Settings.searchPlacesOnline = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "Sends what you type as an event's place to OpenStreetMap's Photon server, run by komoot. Off, only places from your own events are suggested.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
-
-        Section {
-            title: qsTr("New events")
-            visible: root.tab === "general" && newEvents.calendars.length > 1
-
-            Row {
-                width: parent.width
-                spacing: Theme.space4
-
-                Text {
-                    id: startIn
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Start them in")
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightStrong
-                }
-                // The last one used is also chosen when the chosen calendar is
-                // gone or hidden, since new events then go there.
-                Dropdown {
-                    model: [
-                        {
-                            "id": "",
-                            "name": qsTr("The last one used")
-                        }
-                    ].concat(newEvents.calendars)
-                    currentValue: newEvents.calendars.some(c => c.id === Settings.defaultCalendar)
-                                  ? Settings.defaultCalendar : ""
-                    maximumWidth: parent.width - startIn.width - parent.spacing
-                    Accessible.name: qsTr("Start new events in")
-                    onActivated: value => Settings.defaultCalendar = value
-                }
-            }
-        }
-
-        Section {
-            title: qsTr("Week")
-            visible: root.tab === "week"
-
-            Text {
-                text: qsTr("Starts on")
-                color: Theme.text
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textMd
-                font.weight: Theme.weightStrong
-            }
-            Flow {
-                width: parent.width
-                spacing: Theme.space2
-                Accessible.role: Accessible.RadioButton
-
-                Repeater {
-                    model: [
-                        {
-                            "label": qsTr("Like my region"),
-                            "day": 0
-                        },
-                        {
-                            "label": Qt.locale().dayName(1),
-                            "day": 1
-                        },
-                        {
-                            "label": Qt.locale().dayName(0),
-                            "day": 7
-                        },
-                        {
-                            "label": Qt.locale().dayName(6),
-                            "day": 6
-                        }
-                    ]
-
-                    PillButton {
-                        required property var modelData
-                        label: modelData.label
-                        selected: Settings.weekStart === modelData.day
-                        onClicked: Settings.weekStart = modelData.day
-                    }
-                }
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Hide weekends")
-                checked: Settings.hideWeekends
-                onToggled: Settings.hideWeekends = checked
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Show week numbers")
-                checked: Settings.weekNumbers
-                onToggled: Settings.weekNumbers = checked
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Give today more room")
-                checked: Settings.widenToday
-                onToggled: Settings.widenToday = checked
-            }
-        }
-
-        Section {
-            title: qsTr("Developer")
-            visible: root.tab === "developer"
-
-            Toggle {
-                width: parent.width
-                text: qsTr("Developer mode")
-                checked: Settings.developerMode
-                onToggled: Settings.developerMode = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "Shows ids on event cards and in the calendar menu, a Copy as JSON button on each event, and the raw repeat rule in the editor.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Toggle {
-                width: parent.width
-                text: qsTr("Log debug details")
-                checked: Settings.verboseLogging
-                onToggled: Settings.verboseLogging = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "Writes Callie's debug lines to the log. They can include event titles, so turn it off again before sharing logs widely.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
-
-        Section {
-            title: qsTr("Folders")
-            visible: root.tab === "developer"
-
-            Flow {
-                width: parent.width
-                spacing: Theme.space2
-
-                StickerButton {
-                    text: qsTr("Settings")
-                    onClicked: Support.openFolder("config")
-                }
-                StickerButton {
-                    text: qsTr("Waiting changes")
-                    onClicked: Support.openFolder("data")
-                }
-                StickerButton {
-                    text: qsTr("Cache")
-                    onClicked: Support.openFolder("cache")
-                }
-                StickerButton {
-                    text: qsTr("Logs")
-                    onClicked: Support.openLogs()
-                }
-            }
-        }
-
-        Section {
-            title: qsTr("Cached events")
-            visible: root.tab === "developer" && Accounts.accounts.length > 0
-
-            Repeater {
-                model: Accounts.accounts
-
-                Item {
-                    id: cached
-                    required property var modelData
-                    width: parent.width
-                    height: resync.height
-
                     Text {
-                        anchors {
-                            left: parent.left
-                            right: resync.left
-                            rightMargin: Theme.space3
-                            verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "Shows ids on event cards and in the calendar menu, a Copy as JSON button on each event, and the raw repeat rule in the editor.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Log debug details")
+                        checked: Settings.verboseLogging
+                        onToggled: Settings.verboseLogging = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "Writes Callie's debug lines to the log. They can include event titles, so turn it off again before sharing logs widely.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
+
+                Section {
+                    title: qsTr("Folders")
+                    visible: root.tab === "developer"
+
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.space2
+
+                        StickerButton {
+                            text: qsTr("Settings")
+                            onClicked: Support.openFolder("config")
                         }
-                        text: cached.modelData.id
-                        textFormat: Text.PlainText
-                        elide: Text.ElideMiddle
+                        StickerButton {
+                            text: qsTr("Waiting changes")
+                            onClicked: Support.openFolder("data")
+                        }
+                        StickerButton {
+                            text: qsTr("Cache")
+                            onClicked: Support.openFolder("cache")
+                        }
+                        StickerButton {
+                            text: qsTr("Logs")
+                            onClicked: Support.openLogs()
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Cached events")
+                    visible: root.tab === "developer" && Accounts.accounts.length > 0
+
+                    Repeater {
+                        model: Accounts.accounts
+
+                        Item {
+                            id: cached
+                            required property var modelData
+                            width: parent.width
+                            height: resync.height
+
+                            Text {
+                                anchors {
+                                    left: parent.left
+                                    right: resync.left
+                                    rightMargin: Theme.space3
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                text: cached.modelData.id
+                                textFormat: Text.PlainText
+                                elide: Text.ElideMiddle
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textMd
+                            }
+                            // Forgets every cached event of the account, so it asks twice.
+                            DangerButton {
+                                id: resync
+                                anchors.right: parent.right
+                                enabled: !Accounts.busy
+                                label: qsTr("Forget and resync")
+                                armedLabel: qsTr("Click again to resync")
+                                onConfirmed: Accounts.resync(cached.modelData.provider,
+                                                             cached.modelData.id)
+                            }
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Vi mode")
+                    visible: root.tab === "keyboard"
+
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Move around and act with single keys")
+                        checked: Settings.viMode
+                        onToggled: Settings.viMode = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "j and k scroll, h and l step back and forward, t goes to today, / searches. The leader key starts a command; ? lists them all.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Row {
+                        enabled: Settings.viMode
+                        opacity: enabled ? 1 : Theme.fadedOpacity
+                        spacing: Theme.space2
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("Leader")
+                            color: Theme.textFaint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textSm
+                            font.weight: Theme.weightHeavy
+                        }
+                        Repeater {
+                            model: [
+                                {
+                                    "key": ",",
+                                    "label": ","
+                                },
+                                {
+                                    "key": ":",
+                                    "label": ":"
+                                },
+                                {
+                                    "key": " ",
+                                    "label": qsTr("Space")
+                                }
+                            ]
+
+                            PillButton {
+                                required property var modelData
+                                label: modelData.label
+                                selected: Settings.leaderKey === modelData.key
+                                onClicked: Settings.leaderKey = modelData.key
+                            }
+                        }
+                    }
+                    Row {
+                        enabled: Settings.viMode
+                        opacity: enabled ? 1 : Theme.fadedOpacity
+                        spacing: Theme.space2
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("Wait for the next key")
+                            color: Theme.textFaint
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textSm
+                            font.weight: Theme.weightHeavy
+                        }
+                        StickerButton {
+                            anchors.verticalCenter: parent.verticalCenter
+                            glyph: "minimize"
+                            Accessible.name: qsTr("Wait half a second less")
+                            enabled: Settings.leaderTimeout > 0
+                            onClicked: Settings.leaderTimeout = Math.max(0, Settings.leaderTimeout
+                                                                         - 500)
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 90
+                            horizontalAlignment: Text.AlignHCenter
+                            text: Settings.leaderTimeout === 0 ? qsTr("until Esc") : qsTr(
+                                                                     "%1 s").arg(Number(
+                                                                                     Settings.leaderTimeout
+                                                                                     / 1000).toLocaleString(
+                                                                                     Qt.locale(),
+                                                                                     "f", 1))
+                            color: Theme.text
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                            font.weight: Theme.weightBold
+                        }
+                        StickerButton {
+                            anchors.verticalCenter: parent.verticalCenter
+                            glyph: "plus"
+                            Accessible.name: qsTr("Wait half a second more")
+                            onClicked: Settings.leaderTimeout += 500
+                        }
+                    }
+                }
+
+                Section {
+                    title: qsTr("Working hours")
+                    visible: root.tab === "week"
+
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Shade the hours outside them")
+                        checked: Settings.showWorkHours
+                        onToggled: Settings.showWorkHours = checked
+                    }
+                    Row {
+                        spacing: Theme.space4
+
+                        TimeStepper {
+                            minutes: Settings.workStart
+                            label: qsTr("Start of working hours")
+                            onStepped: minutes => Settings.workStart = minutes
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: qsTr("to")
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.textMd
+                        }
+                        TimeStepper {
+                            minutes: Settings.workEnd
+                            label: qsTr("End of working hours")
+                            onStepped: minutes => Settings.workEnd = minutes
+                        }
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr("The day and week views open at the start of working hours.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
+
+                Section {
+                    title: qsTr("Reminders")
+                    visible: root.tab === "reminders"
+
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Remind me before events")
+                        checked: Settings.notify
+                        onToggled: Settings.notify = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr("For events without reminders of their own:")
                         color: Theme.text
                         font.family: Theme.fontFamily
                         font.pixelSize: Theme.textMd
+                        font.weight: Theme.weightStrong
+                        opacity: Settings.notify ? 1 : Theme.fadedOpacity
                     }
-                    // Forgets every cached event of the account, so it asks twice.
-                    DangerButton {
-                        id: resync
-                        anchors.right: parent.right
-                        enabled: !Accounts.busy
-                        label: qsTr("Forget and resync")
-                        armedLabel: qsTr("Click again to resync")
-                        onConfirmed: Accounts.resync(cached.modelData.provider, cached.modelData.id)
-                    }
-                }
-            }
-        }
+                    Flow {
+                        width: parent.width
+                        spacing: Theme.space2
+                        enabled: Settings.notify
+                        opacity: enabled ? 1 : Theme.fadedOpacity
+                        Accessible.role: Accessible.RadioButton
 
-        Section {
-            title: qsTr("Vi mode")
-            visible: root.tab === "keyboard"
+                        Repeater {
+                            model: [
+                                {
+                                    "label": qsTr("None"),
+                                    "minutes": -1
+                                },
+                                {
+                                    "label": qsTr("At start"),
+                                    "minutes": 0
+                                },
+                                {
+                                    "label": qsTr("5 min"),
+                                    "minutes": 5
+                                },
+                                {
+                                    "label": qsTr("10 min"),
+                                    "minutes": 10
+                                },
+                                {
+                                    "label": qsTr("30 min"),
+                                    "minutes": 30
+                                },
+                                {
+                                    "label": qsTr("1 hour"),
+                                    "minutes": 60
+                                }
+                            ]
 
-            Toggle {
-                width: parent.width
-                text: qsTr("Move around and act with single keys")
-                checked: Settings.viMode
-                onToggled: Settings.viMode = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "j and k scroll, h and l step back and forward, t goes to today, / searches. The leader key starts a command; ? lists them all.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Row {
-                enabled: Settings.viMode
-                opacity: enabled ? 1 : Theme.fadedOpacity
-                spacing: Theme.space2
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Leader")
-                    color: Theme.textFaint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textSm
-                    font.weight: Theme.weightHeavy
-                }
-                Repeater {
-                    model: [
-                        {
-                            "key": ",",
-                            "label": ","
-                        },
-                        {
-                            "key": ":",
-                            "label": ":"
-                        },
-                        {
-                            "key": " ",
-                            "label": qsTr("Space")
+                            PillButton {
+                                required property var modelData
+                                label: modelData.label
+                                selected: Settings.reminderMinutes === modelData.minutes
+                                onClicked: Settings.reminderMinutes = modelData.minutes
+                            }
                         }
-                    ]
-
-                    PillButton {
-                        required property var modelData
-                        label: modelData.label
-                        selected: Settings.leaderKey === modelData.key
-                        onClicked: Settings.leaderKey = modelData.key
                     }
                 }
-            }
-            Row {
-                enabled: Settings.viMode
-                opacity: enabled ? 1 : Theme.fadedOpacity
-                spacing: Theme.space2
 
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Wait for the next key")
-                    color: Theme.textFaint
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textSm
-                    font.weight: Theme.weightHeavy
-                }
-                StickerButton {
-                    anchors.verticalCenter: parent.verticalCenter
-                    glyph: "minimize"
-                    Accessible.name: qsTr("Wait half a second less")
-                    enabled: Settings.leaderTimeout > 0
-                    onClicked: Settings.leaderTimeout = Math.max(0, Settings.leaderTimeout - 500)
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 90
-                    horizontalAlignment: Text.AlignHCenter
-                    text: Settings.leaderTimeout === 0 ? qsTr("until Esc") : qsTr("%1 s").arg(Number(
-                                                                                                  Settings.leaderTimeout
-                                                                                                  / 1000).toLocaleString(
-                                                                                                  Qt.locale(
-                                                                                                      ), "f", 1))
-                    color: Theme.text
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                    font.weight: Theme.weightBold
-                }
-                StickerButton {
-                    anchors.verticalCenter: parent.verticalCenter
-                    glyph: "plus"
-                    Accessible.name: qsTr("Wait half a second more")
-                    onClicked: Settings.leaderTimeout += 500
-                }
-            }
-        }
+                Section {
+                    title: qsTr("Joining a call")
+                    visible: root.tab === "calls"
 
-        Section {
-            title: qsTr("Working hours")
-            visible: root.tab === "week"
-
-            Toggle {
-                width: parent.width
-                text: qsTr("Shade the hours outside them")
-                checked: Settings.showWorkHours
-                onToggled: Settings.showWorkHours = checked
-            }
-            Row {
-                spacing: Theme.space4
-
-                TimeStepper {
-                    minutes: Settings.workStart
-                    label: qsTr("Start of working hours")
-                    onStepped: minutes => Settings.workStart = minutes
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("to")
-                    color: Theme.textMuted
-                    font.family: Theme.fontFamily
-                    font.pixelSize: Theme.textMd
-                }
-                TimeStepper {
-                    minutes: Settings.workEnd
-                    label: qsTr("End of working hours")
-                    onStepped: minutes => Settings.workEnd = minutes
-                }
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr("The day and week views open at the start of working hours.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
-
-        Section {
-            title: qsTr("Reminders")
-            visible: root.tab === "reminders"
-
-            Toggle {
-                width: parent.width
-                text: qsTr("Remind me before events")
-                checked: Settings.notify
-                onToggled: Settings.notify = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr("For events without reminders of their own:")
-                color: Theme.text
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textMd
-                font.weight: Theme.weightStrong
-                opacity: Settings.notify ? 1 : Theme.fadedOpacity
-            }
-            Flow {
-                width: parent.width
-                spacing: Theme.space2
-                enabled: Settings.notify
-                opacity: enabled ? 1 : Theme.fadedOpacity
-                Accessible.role: Accessible.RadioButton
-
-                Repeater {
-                    model: [
-                        {
-                            "label": qsTr("None"),
-                            "minutes": -1
-                        },
-                        {
-                            "label": qsTr("At start"),
-                            "minutes": 0
-                        },
-                        {
-                            "label": qsTr("5 min"),
-                            "minutes": 5
-                        },
-                        {
-                            "label": qsTr("10 min"),
-                            "minutes": 10
-                        },
-                        {
-                            "label": qsTr("30 min"),
-                            "minutes": 30
-                        },
-                        {
-                            "label": qsTr("1 hour"),
-                            "minutes": 60
-                        }
-                    ]
-
-                    PillButton {
-                        required property var modelData
-                        label: modelData.label
-                        selected: Settings.reminderMinutes === modelData.minutes
-                        onClicked: Settings.reminderMinutes = modelData.minutes
+                    Toggle {
+                        objectName: "callCardSetting"
+                        width: parent.width
+                        text: qsTr("Offer to join the next call")
+                        checked: Settings.callCard
+                        onToggled: Settings.callCard = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "A card in the corner of the window, from a few minutes before an event with a call link until it ends. Its X hides it for that call only.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
                     }
                 }
-            }
-        }
 
-        Section {
-            title: qsTr("Calls")
-            visible: root.tab === "reminders"
+                Section {
+                    title: qsTr("When the window closes")
+                    visible: root.tab === "reminders"
 
-            Toggle {
-                objectName: "callCardSetting"
-                width: parent.width
-                text: qsTr("Offer to join the next call")
-                checked: Settings.callCard
-                onToggled: Settings.callCard = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "A card in the corner of the window, from a few minutes before an event with a call link until it ends. Its X hides it for that call only.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Keep running so reminders still come")
+                        checked: Settings.keepRunning
+                        onToggled: Settings.keepRunning = checked
+                    }
+                    Toggle {
+                        width: parent.width
+                        visible: StartAtLogin.available
+                        enabled: Settings.keepRunning
+                        opacity: enabled ? 1 : Theme.fadedOpacity
+                        text: qsTr("Start when I log in")
+                        checked: StartAtLogin.enabled
+                        onToggled: StartAtLogin.enabled = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        visible: StartAtLogin.error !== ""
+                        text: StartAtLogin.error
+                        color: Theme.danger
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr("Quit Callie from the ? menu, or with Ctrl+Q.")
+                        visible: Settings.keepRunning
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
 
-        Section {
-            title: qsTr("When the window closes")
-            visible: root.tab === "reminders"
+                Section {
+                    title: qsTr("Updates")
+                    visible: root.tab === "general" && !Release.devel && !Release.flatpak
 
-            Toggle {
-                width: parent.width
-                text: qsTr("Keep running so reminders still come")
-                checked: Settings.keepRunning
-                onToggled: Settings.keepRunning = checked
-            }
-            Toggle {
-                width: parent.width
-                visible: StartAtLogin.available
-                enabled: Settings.keepRunning
-                opacity: enabled ? 1 : Theme.fadedOpacity
-                text: qsTr("Start when I log in")
-                checked: StartAtLogin.enabled
-                onToggled: StartAtLogin.enabled = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                visible: StartAtLogin.error !== ""
-                text: StartAtLogin.error
-                color: Theme.danger
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr("Quit Callie from the ? menu, or with Ctrl+Q.")
-                visible: Settings.keepRunning
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
+                    Toggle {
+                        width: parent.width
+                        text: qsTr("Say when a new release is out")
+                        checked: Settings.checkForUpdates
+                        onToggled: Settings.checkForUpdates = checked
+                    }
+                    Text {
+                        width: parent.width
+                        wrapMode: Text.Wrap
+                        text: qsTr(
+                                  "Once a day, Callie asks GitHub for its latest release. The app shows it in the ? menu, and the callie command after it runs.")
+                        color: Theme.textMuted
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.textSm
+                    }
+                }
 
-        Section {
-            title: qsTr("Updates")
-            visible: root.tab === "general" && !Release.devel && !Release.flatpak
-
-            Toggle {
-                width: parent.width
-                text: qsTr("Say when a new release is out")
-                checked: Settings.checkForUpdates
-                onToggled: Settings.checkForUpdates = checked
-            }
-            Text {
-                width: parent.width
-                wrapMode: Text.Wrap
-                text: qsTr(
-                          "Once a day, Callie asks GitHub for its latest release. The app shows it in the ? menu, and the callie command after it runs.")
-                color: Theme.textMuted
-                font.family: Theme.fontFamily
-                font.pixelSize: Theme.textSm
-            }
-        }
-
-        DangerButton {
-            visible: root.tab === "general"
-            label: qsTr("Reset to defaults")
-            armedLabel: qsTr("Click again to reset")
-            // Settings forget the theme too, so the default one comes back.
-            onConfirmed: {
-                Settings.reset()
-                Themes.useDefault()
+                DangerButton {
+                    visible: root.tab === "general"
+                    label: qsTr("Reset to defaults")
+                    armedLabel: qsTr("Click again to reset")
+                    // Settings forget the theme too, so the default one comes back.
+                    onConfirmed: {
+                        Settings.reset()
+                        Themes.useDefault()
+                    }
+                }
             }
         }
     }
@@ -1097,7 +1165,7 @@ Popup {
         property string title
         default property alias content: rows.data
 
-        width: root.width - 2 * Theme.space6
+        width: page.width
         spacing: Theme.space3
 
         Text {
