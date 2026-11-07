@@ -189,16 +189,16 @@ void Zoom::finishToken(const QString &accessToken, const QString &error)
 }
 
 void Zoom::createMeeting(const QString &topic, const QDateTime &start, const QDateTime &end,
-                         bool allDay, MeetingResult done)
+                         bool anyTime, MeetingResult done)
 {
     if (m_settings.zoomAccount().isEmpty()) {
         done({}, tr("Connect Zoom in Settings to make Zoom meetings."));
         return;
     }
-    // 2 is a meeting at a time; 3 has no fixed time, for a whole day.
+    // 2 is a meeting at a time; 3 has no fixed time, so one link serves every day.
     QJsonObject meeting{{u"topic"_s, topic.isEmpty() ? tr("Meeting") : topic},
-                        {u"type"_s, allDay ? 3 : 2}};
-    if (!allDay) {
+                        {u"type"_s, anyTime ? 3 : 2}};
+    if (!anyTime) {
         meeting.insert(u"start_time"_s, start.toUTC().toString(u"yyyy-MM-ddTHH:mm:ssZ"_s));
         meeting.insert(u"duration"_s, int(std::max<qint64>(1, start.secsTo(end) / 60)));
     }

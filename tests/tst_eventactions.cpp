@@ -7,6 +7,8 @@
 #include "callie/Settings.h"
 #include "callie/Zoom.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -419,17 +421,44 @@ void TestEventActions::zoomMeetingsGoInWhere()
     QVERIFY(actions.error().isEmpty());
     QCOMPARE(dentist().location, where + u" https://zoom.us/j/42"_s);
     QVERIFY(EventActions::hasZoomMeeting(dentist().location));
+    const auto meetings = [&server] {
+        QList<QJsonObject> made;
+        for (const auto &request : server.requests) {
+            if (request.target.contains("/meetings"))
+                made << QJsonDocument::fromJson(request.body).object();
+        }
+        return made;
+    };
+    // A meeting at the event's own time.
+    QCOMPARE(meetings().size(), 1);
+    QCOMPARE(meetings().first()[u"type"].toInt(), 2);
+
+    // Where that has one already keeps it, rather than gaining another.
+    actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 2);
+    QCOMPARE(meetings().size(), 1);
+    QCOMPARE(dentist().location, where + u" https://zoom.us/j/42"_s);
 
     // Turned off, the link leaves Where, which is otherwise as it was.
     actions.update(asMap(dentist()), {{u"videoCall"_s, false}}, u"this"_s);
-    QTRY_COMPARE(updated.size(), 2);
+    QTRY_COMPARE(updated.size(), 3);
     QCOMPARE(dentist().location, where);
+
+    // A repeating event gets a meeting with no fixed time, whose link serves every day.
+    QVariantMap repeating = asMap(dentist());
+    repeating.insert(u"recurrence"_s, QStringList{u"RRULE:FREQ=WEEKLY"_s});
+    actions.update(repeating, {{u"videoCall"_s, true}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 4);
+    QCOMPARE(meetings().last()[u"type"].toInt(), 3);
+    QVERIFY(!meetings().last().contains(u"start_time"));
+    actions.update(asMap(dentist()), {{u"videoCall"_s, false}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 5);
 
     // With the calendar's own call chosen, Zoom is left alone.
     m_settings->setVideoCallService(u"calendar"_s);
     const qsizetype asked = server.requests.size();
     actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
-    QTRY_COMPARE(updated.size(), 3);
+    QTRY_COMPARE(updated.size(), 6);
     QCOMPARE(server.requests.size(), asked);
     ZoomForeign::s_instance = nullptr;
     m_settings->setZoomAccount({});

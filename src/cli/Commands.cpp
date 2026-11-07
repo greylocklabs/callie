@@ -478,11 +478,17 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
         const QString where = edit.location.value_or(event.location);
         const bool zoom = m_zoom && m_settings.videoCallService() == u"zoom" &&
                           !m_settings.zoomAccount().isEmpty();
-        if (*edit.videoCall && zoom) {
+        // Where that already has a Zoom meeting keeps it rather than gaining another.
+        if (*edit.videoCall && zoom && Zoom::hasMeeting(where))
             edit.videoCall.reset();
+        if (edit.videoCall && *edit.videoCall && zoom) {
+            edit.videoCall.reset();
+            const bool repeats = edit.recurrence
+                                     ? !edit.recurrence->isEmpty()
+                                     : !event.seriesId.isEmpty() || !event.recurrence.isEmpty();
             m_zoom->createMeeting(
                 edit.summary.value_or(event.summary), edit.start.value_or(event.start),
-                edit.end.value_or(event.end), edit.allDay.value_or(event.allDay),
+                edit.end.value_or(event.end), edit.allDay.value_or(event.allDay) || repeats,
                 [this, edit, where, send, done](const QUrl &join, const QString &error) mutable {
                     if (!error.isEmpty()) {
                         report(Outcome(error), done);
@@ -493,7 +499,7 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
                 });
             return;
         }
-        if (!*edit.videoCall && Zoom::hasMeeting(where)) {
+        if (edit.videoCall && !*edit.videoCall && Zoom::hasMeeting(where)) {
             edit.location = Zoom::withoutMeetings(where);
             if (!event.conferenceUrl.isValid())
                 edit.videoCall.reset();
