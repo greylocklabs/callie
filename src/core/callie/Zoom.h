@@ -48,9 +48,10 @@ public:
     Q_INVOKABLE void disconnectAccount();
 
     /// Makes a meeting for an event, calling `done` once with its link or an error.
-    /// An all-day event gets a meeting with no fixed time.
+    /// With `anyTime`, as for an all-day or repeating event, the meeting has no fixed
+    /// time, so its link works on every day of the event.
     void createMeeting(const QString &topic, const QDateTime &start, const QDateTime &end,
-                       bool allDay, MeetingResult done);
+                       bool anyTime, MeetingResult done);
 
     /// Whether `url` joins a Zoom meeting.
     [[nodiscard]] static bool isMeeting(const QUrl &url);

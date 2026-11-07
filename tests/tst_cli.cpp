@@ -508,6 +508,12 @@ void TestCli::editVideoMakesAZoomMeetingWhenChosen()
     options.video = true;
     QCOMPARE(edit(options), 0);
     QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).location, where + u" https://zoom.us/j/7"_s);
+    // Asked again, it keeps the meeting it has.
+    QCOMPARE(edit(options), 0);
+    QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).location, where + u" https://zoom.us/j/7"_s);
+    const auto meetings = std::ranges::count_if(
+        server.requests, [](const auto &request) { return request.target.contains("/meetings"); });
+    QCOMPARE(meetings, 1);
     options.video = false;
     QCOMPARE(edit(options), 0);
     QCOMPARE(named(u"Dentist"_s, QDate(2026, 10, 7)).location, where);

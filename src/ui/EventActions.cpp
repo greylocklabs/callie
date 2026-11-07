@@ -312,12 +312,20 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
         const QString where = edit.location.value_or(event.value(u"location"_s).toString());
         Zoom *zoom = ZoomForeign::s_instance;
         const Settings *settings = SettingsForeign::create(nullptr, nullptr);
-        if (*edit.videoCall && zoom && settings->videoCallService() == u"zoom" &&
-            !settings->zoomAccount().isEmpty()) {
+        const bool zoomCalls =
+            zoom && settings->videoCallService() == u"zoom" && !settings->zoomAccount().isEmpty();
+        // Where that already has a Zoom meeting keeps it rather than gaining another.
+        if (*edit.videoCall && zoomCalls && Zoom::hasMeeting(where))
             edit.videoCall.reset();
+        if (edit.videoCall && *edit.videoCall && zoomCalls) {
+            edit.videoCall.reset();
+            const bool repeats = edit.recurrence
+                                     ? !edit.recurrence->isEmpty()
+                                     : !edited.seriesId.isEmpty() ||
+                                           !event.value(u"recurrence"_s).toStringList().isEmpty();
             zoom->createMeeting(edit.summary.value_or(edited.summary),
                                 edit.start.value_or(edited.start), edit.end.value_or(edited.end),
-                                edit.allDay.value_or(edited.allDay),
+                                edit.allDay.value_or(edited.allDay) || repeats,
                                 [this, self, eventId, edit, where,
                                  send](const QUrl &join, const QString &error) mutable {
                                     if (!self)
@@ -332,7 +340,7 @@ void EventActions::update(const QVariantMap &event, const QVariantMap &changes,
             return;
         }
         // Turned off, a Zoom link leaves Where, and the calendar's own call goes if it has one.
-        if (!*edit.videoCall && hasZoomMeeting(where)) {
+        if (edit.videoCall && !*edit.videoCall && hasZoomMeeting(where)) {
             edit.location = Zoom::withoutMeetings(where);
             if (event.value(u"conferenceUrl"_s).toUrl().isEmpty())
                 edit.videoCall.reset();
