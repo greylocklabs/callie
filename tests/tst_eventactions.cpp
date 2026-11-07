@@ -198,12 +198,14 @@ void TestEventActions::changesBecomeAnEdit()
                                                  {u"start"_s, start},
                                                  {u"zone"_s, u"Europe/Berlin"_s},
                                                  {u"guests"_s, QStringList{u" a@x.com"_s, u""_s}},
+                                                 {u"optionalGuests"_s, QStringList{u"a@x.com"_s}},
                                                  {u"videoCall"_s, false}});
     QCOMPARE(*edit.summary, u"Review"_s);
     // The same moment, written in the event's own zone.
     QCOMPARE(*edit.start, start);
     QCOMPARE(edit.start->timeZone(), QTimeZone("Europe/Berlin"));
     QCOMPARE(*edit.guests, QStringList{u"a@x.com"_s});
+    QCOMPARE(*edit.optionalGuests, QStringList{u"a@x.com"_s});
     QVERIFY(!*edit.videoCall);
     QVERIFY(!edit.location && !edit.end && !edit.recurrence);
 }

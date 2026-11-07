@@ -470,7 +470,8 @@ QVariant EventModel::data(const QModelIndex &index, int role) const
                                       {u"name"_s, guest.name.isEmpty() ? guest.email : guest.name},
                                       {u"response"_s, guest.response},
                                       {u"organizer"_s, guest.organizer},
-                                      {u"self"_s, guest.self}});
+                                      {u"self"_s, guest.self},
+                                      {u"optional"_s, guest.optional}});
         return guests;
     }
     case CanEditRole: return e.canEdit;

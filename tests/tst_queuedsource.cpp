@@ -422,6 +422,7 @@ void TestQueuedSource::editsShowAtOnceAndSurviveARestart()
         edit.summary = u"Lunch with Alex"_s;
         edit.start = at(13);
         edit.end = at(14, 30);
+        edit.optionalGuests = QStringList{u"pat@example.com"_s};
         QSignalSpy made(source.get(), &CalendarSource::changeMade);
         source->updateEvent(makeEvent(u"lunch"_s, 12), edit, EditScope::ThisEvent,
                             [](const QString &) {});
@@ -434,7 +435,9 @@ void TestQueuedSource::editsShowAtOnceAndSurviveARestart()
     QCOMPARE(change.kind, PendingChange::Kind::Update);
     QCOMPARE(*change.edit.summary, u"Lunch with Alex"_s);
     QCOMPARE(*change.edit.end, at(14, 30));
+    QCOMPARE(*change.edit.optionalGuests, QStringList{u"pat@example.com"_s});
     QVERIFY(!change.edit.location);
+    QVERIFY(!change.edit.guests);
     m_online = true;
     release(*source);
     QCOMPARE(m_server.calls, QStringList{u"update lunch Lunch with Alex"_s});

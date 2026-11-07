@@ -129,7 +129,8 @@ callie invites                           # invitations waiting for an answer
 callie contacts priya                    # people to invite, from guests and Google contacts
 callie add "Lunch with Alex fri 12-1pm"  # --calendar picks one by name
 callie edit <id> --start "friday 3pm"    # also --end, --title, --where, --notes, --all-day,
-                                         # --repeat, --guests, --video; --scope all for a series
+                                         # --repeat, --guests, --optional, --video; --scope all
+                                         # for a series
 callie respond <id> yes                  # or maybe, no
 callie delete <id>                       # --scope all deletes a whole series
 callie duplicate <id> --start 2026-10-12 # a copy, at the same time unless moved

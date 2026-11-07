@@ -39,6 +39,8 @@ Column {
     property bool customTyped: false
     readonly property bool customReadable: Object.keys(custom).length > 0
     property var guests: []
+    /// The guests who need not come.
+    property var optionalGuests: []
     property bool videoCall
     property bool moreOptions: false
     /// Waiting to ask which occurrences a repeating event's change is for.
@@ -84,10 +86,21 @@ Column {
         customTouched = false
         customTyped = false
         guests = (e.attendees || []).slice()
+        optionalGuests = optionalOf(e.guests)
         videoCall = (e.conferenceUrl || "").toString() !== ""
         moreOptions = false
         asking = false
         root.actions.clearError()
+    }
+
+    /// The addresses of the guests in `list` who need not come.
+    function optionalOf(list) {
+        return (list || []).filter(g => g.optional && !g.self).map(g => g.email)
+    }
+
+    function toggleOptional(email) {
+        optionalGuests = optionalGuests.indexOf(email) >= 0 ? optionalGuests.filter(g => g !== email) :
+                                                              optionalGuests.concat([email])
     }
 
     /// Only the fields that differ from the event, for the occurrences `scope`
@@ -130,6 +143,10 @@ Column {
         }
         if (JSON.stringify(guests) !== JSON.stringify(event.attendees || []))
             c.guests = guests
+        // Only those still invited, in a fixed order, so a removed guest is no change of its own.
+        const optional = optionalGuests.filter(g => guests.indexOf(g) >= 0).sort()
+        if (JSON.stringify(optional) !== JSON.stringify(optionalOf(event.guests).sort()))
+            c.optionalGuests = optional
         if (videoCall !== ((event.conferenceUrl || "").toString() !== ""))
             c.videoCall = videoCall
         return c
@@ -444,6 +461,7 @@ Column {
             Rectangle {
                 id: chip
                 required property string modelData
+                readonly property bool optional: root.optionalGuests.indexOf(modelData) >= 0
                 width: chipRow.implicitWidth + 2 * Theme.space3
                 height: Theme.listRowHeight
                 radius: height / 2
@@ -454,21 +472,60 @@ Column {
                     anchors.centerIn: parent
                     spacing: Theme.space2
 
-                    Text {
+                    // The address marks the guest optional or required again.
+                    AbstractButton {
+                        id: need
                         anchors.verticalCenter: parent.verticalCenter
-                        text: chip.modelData
-                        textFormat: Text.PlainText
-                        color: Theme.text
-                        font.family: Theme.fontFamily
-                        font.pixelSize: Theme.textSm
-                        font.weight: Theme.weightStrong
+                        implicitWidth: needRow.implicitWidth
+                        implicitHeight: needRow.implicitHeight
+                        Accessible.name: chip.optional ? qsTr("%1, optional").arg(chip.modelData) :
+                                                         chip.modelData
+                        onClicked: root.toggleOptional(chip.modelData)
+
+                        HoverHandler {
+                            id: needHover
+                            cursorShape: Qt.PointingHandCursor
+                        }
+                        Loader {
+                            active: needHover.hovered
+                            sourceComponent: Tip {
+                                parent: need
+                                text: chip.optional ? qsTr("Make required") : qsTr("Make optional")
+                                delay: Theme.durSlow * 2
+                                closePolicy: Popup.NoAutoClose
+                            }
+                        }
+                        contentItem: Row {
+                            id: needRow
+                            spacing: Theme.space2
+
+                            Text {
+                                text: chip.modelData
+                                textFormat: Text.PlainText
+                                color: Theme.text
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textSm
+                                font.weight: Theme.weightStrong
+                            }
+                            Text {
+                                visible: chip.optional
+                                text: qsTr("optional")
+                                color: Theme.textMuted
+                                font.family: Theme.fontFamily
+                                font.pixelSize: Theme.textSm
+                            }
+                        }
                     }
                     AbstractButton {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Theme.smallGlyphSize + Theme.space1
                         height: width
                         Accessible.name: qsTr("Remove %1").arg(chip.modelData)
-                        onClicked: root.guests = root.guests.filter(g => g !== chip.modelData)
+                        onClicked: {
+                            root.guests = root.guests.filter(g => g !== chip.modelData)
+                            root.optionalGuests = root.optionalGuests.filter(g => g
+                                                                                  !== chip.modelData)
+                        }
 
                         HoverHandler {
                             cursorShape: Qt.PointingHandCursor

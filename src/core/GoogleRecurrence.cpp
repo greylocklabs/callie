@@ -127,6 +127,7 @@ Event toEvent(const GoogleEvent &source, const QTimeZone &viewZone)
             .response = attendee[u"responseStatus"].toString(u"needsAction"_s),
             .organizer = attendee[u"organizer"].toBool(),
             .self = attendee[u"self"].toBool(),
+            .optional = attendee[u"optional"].toBool(),
         };
         if (guest.self)
             invited = true;

@@ -655,8 +655,10 @@ Popup {
                             let name = guestRow.modelData.name
                             if (guestRow.modelData.self)
                                 name = qsTr("%1 (you)").arg(name)
-                            return guestRow.modelData.organizer ? qsTr("%1, organizer").arg(name) :
-                                                                  name
+                            if (guestRow.modelData.organizer)
+                                return qsTr("%1, organizer").arg(name)
+                            return guestRow.modelData.optional ? qsTr("%1, optional").arg(name) :
+                                                                 name
                         }
                         color: guestRow.answer === "declined" ? Theme.textFaint : Theme.text
                         font.family: Theme.fontFamily

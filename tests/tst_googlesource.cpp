@@ -77,6 +77,7 @@ private Q_SLOTS:
     void actionsNeedAKnownCalendar();
     void moveShiftsTheOccurrenceOrTheSeries();
     void editPatchesOnlyWhatChanged();
+    void optionalGuestsGoToGoogle();
     void editingTheSeriesKeepsItsFirstDay();
     void editingOnlyTheEndKeepsTheSeriesClock();
     void allDayClearsTheTime();
@@ -722,6 +723,53 @@ void TestGoogleSource::editPatchesOnlyWhatChanged()
     QCOMPARE(guests.at(1)[u"email"].toString(), u"pat@example.com"_s);
     QCOMPARE(guests.at(1)[u"responseStatus"].toString(), u"accepted"_s);
     QCOMPARE(guests.at(2)[u"email"].toString(), u"alex@example.com"_s);
+}
+
+void TestGoogleSource::optionalGuestsGoToGoogle()
+{
+    QVERIFY(m_cache->storeEvents(kAccount, u"mine"_s, {parsed(R"({"id":"review","summary":"Review",
+                    "start":{"dateTime":"2026-10-06T15:00:00Z"},
+                    "end":{"dateTime":"2026-10-06T16:00:00Z"},
+                    "attendees":[{"email":"me@example.com","self":true,"responseStatus":"accepted"},
+                                 {"email":"pat@example.com","responseStatus":"accepted"},
+                                 {"email":"sam@example.com","optional":true},
+                                 {"email":"room@example.com","resource":true}]})")}));
+    SyncHarness harness(*m_cache);
+    harness.store.secrets.insert(kAccount.id, u"rt"_s);
+    harness.apiServer.handler = [](const FakeHttpServer::Request &) {
+        return FakeHttpServer::Response(200, R"({"id":"review","status":"confirmed"})");
+    };
+    GoogleSource source(*m_cache, {kAccount});
+    source.setSync(&harness.sync);
+    const QDateTime from(QDate(2026, 10, 6), QTime(0, 0), QTimeZone::UTC);
+    const QList<Event> events = source.eventsBetween(from, from.addDays(1), QTimeZone::UTC);
+    const auto found = std::find_if(events.cbegin(), events.cend(),
+                                    [](const Event &e) { return e.summary == u"Review"; });
+    QVERIFY(found != events.cend());
+    const Event review = *found;
+    // Read from what Google keeps.
+    const auto sam = std::find_if(review.guests.cbegin(), review.guests.cend(),
+                                  [](const Guest &g) { return g.email == u"sam@example.com"; });
+    QVERIFY(sam != review.guests.cend() && sam->optional);
+
+    // Only who is optional changes: everyone stays, Pat becomes optional and Sam required.
+    EventEdit edit;
+    edit.optionalGuests = QStringList{u"pat@example.com"_s};
+    QString error = u"unset"_s;
+    source.updateEvent(review, edit, EditScope::ThisEvent,
+                       [&error](const QString &e) { error = e; });
+    QTRY_COMPARE_WITH_TIMEOUT(error, QString(), 5000);
+
+    const QJsonObject body =
+        QJsonDocument::fromJson(harness.apiServer.requests.last().body).object();
+    QCOMPARE(body.keys(), QStringList{u"attendees"_s});
+    const QJsonArray guests = body[u"attendees"].toArray();
+    QCOMPARE(guests.size(), 4);
+    QVERIFY(!guests.at(0).toObject().contains(u"optional"));
+    QCOMPARE(guests.at(1)[u"responseStatus"].toString(), u"accepted"_s);
+    QVERIFY(guests.at(1)[u"optional"].toBool());
+    QVERIFY(!guests.at(2).toObject().contains(u"optional"));
+    QVERIFY(guests.at(3)[u"resource"].toBool());
 }
 
 void TestGoogleSource::editingTheSeriesKeepsItsFirstDay()

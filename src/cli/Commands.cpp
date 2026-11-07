@@ -387,6 +387,7 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
     edit.location = options.where;
     edit.description = options.notes;
     edit.guests = options.guests;
+    edit.optionalGuests = options.optionalGuests;
     edit.videoCall = options.video;
 
     if (options.start || options.end || options.allDay) {

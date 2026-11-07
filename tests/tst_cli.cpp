@@ -135,6 +135,7 @@ private Q_SLOTS:
     void detachedOccurrencesStandAlone();
     void addGoesInTheDefaultCalendar();
     void editMovesAndKeepsTheLength();
+    void editMarksOptionalGuests();
     void editAllDayEndsOnItsLastDay();
     void repeatIsForTheWholeSeries();
     void mistakesAreReportedNotMade();
@@ -440,6 +441,19 @@ void TestCli::editMovesAndKeepsTheLength()
     QCOMPARE(moved.start, at(9, 15));
     QCOMPARE(moved.end, at(9, 16));
     QCOMPARE(moved.location, u"New clinic"_s);
+}
+
+void TestCli::editMarksOptionalGuests()
+{
+    EditOptions options;
+    options.optionalGuests = QStringList{u"priya@example.com"_s};
+    QCOMPARE(
+        run([&](auto done) { m_commands->edit(u"sample-1-9-30-2026-10-05"_s, options, {}, done); }),
+        0);
+    QList<Guest> guests = named(u"Standup"_s, QDate(2026, 10, 5)).guests;
+    QCOMPARE(guests.size(), 3);
+    QVERIFY(guests.at(0).optional);
+    QVERIFY(!guests.at(1).optional);
 }
 
 void TestCli::editAllDayEndsOnItsLastDay()

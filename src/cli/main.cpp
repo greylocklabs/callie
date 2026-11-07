@@ -1105,6 +1105,8 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
         options.repeat = value("repeat");
         if (const auto guests = value("guests"))
             options.guests = guests->split(u',', Qt::SkipEmptyParts);
+        if (const auto optional = value("optional"))
+            options.optionalGuests = optional->split(u',', Qt::SkipEmptyParts);
         if (const auto video = value("video")) {
             const QString answer = video->toLower();
             if (!QStringList{u"on"_s, u"off"_s, u"yes"_s, u"no"_s}.contains(answer)) {
@@ -1241,6 +1243,9 @@ int main(int argc, char *argv[])
              u"With edit: none, daily, weekdays, weekly, monthly, monthlyWeekday or yearly."_s,
              u"rule"_s},
             {{u"guests"_s}, u"With edit: every guest's address, comma separated."_s, u"list"_s},
+            {{u"optional"_s},
+             u"With edit: the guests who need not come, comma separated; the rest are required."_s,
+             u"list"_s},
             {{u"video"_s}, u"With edit: on or off, to add or remove a video call."_s, u"on"_s},
         }) {
         addOption(QCommandLineOption(names, description, valueName));

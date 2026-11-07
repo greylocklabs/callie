@@ -35,6 +35,7 @@ struct EditOptions
     /// A Repeat choice: none, daily, weekdays, weekly, monthly, monthlyWeekday or yearly.
     std::optional<QString> repeat;
     std::optional<QStringList> guests;
+    std::optional<QStringList> optionalGuests;
     std::optional<bool> video;
 };
 
