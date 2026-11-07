@@ -226,7 +226,9 @@ Column {
                     }
                     StickerButton {
                         id: more
-                        visible: !row.confirming && (row.manageable || row.caldav)
+                        // Only with something in its menu, every entry of which needs this.
+                        visible: !row.confirming && (row.manageable || row.microsoft
+                                                     && Accounts.canRemove)
                         glyph: "more"
                         glyphStroke: Theme.smallGlyphStroke
                         Accessible.name: qsTr("More for %1").arg(row.modelData.id)
