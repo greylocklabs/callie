@@ -73,43 +73,44 @@ system tray, on desktops that show one (KDE Plasma and most others; GNOME needs 
 extension), to open the window, sync or quit.
 
 Connect Google accounts in Settings, under Accounts: Callie opens your browser to sign in, and the
-account's calendars appear once you have. The same tab shows how each account's sync is going and
-removes an account. `callie accounts add google` does the same from a terminal.
+account's calendars appear once you have. The same tab shows each account on one line, with any sync
+problem under it, and its "..." button reconnects or removes it. `callie accounts add google` does the same from a terminal.
 
-Outlook.com and Microsoft 365 accounts sign in the same way, with Connect a Microsoft account or
+Outlook.com and Microsoft 365 accounts sign in the same way, with Connect an account, Microsoft, or
 `callie accounts add microsoft`. Callie keeps a copy of their calendars under
 `$XDG_DATA_HOME/callie/microsoft` and syncs them both ways through Microsoft Graph: guests get
 invitations from Outlook, invitations can be answered, and events can have a Teams link where the
 account has Teams. Builds name the Microsoft app they sign in as with `CALLIE_MICROSOFT_CLIENT_ID`.
 
-Zoom connects under Video calls in the same tab, for its meetings rather than as a calendar. Once it
+Zoom connects in Settings, under Video calls, for its meetings rather than as a calendar. Once it
 is, the editor's video call switch makes a Zoom meeting and puts its link in Where, on any calendar.
 Several Zoom accounts can be connected, with Switch account on Zoom's sign-in page: an event's
 meeting is made as the one with its calendar's account's email, or as the one chosen for other
 calendars. Builds name the Zoom app they make meetings as with `CALLIE_ZOOM_CLIENT_ID`.
 
-CalDAV accounts connect there too: pick Fastmail, iCloud or Nextcloud, or give any server's
+CalDAV accounts connect under Accounts too: pick Fastmail, iCloud or Nextcloud, or give any server's
 address, then the user name and an app password, which goes in the system keyring. Callie keeps a
 copy of each calendar under `$XDG_DATA_HOME/callie/caldav`, laid out like the calendars on this
 computer, sends changes in the background, renamed and recolored calendars included, holds them
 while the server cannot be reached, and keeps the server's version when an event changed in both
-places. Under the account in Settings, calendars can be made on the server and deleted there.
+places. In Settings, the account's "..." button, Choose calendars, makes calendars on the server and
+deletes them there.
 `callie accounts add caldav <server> <user>` connects one from a terminal, asking for the password.
 
-Calendars can also live on this computer alone: add one in Settings, under Accounts, or with
+Calendars can also live on this computer alone: add one in Settings, under Calendars, or with
 `callie calendars new "Book club"`. Each is a folder of `.ics` files under
 `$XDG_DATA_HOME/callie/calendars`, one file per event, the same layout khal and vdirsyncer use, so
 other apps can read them and a folder put there by hand shows up as a calendar. Removing one moves
 its folder to the trash.
 
-Open an `.ics` file with Callie, drop one on its window, or pick one in Settings, under Accounts, to
+Open an `.ics` file with Callie, drop one on its window, or pick one in Settings, under Calendars, to
 add its events to any calendar you can change, CalDAV and Google ones included, or to a new one on
 this computer named after the file. Adding the same file again updates its events rather than
 repeating them. Any calendar, or one event, can be saved as an `.ics` file too, from the calendar's
 menu in the sidebar or the event's details.
 
 Subscribe to a calendar others publish as a link, such as holidays or a team's schedule, in
-Settings, under Accounts, or by opening a `webcal://` link. Callie keeps a read-only copy under
+Settings, under Calendars, or by opening a `webcal://` link. Callie keeps a read-only copy under
 `$XDG_DATA_HOME/callie/subscriptions` and fetches it again every hour, skipping the download when
 the calendar has not changed.
 
