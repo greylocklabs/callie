@@ -102,6 +102,16 @@ void Zoom::connectAccount()
     m_auth->authorize();
 }
 
+void Zoom::cancelConnect()
+{
+    if (!m_auth)
+        return;
+    // Deleted now, so a sign-in finished in the browser after this reaches nothing.
+    delete m_auth;
+    m_auth = nullptr;
+    Q_EMIT statusChanged();
+}
+
 void Zoom::readEmail(const QString &accessToken)
 {
     QNetworkRequest request(m_api.resolved(QUrl(u"users/me"_s)));

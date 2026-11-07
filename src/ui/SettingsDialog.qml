@@ -230,19 +230,29 @@ Popup {
                     id: zoomButton
                     objectName: "zoomConnect"
                     anchors.right: parent.right
-                    enabled: !Zoom.connecting
                     text: {
                         if (Settings.zoomAccount !== "")
                             return qsTr("Disconnect")
-                        return Zoom.connecting ? qsTr("Waiting for Zoom") : qsTr("Connect Zoom")
+                        return Zoom.connecting ? qsTr("Cancel") : qsTr("Connect Zoom")
                     }
                     onClicked: {
                         if (Settings.zoomAccount !== "")
                             Zoom.disconnectAccount()
+                        else if (Zoom.connecting)
+                            Zoom.cancelConnect()
                         else
                             Zoom.connectAccount()
                     }
                 }
+            }
+            Text {
+                visible: Zoom.connecting
+                width: parent.width
+                wrapMode: Text.Wrap
+                text: qsTr("Finish signing in to Zoom in your browser.")
+                color: Theme.textMuted
+                font.family: Theme.fontFamily
+                font.pixelSize: Theme.textSm
             }
             Text {
                 visible: Zoom.error !== ""

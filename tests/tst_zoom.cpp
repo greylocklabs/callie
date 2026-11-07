@@ -24,6 +24,7 @@ private Q_SLOTS:
     void configComesFromTheEnvironment();
     void needsAConnectedAccount();
     void connectingSignsInAsAPublicClient();
+    void aSignInLeftInTheBrowserCanBeCanceled();
     void meetingsComeFromARefreshedSignIn();
     void anAllDayMeetingHasNoTime();
     void aTokenTurnedDownIsRefreshedOnce();
@@ -140,6 +141,35 @@ void TestZoom::connectingSignsInAsAPublicClient()
     QCOMPARE(m_settings->videoCallService(), u"zoom"_s);
     QCOMPARE(requestsTo("/v2/users/me").first().headers.value("authorization"),
              QByteArray("Bearer at"));
+}
+
+void TestZoom::aSignInLeftInTheBrowserCanBeCanceled()
+{
+    QUrl asked;
+    connect(m_zoom.get(), &Zoom::authorizeUrlReady, this,
+            [&asked](const QUrl &url) { asked = url; });
+    m_zoom->connectAccount();
+    QVERIFY(m_zoom->connecting());
+    QTRY_VERIFY(asked.isValid());
+    m_zoom->cancelConnect();
+    QVERIFY(!m_zoom->connecting());
+    QCOMPARE(m_zoom->error(), QString());
+
+    // A sign-in finished in the browser afterwards finds nothing listening, and connects nothing.
+    const QUrlQuery query(asked);
+    QUrl back(query.queryItemValue(u"redirect_uri"_s, QUrl::FullyDecoded));
+    back.setQuery(u"code=late&state="_s + query.queryItemValue(u"state"_s, QUrl::FullyEncoded));
+    QNetworkAccessManager browser;
+    QNetworkReply *reply = browser.get(QNetworkRequest(back));
+    QTRY_VERIFY(reply->isFinished());
+    reply->deleteLater();
+    QVERIFY(requestsTo("/oauth/token").isEmpty());
+    QCOMPARE(m_settings->zoomAccount(), QString());
+
+    // And it can be started again.
+    m_zoom->connectAccount();
+    QVERIFY(m_zoom->connecting());
+    m_zoom->cancelConnect();
 }
 
 void TestZoom::meetingsComeFromARefreshedSignIn()
