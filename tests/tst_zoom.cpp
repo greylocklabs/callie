@@ -309,8 +309,9 @@ void TestZoom::aCalendarsAccountPicksItsZoomAccount()
     QCOMPARE(m_settings->zoomDefault(), u"sam@example.com"_s);
     QCOMPARE(m_zoom->accountFor(u"sam@work.example"_s), u"Sam@Work.example"_s);
     QCOMPARE(m_zoom->accountFor(u"microsoft:sam@work.example"_s), u"Sam@Work.example"_s);
-    QCOMPARE(m_zoom->accountFor(u"caldav:https://dav.example/sam@work.example"_s),
-             u"Sam@Work.example"_s);
+    // CalDAV's ids, for a login that is an address and one that is not.
+    QCOMPARE(m_zoom->accountFor(u"sam@work.example (dav.work.example)"_s), u"Sam@Work.example"_s);
+    QCOMPARE(m_zoom->accountFor(u"sam@dav.example"_s), u"sam@example.com"_s);
     QCOMPARE(m_zoom->accountFor(u"other@example.com"_s), u"sam@example.com"_s);
     QCOMPARE(m_zoom->accountFor(QString()), u"sam@example.com"_s);
     m_settings->setZoomDefault(u"Sam@Work.example"_s);
