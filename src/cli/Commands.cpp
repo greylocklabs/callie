@@ -499,7 +499,7 @@ void Commands::edit(const QString &id, const EditOptions &options, const QString
                 });
             return;
         }
-        if (edit.videoCall && !*edit.videoCall && Zoom::hasMeeting(where)) {
+        if (edit.videoCall && !*edit.videoCall && zoom && Zoom::hasMeeting(where)) {
             edit.location = Zoom::withoutMeetings(where);
             if (!event.conferenceUrl.isValid())
                 edit.videoCall.reset();

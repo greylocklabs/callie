@@ -46,7 +46,8 @@ Column {
     property string calendar
     /// The calendars it can move to, read whenever an event is opened.
     property var calendarChoices: []
-    /// The event had a call when opened: its calendar's own, or a Zoom link in Where.
+    /// The event had a call when opened: its calendar's own, or, with Zoom chosen, a Zoom link
+    /// in Where.
     property bool hadCall
     /// The switch makes Zoom meetings rather than the calendar's own.
     readonly property bool zoomCalls: Settings.videoCallService === "zoom" && Settings.zoomAccount
@@ -98,8 +99,9 @@ Column {
         optionalGuests = optionalOf(e.guests)
         calendar = e.calendarId || ""
         calendarChoices = root.actions.calendarChoices()
-        hadCall = (e.conferenceUrl || "").toString() !== "" || root.actions.hasZoomMeeting(
-                    e.location || "")
+        // A Zoom link in Where is the event's call only while the switch makes Zoom meetings.
+        const zoomInWhere = zoomCalls && root.actions.hasZoomMeeting(e.location || "")
+        hadCall = (e.conferenceUrl || "").toString() !== "" || zoomInWhere
         videoCall = hadCall
         moreOptions = false
         asking = false

@@ -460,6 +460,13 @@ void TestEventActions::zoomMeetingsGoInWhere()
     actions.update(asMap(dentist()), {{u"videoCall"_s, true}}, u"this"_s);
     QTRY_COMPARE(updated.size(), 6);
     QCOMPARE(server.requests.size(), asked);
+    // A Zoom link typed in Where is no call of the switch's then, so turning it off leaves it.
+    const QString typed = where + u" https://zoom.us/j/99"_s;
+    actions.update(asMap(dentist()), {{u"location"_s, typed}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 7);
+    actions.update(asMap(dentist()), {{u"videoCall"_s, false}}, u"this"_s);
+    QTRY_COMPARE(updated.size(), 8);
+    QCOMPARE(dentist().location, typed);
     ZoomForeign::s_instance = nullptr;
     m_settings->setZoomAccount({});
 }
