@@ -66,6 +66,7 @@ modules:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DCALLIE_TUI=ON
       - -DCALLIE_MICROSOFT_CLIENT_ID=63b30b16-ab77-4338-bd6e-467d31393af1
+      - -DCALLIE_ZOOM_CLIENT_ID=q_RFpUlbQsuidJ8zNiV5DQ
     run-tests: true
     test-rule: test
     build-options:
