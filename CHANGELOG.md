@@ -3,6 +3,13 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- Answering or changing one occurrence of a Google series that its organizer split with "this and
+  following" no longer fails with "Not Found".
+
 ## 0.7.2 - 2026-11-07
 
 ### Fixed

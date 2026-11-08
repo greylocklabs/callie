@@ -46,6 +46,7 @@ class TestGoogleRecurrence : public QObject
 private Q_SLOTS:
     void declinedOccurrenceIsMarked();
     void occurrencesCarryTheirIds();
+    void splitSeriesOccurrencesUseTheOriginalId();
     void invitationsAndPermissions();
     void workingLocationsAreWorkPlaces();
     void guestsListPeopleOrganizerFirst();
@@ -417,6 +418,27 @@ void TestGoogleRecurrence::occurrencesCarryTheirIds()
     QCOMPARE(events.at(1).eventId, u"solo"_s);
     QVERIFY(events.at(1).seriesId.isEmpty());
     QCOMPARE(events.at(2).eventId, u"lunch_20261007"_s);
+}
+
+void TestGoogleRecurrence::splitSeriesOccurrencesUseTheOriginalId()
+{
+    // Google names the occurrences of a series split with "this and following"
+    // after the series it was split from.
+    const GoogleEvent series = parsed(R"({"id":"retro_R20261029T180000",
+        "start":{"dateTime":"2026-10-29T14:00:00-04:00","timeZone":"America/New_York"},
+        "end":{"dateTime":"2026-10-29T15:00:00-04:00","timeZone":"America/New_York"},
+        "recurrence":["RRULE:FREQ=MONTHLY;BYDAY=-1TH"]})");
+    const GoogleEvent allDay = parsed(R"({"id":"trip_R20261029",
+        "start":{"date":"2026-10-29"},"end":{"date":"2026-10-30"},
+        "recurrence":["RRULE:FREQ=WEEKLY"]})");
+
+    const QList<Event> events = expand({series, allDay}, utc(2026, 12, 31), utc(2027, 1, 1));
+
+    QCOMPARE(events.size(), 2);
+    QCOMPARE(events.at(0).eventId, u"trip_20261231"_s);
+    QCOMPARE(events.at(0).seriesId, u"trip_R20261029"_s);
+    QCOMPARE(events.at(1).eventId, u"retro_20261231T190000Z"_s);
+    QCOMPARE(events.at(1).seriesId, u"retro_R20261029T180000"_s);
 }
 
 void TestGoogleRecurrence::invitationsAndPermissions()
