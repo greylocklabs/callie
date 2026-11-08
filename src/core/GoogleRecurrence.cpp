@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSet>
 
 using namespace Qt::StringLiterals;
@@ -27,10 +28,13 @@ QString occurrenceKey(const QString &seriesId, const GoogleEventTime &time)
 }
 
 /// Google's id for one occurrence of a series: the series id and the
-/// occurrence's original start, as a UTC basic time or a date.
+/// occurrence's original start, as a UTC basic time or a date. A series split
+/// off with "this and following" has an id ending in _R and its first start,
+/// but its occurrences are still named after the original series.
 QString instanceId(const QString &seriesId, const QDateTime &start, bool allDay)
 {
-    return seriesId + u'_' +
+    static const QRegularExpression split(u"_R\\d{8}(T\\d{6}Z?)?$"_s);
+    return QString(seriesId).remove(split) + u'_' +
            (allDay ? start.date().toString(u"yyyyMMdd"_s)
                    : start.toUTC().toString(u"yyyyMMdd'T'HHmmss'Z'"_s));
 }
