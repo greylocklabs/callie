@@ -46,6 +46,14 @@ QString keyFor(const Account &account)
     return account.provider + u'/' + account.id;
 }
 
+QString keyFor(const Account &account, const QString &calendarId)
+{
+    return keyFor(account) + u'\n' + calendarId;
+}
+
+/// How often a calendar that cannot sync incrementally is read in full.
+constexpr qint64 kFullOnlySecs = 6 * 60 * 60;
+
 } // namespace
 
 void GoogleSync::record(bool stored)
@@ -490,12 +498,22 @@ void GoogleSync::start(const std::shared_ptr<Run> &run)
 void GoogleSync::syncCalendar(const std::shared_ptr<Run> &run, const QString &calendarId,
                               const QString &name, bool full)
 {
+    const QString key = keyFor(run->account, calendarId);
+    if (const auto fullOnly = m_fullOnly.constFind(key); !full && fullOnly != m_fullOnly.cend()) {
+        // Unless the cache was emptied since, as when the account resyncs.
+        if (fullOnly->isValid() && *fullOnly > m_now().addSecs(-kFullOnlySecs) &&
+            !m_cache.syncToken(run->account, calendarId).isEmpty()) {
+            calendarDone(run);
+            return;
+        }
+        full = true;
+    }
     const QString syncToken = full ? QString() : m_cache.syncToken(run->account, calendarId);
     const QPointer<GoogleSync> self(this);
     m_api.fetchEvents(
         run->accessToken, calendarId, syncToken,
-        [this, self, run, calendarId, name, syncToken](const GoogleEventChanges &changes,
-                                                       const GoogleApiError &error) {
+        [this, self, run, calendarId, name, syncToken, key](const GoogleEventChanges &changes,
+                                                            const GoogleApiError &error) {
             if (!self)
                 return;
             if (run->forgotten) {
@@ -503,7 +521,13 @@ void GoogleSync::syncCalendar(const std::shared_ptr<Run> &run, const QString &ca
                 return;
             }
             if (error.syncTokenExpired() && !syncToken.isEmpty()) {
-                qCInfo(lcSync) << "sync token expired for" << calendarId << "- syncing in full";
+                if (m_untriedTokens.value(key) == syncToken) {
+                    qCInfo(lcSync) << "Google refuses sync tokens for" << calendarId
+                                   << "- reading it in full every few hours";
+                    m_fullOnly.insert(key, QDateTime());
+                } else {
+                    qCInfo(lcSync) << "sync token expired for" << calendarId << "- syncing in full";
+                }
                 syncCalendar(run, calendarId, name, true);
                 return;
             }
@@ -518,6 +542,12 @@ void GoogleSync::syncCalendar(const std::shared_ptr<Run> &run, const QString &ca
                 run->errors.append(QStringLiteral("%1: %2").arg(name, problem));
                 record(m_cache.recordCalendarError(run->account, calendarId, problem));
             } else {
+                if (syncToken.isEmpty())
+                    m_untriedTokens.insert(key, changes.nextSyncToken);
+                else
+                    m_untriedTokens.remove(key);
+                if (const auto fullOnly = m_fullOnly.find(key); fullOnly != m_fullOnly.end())
+                    *fullOnly = m_now();
                 qCInfo(lcSync).noquote()
                     << QStringLiteral("%1: %2 changes%3")
                            .arg(calendarId)
@@ -544,6 +574,9 @@ void GoogleSync::stop(const Account &account)
 void GoogleSync::forget(const Account &account)
 {
     stop(account);
+    const QString prefix = keyFor(account) + u'\n';
+    m_untriedTokens.removeIf([&prefix](const auto &it) { return it.key().startsWith(prefix); });
+    m_fullOnly.removeIf([&prefix](const auto &it) { return it.key().startsWith(prefix); });
     m_tokens.forget(account);
     m_settingsRead.remove(keyFor(account));
     m_contactsRead.remove(keyFor(account));

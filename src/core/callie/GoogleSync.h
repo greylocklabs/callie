@@ -5,6 +5,7 @@
 #include "Ics.h"
 #include "Outcome.h"
 
+#include <QDateTime>
 #include <QHash>
 #include <QObject>
 #include <QSet>
@@ -37,6 +38,10 @@ public:
     GoogleSync(GoogleTokenProvider &tokens, GoogleCalendarApi &api, GoogleCache &cache,
                QObject *parent = nullptr);
     ~GoogleSync() override;
+
+    using Now = std::function<QDateTime()>;
+    /// Replace the clock, for tests.
+    void setNow(Now now) { m_now = std::move(now); }
 
     /// Joins the sync already running for `account`, if there is one.
     void sync(const Account &account, Done done);
@@ -157,6 +162,13 @@ private:
     QSet<QString> m_photoReading;
     /// Accounts whose contacts are being read; forgetting one drops its read.
     QSet<QString> m_contactsReading;
+    /// Per account and calendar, the sync token a full sync stored and no
+    /// incremental sync has used yet.
+    QHash<QString, QString> m_untriedTokens;
+    /// Calendars whose sync tokens Google refuses at once, such as its holiday
+    /// calendars, and when each was last read in full.
+    QHash<QString, QDateTime> m_fullOnly;
+    Now m_now = [] { return QDateTime::currentDateTimeUtc(); };
 };
 
 } // namespace callie
