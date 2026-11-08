@@ -87,6 +87,7 @@ private Q_SLOTS:
 
     void firstSyncIsFullThenIncremental();
     void expiredSyncTokenFallsBackToFullSync();
+    void refusedFreshTokenMeansOccasionalFullSyncs();
     void fullSyncKeepsCancelledOccurrences();
     void failedCalendarDoesNotStopOthers();
     void rejectedAccessTokenIsRefreshedOnce();
@@ -227,20 +228,54 @@ void TestGoogleSync::expiredSyncTokenFallsBackToFullSync()
 {
     m_google->on(u"calendars/me%40example.com/events"_s, 200,
                  events(R"({"id":"a"},{"id":"b"})", "me-1"));
+    m_google->on(u"calendars/me%40example.com/events"_s, 200, events("", "me-2"));
     m_google->on(u"calendars/me%40example.com/events"_s, 410,
                  R"({"error":{"code":410,"message":"Sync token is no longer valid"}})");
-    m_google->on(u"calendars/me%40example.com/events"_s, 200, events(R"({"id":"c"})", "me-2"));
+    m_google->on(u"calendars/me%40example.com/events"_s, 200, events(R"({"id":"c"})", "me-3"));
     m_google->on(u"calendars/team/events"_s, 200, events("", "team-1"));
+    QCOMPARE(runSync(), QStringList());
     QCOMPARE(runSync(), QStringList());
 
     QCOMPARE(runSync(), QStringList());
 
     QCOMPARE(m_google->syncTokensSent(u"calendars/me%40example.com/events"_s),
-             (QStringList{QString(), u"me-1"_s, QString()}));
+             (QStringList{QString(), u"me-1"_s, u"me-2"_s, QString()}));
     const QList<GoogleEvent> mine = m_cache->events(kAccount, kAccount.id);
     QCOMPARE(mine.size(), 1);
     QCOMPARE(mine.first().id, u"c"_s);
-    QCOMPARE(m_cache->syncToken(kAccount, kAccount.id), u"me-2"_s);
+    QCOMPARE(m_cache->syncToken(kAccount, kAccount.id), u"me-3"_s);
+
+    // A token that once worked can expire; the calendar still syncs incrementally.
+    QCOMPARE(runSync(), QStringList());
+    QCOMPARE(m_google->syncTokensSent(u"calendars/me%40example.com/events"_s).last(), u"me-3"_s);
+}
+
+void TestGoogleSync::refusedFreshTokenMeansOccasionalFullSyncs()
+{
+    // Google refuses the token it just gave for its holiday calendars.
+    QDateTime now = QDateTime::currentDateTimeUtc();
+    m_sync->setNow([&now] { return now; });
+    m_google->on(u"calendars/me%40example.com/events"_s, 200, events("", "me-1"));
+    m_google->on(u"calendars/team/events"_s, 200, events(R"({"id":"h"})", "team-1"));
+    m_google->on(u"calendars/team/events"_s, 410,
+                 R"({"error":{"code":410,"message":"Sync token is no longer valid"}})");
+    m_google->on(u"calendars/team/events"_s, 200, events(R"({"id":"h"})", "team-2"));
+    QCOMPARE(runSync(), QStringList());
+    QCOMPARE(runSync(), QStringList());
+    QCOMPARE(m_google->syncTokensSent(u"calendars/team/events"_s),
+             (QStringList{QString(), u"team-1"_s, QString()}));
+
+    // Left alone for a while, then read in full without trying a token.
+    now = now.addSecs(60 * 60);
+    QCOMPARE(runSync(), QStringList());
+    QCOMPARE(m_google->count(u"calendars/team/events"_s), 3);
+    QCOMPARE(m_cache->events(kAccount, u"team"_s).size(), 1);
+
+    now = now.addSecs(6 * 60 * 60);
+    QCOMPARE(runSync(), QStringList());
+    QCOMPARE(m_google->syncTokensSent(u"calendars/team/events"_s),
+             (QStringList{QString(), u"team-1"_s, QString(), QString()}));
+    QCOMPARE(m_cache->events(kAccount, u"team"_s).size(), 1);
 }
 
 void TestGoogleSync::fullSyncKeepsCancelledOccurrences()

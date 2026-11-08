@@ -9,6 +9,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - Answering or changing one occurrence of a Google series that its organizer split with "this and
   following" no longer fails with "Not Found".
+- Google's holiday calendars, which refuse to sync incrementally, are read in full every six hours
+  instead of on every sync.
 
 ## 0.7.2 - 2026-11-07
 
