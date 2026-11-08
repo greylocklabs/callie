@@ -42,6 +42,14 @@
   </categories>
 
   <releases>
+    <release version="0.7.3" date="2026-11-08">
+      <description>
+        <ul>
+          <li>Answering or changing one occurrence of a Google series that its organizer split with "this and following" no longer fails with "Not Found".</li>
+          <li>Google's holiday calendars, which refuse to sync incrementally, are read in full every six hours instead of on every sync.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.2" date="2026-11-07">
       <description>
         <ul>
