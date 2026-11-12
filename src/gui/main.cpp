@@ -34,13 +34,13 @@
 #include "callie/SampleSource.h"
 #include "callie/Subscriptions.h"
 #include "callie/TokenStore.h"
-#include "callie/Translations.h"
 #include "callie/Zoom.h"
 #include "greylock/Autostart.h"
 #include "greylock/Desktop.h"
 #include "greylock/Identity.h"
 #include "greylock/Notifications.h"
 #include "greylock/SingleInstance.h"
+#include "greylock/Translations.h"
 #include "greylock/Tray.h"
 #include "greylock/UpdateCheck.h"
 
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     started.start();
     greylock::desktop::useDesktopFileDialogs();
     QGuiApplication app(argc, argv);
-    callie::installTranslations(app);
+    greylock::installTranslations(app);
     app.setApplicationName(QStringLiteral("Callie"));
     app.setOrganizationName(QStringLiteral("Callie"));
     app.setApplicationVersion(QStringLiteral(CALLIE_VERSION));

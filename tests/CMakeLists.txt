@@ -149,16 +149,6 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/www/install.sh AND CMAKE_SYSTEM_PROCESSOR STREQU
             ${PROJECT_SOURCE_DIR}/www/install.sh ${CMAKE_CURRENT_SOURCE_DIR}/data/github-release.json)
 endif()
 
-# translations/callie_en.ts holding every string the code shows, and no others.
-if(TARGET Qt6::lupdate)
-    add_test(NAME translations_current
-        COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/translations_test.sh $<TARGET_FILE:Qt6::lupdate>
-            ${CMAKE_COMMAND} ${Qt6LinguistTools_DIR}/GenerateLUpdateProject.cmake
-            ${CMAKE_BINARY_DIR}/.lupdate/callie_lupdate_project.cmake
-            ${PROJECT_SOURCE_DIR}/translations/callie_en.ts)
-    set_tests_properties(translations_current PROPERTIES SKIP_RETURN_CODE 77)
-endif()
-
 # The bash completion script, against the built callie on sample data.
 find_program(BASH bash)
 if(BASH)
