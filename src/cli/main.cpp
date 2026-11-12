@@ -25,6 +25,7 @@
 #include "callie/Subscriptions.h"
 #include "callie/Times.h"
 #include "callie/TokenStore.h"
+#include "callie/Translations.h"
 #include "callie/Zoom.h"
 #include "greylock/Releases.h"
 #include "greylock/UpdateCheck.h"
@@ -1167,6 +1168,7 @@ int runAccounts(QCoreApplication &app, const QStringList &args)
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
+    callie::installTranslations(app);
     app.setApplicationName(QStringLiteral("callie"));
     app.setApplicationVersion(QStringLiteral(CALLIE_VERSION));
 
