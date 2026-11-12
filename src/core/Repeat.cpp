@@ -25,15 +25,11 @@ int weekOfMonth(QDate date)
     return (date.day() - 1) / 7 + 1;
 }
 
-QString tr(const char *text)
+// Names the words' context for lupdate as well as for the lookup.
+struct Words
 {
-    return QCoreApplication::translate("Repeat", text);
-}
-
-QString tr(const char *text, int n)
-{
-    return QCoreApplication::translate("Repeat", text, nullptr, n);
-}
+    Q_DECLARE_TR_FUNCTIONS(Repeat)
+};
 
 } // namespace
 
@@ -82,26 +78,26 @@ QString describe(const QString &choice, QDate start)
     const QLocale locale;
     const QString weekday = locale.dayName(start.dayOfWeek());
     if (choice == u"none")
-        return tr("Does not repeat");
+        return Words::tr("Does not repeat");
     if (choice == u"daily")
-        return tr("Daily");
+        return Words::tr("Daily");
     if (choice == u"weekdays")
-        return tr("Every weekday");
+        return Words::tr("Every weekday");
     if (choice == u"weekly")
-        return tr("Weekly on %1").arg(weekday);
+        return Words::tr("Weekly on %1").arg(weekday);
     if (choice == u"monthly")
-        return tr("Monthly on day %1").arg(start.day());
+        return Words::tr("Monthly on day %1").arg(start.day());
     if (choice == u"monthlyWeekday") {
         static const char *const kWhich[] = {
             QT_TRANSLATE_NOOP("Repeat", "first"), QT_TRANSLATE_NOOP("Repeat", "second"),
             QT_TRANSLATE_NOOP("Repeat", "third"), QT_TRANSLATE_NOOP("Repeat", "fourth")};
         const int week = weekOfMonth(start);
-        const QString which = week < 0 ? tr("last") : tr(kWhich[week - 1]);
-        return tr("Monthly on the %1 %2").arg(which, weekday);
+        const QString which = week < 0 ? Words::tr("last") : Words::tr(kWhich[week - 1]);
+        return Words::tr("Monthly on the %1 %2").arg(which, weekday);
     }
     if (choice == u"yearly")
-        return tr("Yearly on %1").arg(locale.toString(start, u"MMMM d"_s));
-    return tr("Custom");
+        return Words::tr("Yearly on %1").arg(locale.toString(start, u"MMMM d"_s));
+    return Words::tr("Custom");
 }
 
 namespace {
@@ -261,13 +257,14 @@ QString describe(const Custom &c, QDate start)
     const QLocale locale;
     QString every;
     if (c.frequency == u"daily")
-        every = c.interval == 1 ? tr("Daily") : tr("Every %1 days").arg(c.interval);
+        every = c.interval == 1 ? Words::tr("Daily") : Words::tr("Every %1 days").arg(c.interval);
     else if (c.frequency == u"weekly")
-        every = c.interval == 1 ? tr("Weekly") : tr("Every %1 weeks").arg(c.interval);
+        every = c.interval == 1 ? Words::tr("Weekly") : Words::tr("Every %1 weeks").arg(c.interval);
     else if (c.frequency == u"monthly")
-        every = c.interval == 1 ? tr("Monthly") : tr("Every %1 months").arg(c.interval);
+        every =
+            c.interval == 1 ? Words::tr("Monthly") : Words::tr("Every %1 months").arg(c.interval);
     else
-        every = c.interval == 1 ? tr("Yearly") : tr("Every %1 years").arg(c.interval);
+        every = c.interval == 1 ? Words::tr("Yearly") : Words::tr("Every %1 years").arg(c.interval);
 
     QString on;
     if (c.frequency == u"weekly") {
@@ -276,24 +273,25 @@ QString describe(const Custom &c, QDate start)
             names << locale.dayName(day);
         on = names.size() == 1
                  ? names.first()
-                 : tr("%1 and %2").arg(names.mid(0, names.size() - 1).join(u", "_s), names.last());
-        on = tr(" on %1").arg(on);
+                 : Words::tr("%1 and %2")
+                       .arg(names.mid(0, names.size() - 1).join(u", "_s), names.last());
+        on = Words::tr(" on %1").arg(on);
     } else if (c.frequency == u"monthly") {
         static const char *const kWhich[] = {
             QT_TRANSLATE_NOOP("Repeat", "first"), QT_TRANSLATE_NOOP("Repeat", "second"),
             QT_TRANSLATE_NOOP("Repeat", "third"), QT_TRANSLATE_NOOP("Repeat", "fourth")};
         const int week = weekOfMonth(start);
-        on = c.onWeekday ? tr(" on the %1 %2")
-                               .arg(week < 0 ? tr("last") : tr(kWhich[week - 1]),
+        on = c.onWeekday ? Words::tr(" on the %1 %2")
+                               .arg(week < 0 ? Words::tr("last") : Words::tr(kWhich[week - 1]),
                                     locale.dayName(start.dayOfWeek()))
-                         : tr(" on day %1").arg(start.day());
+                         : Words::tr(" on day %1").arg(start.day());
     }
 
     QString ends;
     if (c.count > 0)
-        ends = tr(", %n times", c.count);
+        ends = Words::tr(", %n times", nullptr, c.count);
     else if (c.until.isValid())
-        ends = tr(", until %1").arg(locale.toString(c.until, u"MMM d, yyyy"_s));
+        ends = Words::tr(", until %1").arg(locale.toString(c.until, u"MMM d, yyyy"_s));
     return every + on + ends;
 }
 

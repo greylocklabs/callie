@@ -13,6 +13,7 @@ endfunction()
 
 callie_add_test(tst_eventmodel)
 callie_add_test(tst_identity)
+callie_add_test(tst_translations)
 target_compile_definitions(tst_identity PRIVATE CALLIE_EXPECT_DEVEL=$<BOOL:${CALLIE_DEVEL}>)
 callie_add_test(tst_todaymodel)
 callie_add_test(tst_invitesmodel)
@@ -146,6 +147,15 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/www/install.sh AND CMAKE_SYSTEM_PROCESSOR STREQU
     add_test(NAME install_script
         COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/install_test.sh
             ${PROJECT_SOURCE_DIR}/www/install.sh ${CMAKE_CURRENT_SOURCE_DIR}/data/github-release.json)
+endif()
+
+# translations/callie_en.ts holding every string the code shows, and no others.
+if(TARGET Qt6::lupdate)
+    add_test(NAME translations_current
+        COMMAND sh ${CMAKE_CURRENT_SOURCE_DIR}/translations_test.sh $<TARGET_FILE:Qt6::lupdate>
+            ${CMAKE_COMMAND} ${Qt6LinguistTools_DIR}/GenerateLUpdateProject.cmake
+            ${CMAKE_BINARY_DIR}/.lupdate/callie_lupdate_project.cmake
+            ${PROJECT_SOURCE_DIR}/translations/callie_en.ts)
 endif()
 
 # The bash completion script, against the built callie on sample data.

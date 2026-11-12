@@ -14,7 +14,7 @@ _ftxui=7.0.3
 # accounts need a client set at runtime.
 _google_client_id=''
 _google_client_secret=''
-makedepends=(cmake git ninja)
+makedepends=(cmake git ninja qt6-tools)
 provides=(callie)
 conflicts=(callie)
 source=("git+https://github.com/greylocklabs/callie.git"
