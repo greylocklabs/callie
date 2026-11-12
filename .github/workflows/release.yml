@@ -2,19 +2,13 @@ name: Release
 
 # A pushed vX.Y.Z tag publishes a release: the source tarball, .deb and .rpm
 # packages, and the notes from CHANGELOG.md. Pull requests that touch packaging,
-# and runs started by hand, build the same files without publishing.
+# and runs started by hand, build the same files without publishing; other pull
+# requests skip the builds, and the packages job passes for them.
 
 on:
   push:
     tags: ["v*"]
   pull_request:
-    paths:
-      - packaging/**
-      - core
-      - .gitmodules
-      - tests/package_smoke.sh
-      - CHANGELOG.md
-      - .github/workflows/release.yml
   workflow_dispatch:
 
 permissions:
@@ -26,7 +20,32 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Whether to build: always for a tag or a run by hand, and for a pull request
+  # only when it changes something the packages are made from.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      packaging: ${{ steps.files.outputs.packaging }}
+    steps:
+      - name: Look at what the pull request changes
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          packaging=true
+          if [ -n "$PR" ]; then
+            files="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" -q '.[].filename')"
+            grep -qE '^(packaging/|core$|\.gitmodules$|tests/package_smoke\.sh$|CHANGELOG\.md$|\.github/workflows/release\.yml$)' <<<"$files" ||
+              packaging=false
+          fi
+          echo "packaging=$packaging" >> "$GITHUB_OUTPUT"
+
   source:
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -145,6 +164,8 @@ jobs:
           fi
           mk-build-deps --install --remove \
             --tool "apt-get -y --no-install-recommends" debian/control
+          # As for the rpm, link-time optimization only for a release; Ubuntu turns it on.
+          [ "$GITHUB_REF_TYPE" = tag ] || export DEB_BUILD_MAINT_OPTIONS=optimize=-lto
           dpkg-buildpackage -us -uc -b
           if [ "$ID" = ubuntu ]; then
             for deb in ../callie_*.deb; do mv "$deb" "../callie-ubuntu_${deb#../callie_}"; done
@@ -190,6 +211,8 @@ jobs:
   # The Flatpak, built and tested in its sandbox. Flathub builds the published
   # one, so this does not hold back the release either.
   flatpak:
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
@@ -254,6 +277,26 @@ jobs:
           name: installed-${{ matrix.name }}
           path: shots/
           if-no-files-found: error
+
+  # The check to require: it passes when every build above passed or was skipped.
+  # Skipped matrix jobs report no check under their own names, so they cannot be
+  # required themselves.
+  packages:
+    if: always()
+    needs: [changes, source, rpm, deb, arch, flatpak, installed]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the builds
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          case " $RESULTS " in
+            *" failure "* | *" cancelled "*)
+              echo "a package build did not pass: $RESULTS" >&2
+              exit 1
+              ;;
+          esac
+          echo "builds: $RESULTS"
 
   publish:
     if: github.ref_type == 'tag'
