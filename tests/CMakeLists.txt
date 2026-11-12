@@ -156,6 +156,7 @@ if(TARGET Qt6::lupdate)
             ${CMAKE_COMMAND} ${Qt6LinguistTools_DIR}/GenerateLUpdateProject.cmake
             ${CMAKE_BINARY_DIR}/.lupdate/callie_lupdate_project.cmake
             ${PROJECT_SOURCE_DIR}/translations/callie_en.ts)
+    set_tests_properties(translations_current PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
 # The bash completion script, against the built callie on sample data.

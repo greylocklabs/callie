@@ -13,6 +13,14 @@ project_in="$4"
 words="$5"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
+# Some builds of lupdate, such as the KDE Flatpak SDK's, read no QML, so what they make cannot
+# match; the test skips there and runs everywhere else.
+printf 'import QtQuick\nItem { property string probe: qsTr("probe") }\n' >"$work/Probe.qml"
+"$lupdate" -silent "$work/Probe.qml" -ts "$work/probe.ts" >/dev/null 2>&1
+if ! grep -q '<source>probe</source>' "$work/probe.ts" 2>/dev/null; then
+    echo "this lupdate reads no QML, so the translation file is not checked"
+    exit 77
+fi
 # The project lupdate reads, made as the build's own update does.
 "$cmake" -DIN_FILE="$project_in" -DOUT_FILE="$work/project.json" -P "$generate" ||
     { echo "could not make lupdate's project" >&2; exit 1; }
