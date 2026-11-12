@@ -3,6 +3,18 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Changed
+
+- `settings.ini` now holds only preferences, so it can be copied or synced to another computer as
+  it is. What belongs to this computer goes in `local.ini` beside it: hidden calendars, the names
+  and colors you gave calendars and accounts, folded accounts, the calendar new events go into,
+  connected Zoom accounts, the last view shown and the last version run. After upgrading, those
+  start fresh.
+- Callie's wording lives in `translations/callie_en.ts`, where it can be changed without touching
+  the code, ready for other languages to sit beside it.
+
 ## 0.7.3 - 2026-11-08
 
 ### Fixed
