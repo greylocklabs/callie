@@ -1,6 +1,8 @@
 #include "callie/Settings.h"
 #include "greylock/Identity.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QLocale>
 #include <QStandardPaths>
 
@@ -55,13 +57,46 @@ const QString kKeepRunning = u"reminders/keepRunning"_s;
 const QString kCheckForUpdates = u"updates/check"_s;
 const QStringList kViews{u"day"_s, u"week"_s, u"month"_s, u"agenda"_s};
 
+// What names this computer's accounts and calendars, or only records what it last did, goes in
+// local.ini, so settings.ini can be copied to another computer as it is.
+const QStringList kLocalKeys{
+    kHiddenCalendars, kKnownCalendars, kCollapsedAccounts, kCalendarLooks,    kAccountNames,
+    kAccountPhotos,   kView,           kLastSeenVersion,   kNewEventCalendar, kDefaultCalendar,
+    kZoomAccounts,    kZoomDefault};
+
 } // namespace
 
 Settings::Settings(const QString &path, QObject *parent)
-    : QObject(parent), m_store(path, QSettings::IniFormat)
+    : QObject(parent), m_store(path, QSettings::IniFormat),
+      m_local(QFileInfo(path).dir().filePath(u"local.ini"_s), QSettings::IniFormat)
 {
     load();
     rebuildTimes();
+}
+
+QSettings &Settings::storeFor(const QString &key)
+{
+    return kLocalKeys.contains(key) ? m_local : m_store;
+}
+
+const QSettings &Settings::storeFor(const QString &key) const
+{
+    return kLocalKeys.contains(key) ? m_local : m_store;
+}
+
+void Settings::put(const QString &key, const QVariant &value)
+{
+    storeFor(key).setValue(key, value);
+}
+
+QVariant Settings::get(const QString &key, const QVariant &fallback) const
+{
+    return storeFor(key).value(key, fallback);
+}
+
+bool Settings::has(const QString &key) const
+{
+    return storeFor(key).contains(key);
 }
 
 QStringList Settings::views()
@@ -77,53 +112,56 @@ QString Settings::defaultPath()
 
 void Settings::load()
 {
-    const int format = m_store.value(kTimeFormat, 0).toInt();
+    const int format = get(kTimeFormat, 0).toInt();
     m_timeFormat = format >= 0 && format <= int(TimeFormat::TwelveHour) ? TimeFormat(format)
                                                                         : TimeFormat::Locale;
     // A hand edit or a tzdata update can leave an id this system lacks.
-    const QString zone = m_store.value(kTimeZone).toString();
+    const QString zone = get(kTimeZone).toString();
     m_timeZoneId = QTimeZone::isTimeZoneIdAvailable(zone.toUtf8()) ? zone : QString();
-    m_showDeclined = m_store.value(kShowDeclined, true).toBool();
-    m_dimPast = m_store.value(kDimPast, true).toBool();
-    m_widenToday = m_store.value(kWidenToday, false).toBool();
-    m_weekStart = std::clamp(m_store.value(kWeekStart, 0).toInt(), 0, 7);
-    m_hideWeekends = m_store.value(kHideWeekends, false).toBool();
-    m_weekNumbers = m_store.value(kWeekNumbers, false).toBool();
-    m_workStart = std::clamp(m_store.value(kWorkStart, 9 * 60).toInt(), 0, kDayMinutes - 30);
-    m_workEnd = std::clamp(m_store.value(kWorkEnd, 17 * 60).toInt(), m_workStart + 30, kDayMinutes);
-    m_showWorkHours = m_store.value(kShowWorkHours, false).toBool();
-    m_developerMode = m_store.value(kDeveloperMode, false).toBool();
-    const QString mapApp = m_store.value(kMapApp).toString();
+    m_showDeclined = get(kShowDeclined, true).toBool();
+    m_dimPast = get(kDimPast, true).toBool();
+    m_widenToday = get(kWidenToday, false).toBool();
+    m_weekStart = std::clamp(get(kWeekStart, 0).toInt(), 0, 7);
+    m_hideWeekends = get(kHideWeekends, false).toBool();
+    m_weekNumbers = get(kWeekNumbers, false).toBool();
+    m_workStart = std::clamp(get(kWorkStart, 9 * 60).toInt(), 0, kDayMinutes - 30);
+    m_workEnd = std::clamp(get(kWorkEnd, 17 * 60).toInt(), m_workStart + 30, kDayMinutes);
+    m_showWorkHours = get(kShowWorkHours, false).toBool();
+    m_developerMode = get(kDeveloperMode, false).toBool();
+    const QString mapApp = get(kMapApp).toString();
     m_mapApp = kMapApps.contains(mapApp) ? mapApp : u"system"_s;
-    m_searchPlacesOnline = m_store.value(kSearchPlaces, true).toBool();
-    m_verboseLogging = m_store.value(kVerboseLogging, false).toBool();
-    m_viMode = m_store.value(kViMode, false).toBool();
-    const QString leader = m_store.value(kLeaderKey).toString();
+    m_searchPlacesOnline = get(kSearchPlaces, true).toBool();
+    m_verboseLogging = get(kVerboseLogging, false).toBool();
+    m_viMode = get(kViMode, false).toBool();
+    const QString leader = get(kLeaderKey).toString();
     m_leaderKey = kLeaderKeys.contains(leader) ? leader : u","_s;
-    m_leaderTimeout = std::max(0, m_store.value(kLeaderTimeout, 5000).toInt());
-    m_hiddenCalendars = m_store.value(kHiddenCalendars).toStringList();
-    m_knownCalendars = m_store.value(kKnownCalendars).toStringList();
-    m_collapsedAccounts = m_store.value(kCollapsedAccounts).toStringList();
-    m_calendarLooks = m_store.value(kCalendarLooks).toMap();
-    m_accountNames = m_store.value(kAccountNames).toMap();
-    m_accountPhotos = m_store.value(kAccountPhotos).toMap();
-    m_theme = m_store.value(kTheme).toString();
-    const QString view = m_store.value(kView).toString();
+    m_leaderTimeout = std::max(0, get(kLeaderTimeout, 5000).toInt());
+    m_hiddenCalendars = get(kHiddenCalendars).toStringList();
+    m_knownCalendars = get(kKnownCalendars).toStringList();
+    m_collapsedAccounts = get(kCollapsedAccounts).toStringList();
+    m_calendarLooks = get(kCalendarLooks).toMap();
+    m_accountNames = get(kAccountNames).toMap();
+    m_accountPhotos = get(kAccountPhotos).toMap();
+    // A theme file in Callie's own folder is kept relative to it, so it travels with this file.
+    const QString theme = get(kTheme).toString();
+    m_theme = theme.endsWith(u".toml"_s) && QDir::isRelativePath(theme)
+                  ? QDir::cleanPath(QFileInfo(m_store.fileName()).dir().filePath(theme))
+                  : theme;
+    const QString view = get(kView).toString();
     m_view = kViews.contains(view) ? view : u"week"_s;
-    m_lastSeenVersion = m_store.value(kLastSeenVersion).toString();
-    m_newEventCalendar = m_store.value(kNewEventCalendar).toString();
-    m_defaultCalendar = m_store.value(kDefaultCalendar).toString();
-    m_videoCallService =
-        m_store.value(kVideoCallService).toString() == u"zoom" ? u"zoom"_s : u"calendar"_s;
-    m_zoomAccounts = m_store.value(kZoomAccounts).toStringList();
-    m_zoomDefault = m_store.value(kZoomDefault).toString();
+    m_lastSeenVersion = get(kLastSeenVersion).toString();
+    m_newEventCalendar = get(kNewEventCalendar).toString();
+    m_defaultCalendar = get(kDefaultCalendar).toString();
+    m_videoCallService = get(kVideoCallService).toString() == u"zoom" ? u"zoom"_s : u"calendar"_s;
+    m_zoomAccounts = get(kZoomAccounts).toStringList();
+    m_zoomDefault = get(kZoomDefault).toString();
     if (!m_zoomAccounts.contains(m_zoomDefault))
         m_zoomDefault = m_zoomAccounts.value(0);
-    m_notify = m_store.value(kNotify, true).toBool();
-    m_callCard = m_store.value(kCallCard, true).toBool();
-    m_reminderMinutes = std::max(-1, m_store.value(kReminderMinutes, 10).toInt());
-    m_keepRunning = m_store.value(kKeepRunning, false).toBool();
-    m_checkForUpdates = m_store.value(kCheckForUpdates, true).toBool();
+    m_notify = get(kNotify, true).toBool();
+    m_callCard = get(kCallCard, true).toBool();
+    m_reminderMinutes = std::max(-1, get(kReminderMinutes, 10).toInt());
+    m_keepRunning = get(kKeepRunning, false).toBool();
+    m_checkForUpdates = get(kCheckForUpdates, true).toBool();
 }
 
 void Settings::setTimeFormat(TimeFormat format)
@@ -131,7 +169,7 @@ void Settings::setTimeFormat(TimeFormat format)
     if (m_timeFormat == format)
         return;
     m_timeFormat = format;
-    m_store.setValue(kTimeFormat, int(format));
+    put(kTimeFormat, int(format));
     Q_EMIT timeFormatChanged();
     rebuildTimes();
 }
@@ -154,7 +192,7 @@ void Settings::setTimeZoneId(const QString &id)
     if (m_timeZoneId == kept)
         return;
     m_timeZoneId = kept;
-    m_store.setValue(kTimeZone, kept);
+    put(kTimeZone, kept);
     Q_EMIT timeZoneChanged();
     rebuildTimes();
 }
@@ -169,7 +207,7 @@ void Settings::setShowDeclined(bool show)
     if (m_showDeclined == show)
         return;
     m_showDeclined = show;
-    m_store.setValue(kShowDeclined, show);
+    put(kShowDeclined, show);
     Q_EMIT showDeclinedChanged();
 }
 
@@ -178,7 +216,7 @@ void Settings::setDimPast(bool dim)
     if (m_dimPast == dim)
         return;
     m_dimPast = dim;
-    m_store.setValue(kDimPast, dim);
+    put(kDimPast, dim);
     Q_EMIT dimPastChanged();
 }
 
@@ -188,7 +226,7 @@ void Settings::setWeekStart(int day)
     if (m_weekStart == day)
         return;
     m_weekStart = day;
-    m_store.setValue(kWeekStart, day);
+    put(kWeekStart, day);
     Q_EMIT weekChanged();
 }
 
@@ -202,7 +240,7 @@ void Settings::setHideWeekends(bool hide)
     if (m_hideWeekends == hide)
         return;
     m_hideWeekends = hide;
-    m_store.setValue(kHideWeekends, hide);
+    put(kHideWeekends, hide);
     Q_EMIT weekChanged();
 }
 
@@ -211,7 +249,7 @@ void Settings::setWeekNumbers(bool show)
     if (m_weekNumbers == show)
         return;
     m_weekNumbers = show;
-    m_store.setValue(kWeekNumbers, show);
+    put(kWeekNumbers, show);
     Q_EMIT weekChanged();
 }
 
@@ -220,7 +258,7 @@ void Settings::setViMode(bool on)
     if (m_viMode == on)
         return;
     m_viMode = on;
-    m_store.setValue(kViMode, on);
+    put(kViMode, on);
     Q_EMIT keyboardChanged();
 }
 
@@ -229,7 +267,7 @@ void Settings::setLeaderKey(const QString &key)
     if (m_leaderKey == key || !kLeaderKeys.contains(key))
         return;
     m_leaderKey = key;
-    m_store.setValue(kLeaderKey, key);
+    put(kLeaderKey, key);
     Q_EMIT keyboardChanged();
 }
 
@@ -239,7 +277,7 @@ void Settings::setLeaderTimeout(int ms)
     if (m_leaderTimeout == ms)
         return;
     m_leaderTimeout = ms;
-    m_store.setValue(kLeaderTimeout, ms);
+    put(kLeaderTimeout, ms);
     Q_EMIT keyboardChanged();
 }
 
@@ -248,7 +286,7 @@ void Settings::setMapApp(const QString &app)
     if (m_mapApp == app || !kMapApps.contains(app))
         return;
     m_mapApp = app;
-    m_store.setValue(kMapApp, app);
+    put(kMapApp, app);
     Q_EMIT placesChanged();
 }
 
@@ -257,7 +295,7 @@ void Settings::setSearchPlacesOnline(bool on)
     if (m_searchPlacesOnline == on)
         return;
     m_searchPlacesOnline = on;
-    m_store.setValue(kSearchPlaces, on);
+    put(kSearchPlaces, on);
     Q_EMIT placesChanged();
 }
 
@@ -266,7 +304,7 @@ void Settings::setDeveloperMode(bool on)
     if (m_developerMode == on)
         return;
     m_developerMode = on;
-    m_store.setValue(kDeveloperMode, on);
+    put(kDeveloperMode, on);
     Q_EMIT developerChanged();
 }
 
@@ -275,7 +313,7 @@ void Settings::setVerboseLogging(bool on)
     if (m_verboseLogging == on)
         return;
     m_verboseLogging = on;
-    m_store.setValue(kVerboseLogging, on);
+    put(kVerboseLogging, on);
     Q_EMIT developerChanged();
 }
 
@@ -284,7 +322,7 @@ void Settings::setShowWorkHours(bool show)
     if (m_showWorkHours == show)
         return;
     m_showWorkHours = show;
-    m_store.setValue(kShowWorkHours, show);
+    put(kShowWorkHours, show);
     Q_EMIT workHoursChanged();
 }
 
@@ -295,10 +333,10 @@ void Settings::setWorkStart(int minutes)
     if (m_workStart == minutes)
         return;
     m_workStart = minutes;
-    m_store.setValue(kWorkStart, minutes);
+    put(kWorkStart, minutes);
     if (m_workEnd < minutes + 30) {
         m_workEnd = minutes + 30;
-        m_store.setValue(kWorkEnd, m_workEnd);
+        put(kWorkEnd, m_workEnd);
     }
     Q_EMIT workHoursChanged();
 }
@@ -309,10 +347,10 @@ void Settings::setWorkEnd(int minutes)
     if (m_workEnd == minutes)
         return;
     m_workEnd = minutes;
-    m_store.setValue(kWorkEnd, minutes);
+    put(kWorkEnd, minutes);
     if (m_workStart > minutes - 30) {
         m_workStart = minutes - 30;
-        m_store.setValue(kWorkStart, m_workStart);
+        put(kWorkStart, m_workStart);
     }
     Q_EMIT workHoursChanged();
 }
@@ -322,7 +360,7 @@ void Settings::setWidenToday(bool widen)
     if (m_widenToday == widen)
         return;
     m_widenToday = widen;
-    m_store.setValue(kWidenToday, widen);
+    put(kWidenToday, widen);
     Q_EMIT widenTodayChanged();
 }
 
@@ -331,7 +369,7 @@ void Settings::setNewEventCalendar(const QString &id)
     if (m_newEventCalendar == id)
         return;
     m_newEventCalendar = id;
-    m_store.setValue(kNewEventCalendar, id);
+    put(kNewEventCalendar, id);
     Q_EMIT newEventCalendarChanged();
 }
 
@@ -341,7 +379,7 @@ void Settings::setVideoCallService(const QString &service)
     if (m_videoCallService == known)
         return;
     m_videoCallService = known;
-    m_store.setValue(kVideoCallService, known);
+    put(kVideoCallService, known);
     Q_EMIT videoCallsChanged();
 }
 
@@ -350,10 +388,10 @@ void Settings::addZoomAccount(const QString &email)
     if (email.isEmpty() || m_zoomAccounts.contains(email, Qt::CaseInsensitive))
         return;
     m_zoomAccounts << email;
-    m_store.setValue(kZoomAccounts, m_zoomAccounts);
+    put(kZoomAccounts, m_zoomAccounts);
     if (m_zoomDefault.isEmpty()) {
         m_zoomDefault = email;
-        m_store.setValue(kZoomDefault, email);
+        put(kZoomDefault, email);
     }
     Q_EMIT videoCallsChanged();
 }
@@ -362,10 +400,10 @@ void Settings::removeZoomAccount(const QString &email)
 {
     if (!m_zoomAccounts.removeOne(email))
         return;
-    m_store.setValue(kZoomAccounts, m_zoomAccounts);
+    put(kZoomAccounts, m_zoomAccounts);
     if (m_zoomDefault == email) {
         m_zoomDefault = m_zoomAccounts.value(0);
-        m_store.setValue(kZoomDefault, m_zoomDefault);
+        put(kZoomDefault, m_zoomDefault);
     }
     Q_EMIT videoCallsChanged();
 }
@@ -375,7 +413,7 @@ void Settings::setZoomDefault(const QString &email)
     if (m_zoomDefault == email || !m_zoomAccounts.contains(email))
         return;
     m_zoomDefault = email;
-    m_store.setValue(kZoomDefault, email);
+    put(kZoomDefault, email);
     Q_EMIT videoCallsChanged();
 }
 
@@ -384,7 +422,7 @@ void Settings::setDefaultCalendar(const QString &id)
     if (m_defaultCalendar == id)
         return;
     m_defaultCalendar = id;
-    m_store.setValue(kDefaultCalendar, id);
+    put(kDefaultCalendar, id);
     Q_EMIT defaultCalendarChanged();
 }
 
@@ -393,7 +431,7 @@ void Settings::setLastSeenVersion(const QString &version)
     if (m_lastSeenVersion == version)
         return;
     m_lastSeenVersion = version;
-    m_store.setValue(kLastSeenVersion, version);
+    put(kLastSeenVersion, version);
     Q_EMIT lastSeenVersionChanged();
 }
 
@@ -402,7 +440,7 @@ void Settings::setView(const QString &view)
     if (m_view == view || !kViews.contains(view))
         return;
     m_view = view;
-    m_store.setValue(kView, view);
+    put(kView, view);
     Q_EMIT viewChanged();
 }
 
@@ -411,7 +449,7 @@ void Settings::setCalendarVisible(const QString &id, bool visible)
     // A choice made counts as having seen the calendar, so seeding leaves it.
     if (!m_knownCalendars.contains(id)) {
         m_knownCalendars.append(id);
-        m_store.setValue(kKnownCalendars, m_knownCalendars);
+        put(kKnownCalendars, m_knownCalendars);
     }
     if (m_hiddenCalendars.contains(id) == !visible)
         return;
@@ -419,7 +457,7 @@ void Settings::setCalendarVisible(const QString &id, bool visible)
         m_hiddenCalendars.removeAll(id);
     else
         m_hiddenCalendars.append(id);
-    m_store.setValue(kHiddenCalendars, m_hiddenCalendars);
+    put(kHiddenCalendars, m_hiddenCalendars);
     Q_EMIT hiddenCalendarsChanged();
 }
 
@@ -438,9 +476,9 @@ void Settings::seedCalendars(const QList<CalendarInfo> &calendars)
         }
     }
     if (seen)
-        m_store.setValue(kKnownCalendars, m_knownCalendars);
+        put(kKnownCalendars, m_knownCalendars);
     if (hidden) {
-        m_store.setValue(kHiddenCalendars, m_hiddenCalendars);
+        put(kHiddenCalendars, m_hiddenCalendars);
         Q_EMIT hiddenCalendarsChanged();
     }
 }
@@ -457,7 +495,9 @@ void Settings::setTheme(const QString &idOrPath)
     if (m_theme == idOrPath)
         return;
     m_theme = idOrPath;
-    m_store.setValue(kTheme, idOrPath);
+    const QString relative = QFileInfo(m_store.fileName()).dir().relativeFilePath(idOrPath);
+    put(kTheme,
+        QDir::isAbsolutePath(idOrPath) && !relative.startsWith(u"../"_s) ? relative : idOrPath);
     Q_EMIT themeChanged();
 }
 
@@ -469,7 +509,7 @@ void Settings::setAccountCollapsed(const QString &account, bool collapsed)
         m_collapsedAccounts.append(account);
     else
         m_collapsedAccounts.removeAll(account);
-    m_store.setValue(kCollapsedAccounts, m_collapsedAccounts);
+    put(kCollapsedAccounts, m_collapsedAccounts);
     Q_EMIT collapsedAccountsChanged();
 }
 
@@ -489,7 +529,7 @@ void Settings::setNotify(bool notify)
     if (m_notify == notify)
         return;
     m_notify = notify;
-    m_store.setValue(kNotify, notify);
+    put(kNotify, notify);
     Q_EMIT notifyChanged();
 }
 
@@ -498,7 +538,7 @@ void Settings::setCallCard(bool show)
     if (m_callCard == show)
         return;
     m_callCard = show;
-    m_store.setValue(kCallCard, show);
+    put(kCallCard, show);
     Q_EMIT callCardChanged();
 }
 
@@ -508,7 +548,7 @@ void Settings::setReminderMinutes(int minutes)
     if (m_reminderMinutes == minutes)
         return;
     m_reminderMinutes = minutes;
-    m_store.setValue(kReminderMinutes, minutes);
+    put(kReminderMinutes, minutes);
     Q_EMIT reminderMinutesChanged();
 }
 
@@ -517,7 +557,7 @@ void Settings::setCheckForUpdates(bool check)
     if (m_checkForUpdates == check)
         return;
     m_checkForUpdates = check;
-    m_store.setValue(kCheckForUpdates, check);
+    put(kCheckForUpdates, check);
     Q_EMIT checkForUpdatesChanged();
 }
 
@@ -526,7 +566,7 @@ void Settings::setKeepRunning(bool keep)
     if (m_keepRunning == keep)
         return;
     m_keepRunning = keep;
-    m_store.setValue(kKeepRunning, keep);
+    put(kKeepRunning, keep);
     Q_EMIT keepRunningChanged();
 }
 
@@ -541,7 +581,7 @@ QStringList Settings::availableTimeZones()
 void Settings::seedFromGoogle(const QHash<QString, QString> &google)
 {
     const auto unset = [this, &google](const QString &ours, const QString &theirs) {
-        return !m_store.contains(ours) && google.contains(theirs);
+        return !has(ours) && google.contains(theirs);
     };
     const auto yes = [&google](const QString &id) { return google.value(id) == u"true"; };
     // Each is stored even when it matches Callie's default, so it counts as
@@ -550,20 +590,20 @@ void Settings::seedFromGoogle(const QHash<QString, QString> &google)
         // Google counts from Sunday as 0; Qt from Monday as 1.
         const int day = google.value(u"weekStart"_s).toInt();
         setWeekStart(day == 0 ? int(Qt::Sunday) : std::clamp(day, 1, 6));
-        m_store.setValue(kWeekStart, m_weekStart);
+        put(kWeekStart, m_weekStart);
     }
     if (unset(kHideWeekends, u"hideWeekends"_s)) {
         setHideWeekends(yes(u"hideWeekends"_s));
-        m_store.setValue(kHideWeekends, m_hideWeekends);
+        put(kHideWeekends, m_hideWeekends);
     }
     if (unset(kTimeFormat, u"format24HourTime"_s)) {
         setTimeFormat(yes(u"format24HourTime"_s) ? TimeFormat::TwentyFourHour
                                                  : TimeFormat::TwelveHour);
-        m_store.setValue(kTimeFormat, int(m_timeFormat));
+        put(kTimeFormat, int(m_timeFormat));
     }
     if (unset(kShowDeclined, u"showDeclinedEvents"_s)) {
         setShowDeclined(yes(u"showDeclinedEvents"_s));
-        m_store.setValue(kShowDeclined, m_showDeclined);
+        put(kShowDeclined, m_showDeclined);
     }
 }
 
@@ -581,7 +621,7 @@ void Settings::setCalendarName(const QString &id, const QString &name)
         m_calendarLooks.remove(id);
     else
         m_calendarLooks.insert(id, look);
-    m_store.setValue(kCalendarLooks, m_calendarLooks);
+    put(kCalendarLooks, m_calendarLooks);
     Q_EMIT calendarLooksChanged();
 }
 
@@ -599,7 +639,7 @@ void Settings::setCalendarColor(const QString &id, const QColor &color)
         m_calendarLooks.remove(id);
     else
         m_calendarLooks.insert(id, look);
-    m_store.setValue(kCalendarLooks, m_calendarLooks);
+    put(kCalendarLooks, m_calendarLooks);
     Q_EMIT calendarLooksChanged();
 }
 
@@ -607,7 +647,7 @@ void Settings::resetCalendarLook(const QString &id)
 {
     if (!m_calendarLooks.remove(id))
         return;
-    m_store.setValue(kCalendarLooks, m_calendarLooks);
+    put(kCalendarLooks, m_calendarLooks);
     Q_EMIT calendarLooksChanged();
 }
 
@@ -620,7 +660,7 @@ void Settings::setAccountName(const QString &account, const QString &name)
         m_accountNames.remove(account);
     else
         m_accountNames.insert(account, trimmed);
-    m_store.setValue(kAccountNames, m_accountNames);
+    put(kAccountNames, m_accountNames);
     Q_EMIT accountNamesChanged();
 }
 
@@ -632,7 +672,7 @@ void Settings::setAccountPhoto(const QString &account, const QUrl &photo)
         m_accountPhotos.remove(account);
     else
         m_accountPhotos.insert(account, photo);
-    m_store.setValue(kAccountPhotos, m_accountPhotos);
+    put(kAccountPhotos, m_accountPhotos);
     Q_EMIT accountPhotosChanged();
 }
 
@@ -644,6 +684,7 @@ QString Settings::accountName(const QString &account) const
 void Settings::reset()
 {
     m_store.clear();
+    m_local.clear();
     const TimeFormat format = m_timeFormat;
     const QString zone = m_timeZoneId;
     const bool declined = m_showDeclined, dim = m_dimPast, widen = m_widenToday;
@@ -673,13 +714,13 @@ void Settings::reset()
     // Photos are what Google says, not a choice, so they stay.
     m_accountPhotos = accountPhotos;
     if (!m_accountPhotos.isEmpty())
-        m_store.setValue(kAccountPhotos, m_accountPhotos);
+        put(kAccountPhotos, m_accountPhotos);
     // Connected Zoom accounts keep their sign-ins in the keyring, so they stay connected.
     m_zoomAccounts = zoomAccounts;
     m_zoomDefault = zoomDefault;
     if (!m_zoomAccounts.isEmpty()) {
-        m_store.setValue(kZoomAccounts, m_zoomAccounts);
-        m_store.setValue(kZoomDefault, m_zoomDefault);
+        put(kZoomAccounts, m_zoomAccounts);
+        put(kZoomDefault, m_zoomDefault);
     }
     if (format != m_timeFormat)
         Q_EMIT timeFormatChanged();
