@@ -51,8 +51,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 endif()
 
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui LinguistTools Qml Quick QuickControls2 Network
-             NetworkAuth Sql DBus)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Network NetworkAuth Sql DBus)
 qt_standard_project_setup(REQUIRES 6.8)
 
 # The built-in themes come from the core submodule, which a clone made without
@@ -80,17 +79,11 @@ add_subdirectory(src/gui)
 add_subdirectory(src/cli)
 add_subdirectory(src/gallery)
 
-# Every string the app and the command line show, from qsTr() and tr(), in translations/: the
-# English wording to edit, and any other language beside it. `make translations` reads them out
-# of the code again; calliecore carries them compiled, for both.
-# The command line's completion scripts are not code lupdate can read.
+# Every string the app, the command line and core show, in translations/, compiled into
+# calliecore for both. The command line's completion scripts are not code lupdate can read.
 set_property(TARGET callie PROPERTY QT_EXCLUDE_SOURCES_FROM_TRANSLATION
     "${PROJECT_SOURCE_DIR}/data/completions/*")
-qt_add_translations(calliecore
-    SOURCE_TARGETS calliecore callieui calliecli callie callie-gui
-    TS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/translations/callie_en.ts
-    RESOURCE_PREFIX /i18n
-    LUPDATE_OPTIONS -locations none -no-obsolete)
+greylock_add_translations(calliecore SOURCE_TARGETS calliecore callieui calliecli callie callie-gui)
 add_subdirectory(data)
 
 # Built-in themes are compiled in; installed copies are a starting point for

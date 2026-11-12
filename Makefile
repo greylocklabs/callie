@@ -18,8 +18,3 @@ DEBIAN_DEPS := build-essential cmake ninja-build qt6-base-dev qt6-declarative-de
 	libkf6calendarcore-dev libftxui-dev qt6-tools-dev qt6-l10n-tools clang-format entr nodejs npm
 
 include core/tooling/common.mk
-
-.PHONY: translations
-translations: ## Read the strings in the code into translations/callie_en.ts again
-	@$(GENTLY) cmake --preset dev >/dev/null
-	@$(GENTLY) cmake --build --preset dev --target update_translations
