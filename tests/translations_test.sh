@@ -22,6 +22,9 @@ cp "$words" "$work/callie_en.ts"
 # cmake compares the files, as diff is not on every system that builds Callie.
 if ! "$cmake" -E compare_files "$words" "$work/callie_en.ts"; then
     echo "translations/callie_en.ts is out of date with the code; run make translations" >&2
+    if command -v diff >/dev/null; then
+        diff "$words" "$work/callie_en.ts" | head -40 >&2
+    fi
     exit 1
 fi
 echo "translations/callie_en.ts matches the code"
