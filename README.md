@@ -124,6 +124,12 @@ a `.yaml` file, makes a Callie theme from its colors.
 one run, as does the `CALLIE_THEME` environment variable. A theme loaded from a file updates the
 running app as soon as you save it.
 
+Preferences live in `$XDG_CONFIG_HOME/callie/settings.ini`, which can be copied or synced to another
+computer as it is. What belongs to this computer goes in `local.ini` beside it: hidden calendars,
+the names and colors you gave calendars and accounts, folded accounts, the calendar new events go
+into, connected Zoom accounts, the last view shown, and the last version run. Signed-in accounts
+are in `accounts.json`, and their sign-ins in the system keyring.
+
 ### The `callie` CLI
 
 ```sh

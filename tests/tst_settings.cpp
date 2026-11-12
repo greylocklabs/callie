@@ -1,5 +1,6 @@
 #include "callie/Settings.h"
 
+#include <QDir>
 #include <QFile>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -36,6 +37,8 @@ private Q_SLOTS:
     void timesAreReplacedOnChange();
     void gridTimesAreWallClock();
     void shiftsKeepTheWallClock();
+    void machineSettingsStayOutOfSettingsIni();
+    void themesInTheFolderTravelWithIt();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -513,6 +516,62 @@ void TestSettings::shiftsKeepTheWallClock()
     QCOMPARE(times.shiftWithinDay(evening, 60, 23 * 60 + 45), 60);
     QCOMPARE(times.shiftWithinDay(evening, 180, 23 * 60 + 45), 105);
     QCOMPARE(times.shiftWithinDay(evening, -24 * 60, 23 * 60 + 45), -22 * 60);
+}
+
+void TestSettings::machineSettingsStayOutOfSettingsIni()
+{
+    {
+        Settings settings(path());
+        settings.setWeekStart(1);
+        settings.setTheme(u"paper"_s);
+        settings.setCalendarVisible(u"google:me@example.com/work"_s, false);
+        settings.setAccountName(u"me@example.com"_s, u"Work"_s);
+        settings.setDefaultCalendar(u"google:me@example.com/work"_s);
+        settings.setLastSeenVersion(u"0.7.3"_s);
+        settings.setView(u"month"_s);
+        settings.addZoomAccount(u"me@example.com"_s);
+    }
+    QFile portable(path());
+    QVERIFY(portable.open(QIODevice::ReadOnly));
+    const QByteArray shared = portable.readAll();
+    QVERIFY(shared.contains("start=1"));
+    QVERIFY(shared.contains("theme=paper"));
+    QVERIFY2(!shared.contains("example.com") && !shared.contains("0.7.3") &&
+                 !shared.contains("month"),
+             shared.constData());
+
+    QFile local(QFileInfo(path()).dir().filePath(u"local.ini"_s));
+    QVERIFY(local.open(QIODevice::ReadOnly));
+    QVERIFY(local.readAll().contains("me@example.com"));
+
+    // Either file alone gives back only its own part.
+    QVERIFY(QFile::remove(local.fileName()));
+    const Settings copied(path());
+    QCOMPARE(copied.weekStart(), 1);
+    QCOMPARE(copied.theme(), u"paper"_s);
+    QVERIFY(copied.hiddenCalendars().isEmpty());
+    QVERIFY(copied.lastSeenVersion().isEmpty());
+    QVERIFY(copied.zoomAccounts().isEmpty());
+}
+
+void TestSettings::themesInTheFolderTravelWithIt()
+{
+    const QDir folder = QFileInfo(path()).dir();
+    const QString mine = folder.filePath(u"themes/mine.toml"_s);
+    {
+        Settings settings(path());
+        settings.setTheme(mine);
+        QCOMPARE(settings.theme(), mine);
+    }
+    QFile file(path());
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QVERIFY(file.readAll().contains("theme=themes/mine.toml"));
+    file.close();
+    QCOMPARE(Settings(path()).theme(), mine);
+
+    // A theme elsewhere keeps its whole path.
+    Settings(path()).setTheme(u"/somewhere/else.toml"_s);
+    QCOMPARE(Settings(path()).theme(), u"/somewhere/else.toml"_s);
 }
 
 QTEST_GUILESS_MAIN(TestSettings)

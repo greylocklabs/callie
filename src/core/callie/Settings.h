@@ -16,6 +16,8 @@ namespace callie {
 
 /// The user's preferences, kept as INI in the config directory and shared by
 /// the app's views. Every setter saves at once and emits only on change.
+/// settings.ini holds what could go to another computer as it is; local.ini, beside it, holds
+/// what names this computer's accounts and calendars, or records what it last did.
 class Settings : public QObject
 {
     Q_OBJECT
@@ -100,6 +102,7 @@ public:
     enum class TimeFormat { Locale, TwentyFourHour, TwelveHour };
     Q_ENUM(TimeFormat)
 
+    /// `path` is settings.ini; local.ini goes in the same folder.
     explicit Settings(const QString &path, QObject *parent = nullptr);
 
     /// `$XDG_CONFIG_HOME/callie/settings.ini`
@@ -274,8 +277,14 @@ Q_SIGNALS:
 private:
     void load();
     void rebuildTimes();
+    QSettings &storeFor(const QString &key);
+    const QSettings &storeFor(const QString &key) const;
+    void put(const QString &key, const QVariant &value);
+    QVariant get(const QString &key, const QVariant &fallback = {}) const;
+    bool has(const QString &key) const;
 
     QSettings m_store;
+    QSettings m_local;
     TimeFormat m_timeFormat = TimeFormat::Locale;
     QString m_timeZoneId;
     bool m_showDeclined = true;
