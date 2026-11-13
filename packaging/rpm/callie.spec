@@ -1,5 +1,5 @@
 Name:           callie
-Version:        0.7.4
+Version:        0.7.5
 Release:        1%{?dist}
 Summary:        An elegant calendar for Linux
 
@@ -67,6 +67,9 @@ appstream-util validate-relax --nonet \
 %{_datadir}/callie/
 
 %changelog
+* Fri Nov 13 2026 Lara Kelley <hello@greylocklabs.org> - 0.7.5-1
+- Update to 0.7.5
+
 * Thu Nov 12 2026 Lara Kelley <hello@greylocklabs.org> - 0.7.4-1
 - Update to 0.7.4
 
