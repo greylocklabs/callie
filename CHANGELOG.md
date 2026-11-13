@@ -3,6 +3,12 @@
 What changed in each version of Callie, for the people using it. Notes collect under Unreleased
 as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md).
 
+## Unreleased
+
+### Fixed
+
+- The sync button's arrow glyph has been improved visually.
+
 ## 0.7.4 - 2026-11-12
 
 ### Changed
