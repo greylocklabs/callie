@@ -1,7 +1,7 @@
 #include "Tui.h"
 
-#include "Palette.h"
 #include "TuiState.h"
+#include "greylock/cli/Palette.h"
 
 #include "callie/Settings.h"
 #include "callie/Times.h"

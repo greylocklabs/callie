@@ -4,14 +4,6 @@ add_library(calliecli STATIC
     Commands.cpp
     Completion.h
     Completion.cpp
-    Paint.h
-    Paint.cpp
-    Palette.h
-    Palette.cpp
-    UpdateHint.h
-    UpdateHint.cpp
-    Upgrade.h
-    Upgrade.cpp
 )
 target_include_directories(calliecli PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(calliecli PUBLIC Qt6::Core calliecore)

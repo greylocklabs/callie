@@ -54,7 +54,7 @@ appstream-util validate-relax --nonet \
     %{buildroot}%{_datadir}/metainfo/org.callieapp.Callie.metainfo.xml
 
 %files
-%license LICENSE data/fonts/Nunito-OFL.txt data/fonts/Fraunces-OFL.txt
+%license LICENSE core/fonts/Nunito-OFL.txt core/fonts/Fraunces-OFL.txt
 %doc README.md
 %{_bindir}/callie
 %{_bindir}/callie-gui

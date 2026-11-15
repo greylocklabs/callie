@@ -97,12 +97,8 @@ add_library(calliecore STATIC
     Event.cpp
     callie/Logging.h
     Logging.cpp
-    callie/LogFile.h
-    LogFile.cpp
     callie/Diagnostics.h
     Diagnostics.cpp
-    callie/ProblemReport.h
-    ProblemReport.cpp
     callie/CalendarSource.h
     callie/SampleSource.h
     SampleSource.cpp
@@ -219,10 +215,10 @@ qt_add_resources(calliecore "callie_assets"
 # They live in the core because the sign-in page inlines them too.
 qt_add_resources(calliecore "callie_fonts"
     PREFIX "/callie/fonts"
-    BASE "${PROJECT_SOURCE_DIR}/data/fonts"
+    BASE "${PROJECT_SOURCE_DIR}/core/fonts"
     FILES
-        "${PROJECT_SOURCE_DIR}/data/fonts/Nunito-Variable.ttf"
-        "${PROJECT_SOURCE_DIR}/data/fonts/Fraunces-Variable.ttf"
+        "${PROJECT_SOURCE_DIR}/core/fonts/Nunito-Variable.ttf"
+        "${PROJECT_SOURCE_DIR}/core/fonts/Fraunces-Variable.ttf"
 )
 
 # The QML module in src/ui exposes EventModel as a foreign type. Its registrar

@@ -1,6 +1,6 @@
-#include "Palette.h"
 #include "Tui.h"
 #include "TuiState.h"
+#include "greylock/cli/Palette.h"
 
 #include "callie/QueuedSource.h"
 #include "callie/SampleSource.h"

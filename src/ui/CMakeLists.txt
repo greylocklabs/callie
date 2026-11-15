@@ -35,13 +35,11 @@ qt_add_qml_module(callieui
         PlaceSearch.h
         PlaceSearch.cpp
         EventModelForeign.h
-        LiveQml.h
         Reminders.h
         Reminders.cpp
         CallOffer.h
         CallOffer.cpp
         StartAtLoginSetting.h
-        LiveQml.cpp
         SupportActions.h
         SupportActions.cpp
         ReleaseInfo.h
@@ -131,6 +129,7 @@ target_include_directories(callieui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(callieui
     PUBLIC
+        greylock::ui
         Qt6::Quick
         Qt6::DBus
         calliecore
