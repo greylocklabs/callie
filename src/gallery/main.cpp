@@ -1,7 +1,7 @@
-#include "LiveQml.h"
 #include "ThemeController.h"
 
-#include "callie/LogFile.h"
+#include "greylock/LogFile.h"
+#include "greylock/ui/LiveQml.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     parser.addOption(liveOption);
 #endif
     parser.process(app);
-    callie::logfile::install(QStringLiteral("callie-gallery"));
+    greylock::logfile::install(QStringLiteral("callie-gallery"));
 
     if (const QString theme = parser.value(themeOption); !theme.isEmpty()) {
         const QStringList errors = callie::ThemeController::instance()->load(theme);
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     bool live = false;
 #ifdef CALLIE_LIVE_QML
     // A QML mistake while editing should wait for the fix, not end the session.
-    callie::LiveQml liveQml(
+    greylock::LiveQml liveQml(
         engine,
         {{QStringLiteral("Callie.Ui"), QStringLiteral(CALLIE_SOURCE_DIR "/src/ui"),
           QStringLiteral(CALLIE_BINARY_DIR "/Callie/Ui")},

@@ -26,6 +26,7 @@
 
 using namespace callie;
 using namespace callie::cli;
+using namespace greylock::cli;
 using namespace Qt::StringLiterals;
 
 namespace {

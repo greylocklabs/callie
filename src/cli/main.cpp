@@ -15,7 +15,6 @@
 #include "callie/GraphApi.h"
 #include "callie/Ics.h"
 #include "callie/LocalCalendars.h"
-#include "callie/LogFile.h"
 #include "callie/MicrosoftAuth.h"
 #include "callie/MicrosoftSource.h"
 #include "callie/MicrosoftTokenProvider.h"
@@ -26,9 +25,15 @@
 #include "callie/Times.h"
 #include "callie/TokenStore.h"
 #include "callie/Zoom.h"
+#include "greylock/Issues.h"
+#include "greylock/LogFile.h"
 #include "greylock/Releases.h"
 #include "greylock/Translations.h"
 #include "greylock/UpdateCheck.h"
+#include "greylock/cli/Paint.h"
+#include "greylock/cli/Palette.h"
+#include "greylock/cli/UpdateHint.h"
+#include "greylock/cli/Upgrade.h"
 
 #include "Commands.h"
 #include "Completion.h"
@@ -36,8 +41,6 @@
 #include "Tui.h"
 #include "TuiState.h"
 #endif
-#include "UpdateHint.h"
-#include "Upgrade.h"
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -82,14 +85,14 @@ QString themeFor(const Settings &settings)
 }
 
 /// Colors from the user's theme when stdout is a terminal.
-const cli::Paint &paint()
+const greylock::cli::Paint &paint()
 {
-    static const cli::Paint paint = [] {
-        const cli::Paint::Depth depth = cli::Paint::detect(STDOUT_FILENO);
-        if (depth == cli::Paint::Depth::None)
-            return cli::Paint();
-        return cli::Paint(depth,
-                          cli::Palette::forTheme(themeFor(Settings(Settings::defaultPath()))));
+    static const greylock::cli::Paint paint = [] {
+        const greylock::cli::Paint::Depth depth = greylock::cli::Paint::detect(STDOUT_FILENO);
+        if (depth == greylock::cli::Paint::Depth::None)
+            return greylock::cli::Paint();
+        return greylock::cli::Paint(
+            depth, greylock::cli::Palette::forTheme(themeFor(Settings(Settings::defaultPath()))));
     }();
     return paint;
 }
@@ -154,7 +157,7 @@ public:
     ~HintAfterwards()
     {
         greylock::UpdateCheck check;
-        const cli::UpdateHint hint = cli::UpdateHint::after(
+        const greylock::cli::UpdateHint hint = greylock::cli::UpdateHint::after(
             m_command, m_json, ::isatty(STDERR_FILENO),
             Settings(Settings::defaultPath()).checkForUpdates(), check,
             QVersionNumber::fromString(QCoreApplication::applicationVersion()));
@@ -412,7 +415,8 @@ int runStatus(QCoreApplication &app)
     const bool client = GoogleClientConfig::resolve().isValid();
     out << bold(QObject::tr("Google OAuth client").leftJustified(21))
         << (client ? QObject::tr("configured") : warn(QObject::tr("not configured"))) << "\n";
-    out << bold(QObject::tr("Logs").leftJustified(21)) << logfile::defaultDirectory() << "\n";
+    out << bold(QObject::tr("Logs").leftJustified(21)) << greylock::logfile::defaultDirectory()
+        << "\n";
     out << bold(QObject::tr("Cache").leftJustified(21)) << GoogleCache::defaultPath() << "\n";
 
     AccountStore store(AccountStore::defaultPath());
@@ -473,7 +477,7 @@ int runDoctor(QCoreApplication &app, bool report)
         diagnostics::collect(tokens, {}, [report](const QString &text) {
             out << text << "\n";
             if (report) {
-                const QString url = diagnostics::issueUrl(text).toString(QUrl::FullyEncoded);
+                const QString url = greylock::issues::newBug(text).toString(QUrl::FullyEncoded);
                 // Over SSH or without a desktop nothing opens, so the link is always shown.
                 if (QProcess::startDetached(QStringLiteral("xdg-open"), {url}))
                     err << QObject::tr("Opening a new issue in your browser. If it does not "
@@ -507,7 +511,7 @@ int runDonate(bool print)
 /// The log files, one path per line, newest first; or follows or opens them.
 int runLogs(bool follow, bool open)
 {
-    const QString directory = logfile::defaultDirectory();
+    const QString directory = greylock::logfile::defaultDirectory();
     if (open)
         return QProcess::execute(QStringLiteral("xdg-open"), {directory}) == 0 ? 0 : 1;
 
@@ -1058,7 +1062,8 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
         queued.setNow(now);
         cli::TuiState state(queued, settings, now);
         queued.refresh();
-        const int code = cli::runTui(state, settings, cli::Palette::forTheme(themeFor(settings)));
+        const int code =
+            cli::runTui(state, settings, greylock::cli::Palette::forTheme(themeFor(settings)));
         // What is still held goes now, given a moment to arrive. A change the
         // calendar turns down is dropped, so it is reported here.
         QStringList refused;
@@ -1330,9 +1335,9 @@ int main(int argc, char *argv[])
     }
 
     parser.process(app);
-    logfile::install(QStringLiteral("callie"));
-    logfile::setVerboseTerminal(parser.isSet(verboseOption) ||
-                                !qEnvironmentVariableIsEmpty("QT_LOGGING_RULES"));
+    greylock::logfile::install(QStringLiteral("callie"));
+    greylock::logfile::setVerboseTerminal(parser.isSet(verboseOption) ||
+                                          !qEnvironmentVariableIsEmpty("QT_LOGGING_RULES"));
 
     const QStringList args = parser.positionalArguments();
     // On its own in a terminal, `callie` opens the TUI; piped, asked for the
@@ -1405,8 +1410,10 @@ int main(int argc, char *argv[])
         return runSync(app);
 
     if ((command == u"upgrade" || command == u"downgrade") && args.size() <= 2) {
-        cli::Upgrade upgrade(out, err);
-        cli::Upgrade::Options options;
+        greylock::cli::Upgrade upgrade(out, err);
+        upgrade.setInstallCommand(
+            QStringLiteral("curl -fsSL https://callieapp.org/install.sh | sh"));
+        greylock::cli::Upgrade::Options options;
         options.downgrade = command == u"downgrade";
         if (args.size() == 2)
             options.version = args.at(1);

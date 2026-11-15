@@ -6,9 +6,13 @@ namespace callie {
 class Settings;
 }
 
+namespace greylock::cli {
+class Palette;
+}
+
 namespace callie::cli {
 
-class Palette;
+using Palette = greylock::cli::Palette;
 class TuiState;
 
 /// Runs the TUI until it is quit, and gives the exit code.

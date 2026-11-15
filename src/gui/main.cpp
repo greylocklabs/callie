@@ -3,7 +3,6 @@
 #include "EventModelForeign.h"
 #include "ExportController.h"
 #include "ImportController.h"
-#include "LiveQml.h"
 #include "LocalController.h"
 #include "PlaceSearch.h"
 #include "ReleaseInfo.h"
@@ -24,7 +23,6 @@
 #include "callie/GoogleTokenProvider.h"
 #include "callie/GraphApi.h"
 #include "callie/LocalCalendars.h"
-#include "callie/LogFile.h"
 #include "callie/Logging.h"
 #include "callie/LookedSource.h"
 #include "callie/MicrosoftSource.h"
@@ -38,11 +36,13 @@
 #include "greylock/Autostart.h"
 #include "greylock/Desktop.h"
 #include "greylock/Identity.h"
+#include "greylock/LogFile.h"
 #include "greylock/Notifications.h"
 #include "greylock/SingleInstance.h"
 #include "greylock/Translations.h"
 #include "greylock/Tray.h"
 #include "greylock/UpdateCheck.h"
+#include "greylock/ui/LiveQml.h"
 
 #include <QCommandLineParser>
 #include <QDir>
@@ -153,7 +153,7 @@ int main(int argc, char *argv[])
             return 2;
         }
     }
-    callie::logfile::install(QStringLiteral("callie-gui"));
+    greylock::logfile::install(QStringLiteral("callie-gui"));
 
     // Sample data and screenshots run beside a real Callie; anything else
     // hands over to the one already running.
@@ -178,9 +178,9 @@ int main(int argc, char *argv[])
         settings.setView(parser.value(viewOption));
     callie::SettingsForeign::s_instance = &settings;
     // Debug lines on request, from the developer settings.
-    callie::logfile::setDebug(settings.verboseLogging());
+    greylock::logfile::setDebug(settings.verboseLogging());
     QObject::connect(&settings, &callie::Settings::developerChanged, &settings,
-                     [&settings] { callie::logfile::setDebug(settings.verboseLogging()); });
+                     [&settings] { greylock::logfile::setDebug(settings.verboseLogging()); });
 
     QTextStream err(stderr);
     if (const QString theme = parser.value(themeOption); !theme.isEmpty()) {
@@ -413,7 +413,7 @@ int main(int argc, char *argv[])
     bool live = false;
 #ifdef CALLIE_LIVE_QML
     // A QML mistake while editing should wait for the fix, not end the session.
-    callie::LiveQml liveQml(
+    greylock::LiveQml liveQml(
         engine,
         {{QStringLiteral("Callie.Ui"), QStringLiteral(CALLIE_SOURCE_DIR "/src/ui"),
           QStringLiteral(CALLIE_BINARY_DIR "/Callie/Ui")}},

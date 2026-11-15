@@ -52,6 +52,6 @@ check() {
 package() {
   DESTDIR="$pkgdir" cmake --install build
   cd "$pkgname-$pkgver"
-  install -Dm644 LICENSE data/fonts/Nunito-OFL.txt data/fonts/Fraunces-OFL.txt \
+  install -Dm644 LICENSE core/fonts/Nunito-OFL.txt core/fonts/Fraunces-OFL.txt \
     -t "$pkgdir/usr/share/licenses/$pkgname/"
 }

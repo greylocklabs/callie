@@ -1537,10 +1537,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: Callie %1 is out, and this is %2. Update with: callie upgrade</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>all day</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2040,6 +2036,10 @@
     </message>
     <message>
         <source>could not delete %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1: %2 %3 is out, and this is %4. Update with: %1 upgrade</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3682,21 +3682,6 @@
     </message>
 </context>
 <context>
-    <name>callie::LiveQml</name>
-    <message>
-        <source>could not create a temporary folder</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>could not create %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>could not copy %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>callie::LocalCalendars</name>
     <message>
         <source>A calendar needs a name.</source>
@@ -4119,21 +4104,36 @@
     </message>
 </context>
 <context>
-    <name>callie::cli::Upgrade</name>
+    <name>greylock::StartAtLogin</name>
     <message>
-        <source>callie: this is a development build; update it with git pull and make</source>
+        <source>the desktop could not be asked: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: Callie came from Flathub; update it with: flatpak update %1</source>
+        <source>the desktop did not allow %1 to start at login</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>greylock::cli::Upgrade</name>
+    <message>
+        <source>this is a development build; update it with git pull and make</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: %1, so there is no package to install.</source>
+        <source>%1 came from Flathub; update it with: flatpak update %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: Callie is not installed from a package here. Install it with:</source>
+        <source>%1, so there is no package to install.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 is not installed from a package here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Install it with:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4145,47 +4145,47 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: there is no release older than %1.</source>
+        <source>there is no release older than %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: GitHub has no such release.</source>
+        <source>GitHub has no such release.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Callie %1 is installed and up to date.</source>
+        <source>%1 %2 is installed and up to date.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: %1 is newer than the installed %2; run: callie upgrade %1</source>
+        <source>%1 is newer than the installed %2; run: %3 upgrade %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: %1 is older than the installed %2; run: callie downgrade %1</source>
+        <source>%1 is older than the installed %2; run: %3 downgrade %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Callie %1 is installed, newer than the latest release, %2.</source>
+        <source>%1 %2 is installed, newer than the latest release, %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: release %1 has no package for %2.</source>
+        <source>release %1 has no package for %2.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: GitHub gave no checksum for %1, so it cannot be checked.</source>
+        <source>GitHub gave no checksum for %1, so it cannot be checked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Installing Callie %1 again.</source>
+        <source>Installing %1 %2 again.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Going back from Callie %1 to %2.</source>
+        <source>Going back from %1 %2 to %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Updating Callie %1 to %2.</source>
+        <source>Updating %1 %2 to %3.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4205,38 +4205,27 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: %1 does not match its checksum, so it was not installed.</source>
+        <source>%1 does not match its checksum, so it was not installed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: could not save %1: %2</source>
+        <source>could not save %1: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: this did not work: %1</source>
+        <source>this did not work: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Callie %1 is installed. If the app is open, quit it and open it again to use it.</source>
+        <source>%1 %2 is installed. If the app is open, quit it and open it again to use it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: GitHub has no %1.</source>
+        <source>GitHub has no %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>callie: could not get %1 from GitHub: %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>greylock::StartAtLogin</name>
-    <message>
-        <source>the desktop could not be asked: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>the desktop did not allow %1 to start at login</source>
+        <source>could not get %1 from GitHub: %2</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

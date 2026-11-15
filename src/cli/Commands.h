@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Paint.h"
+#include "greylock/cli/Paint.h"
 
 #include "callie/CalendarSource.h"
 
@@ -57,7 +57,7 @@ public:
              QDateTime now, QTimeZone zone);
 
     /// Colors for a terminal; output is plain without them.
-    void setPaint(const Paint &paint) { m_paint = paint; }
+    void setPaint(const greylock::cli::Paint &paint) { m_paint = paint; }
     /// Zoom, for --video when Zoom makes the meetings; without it, the calendar's own call.
     void setZoom(Zoom *zoom) { m_zoom = zoom; }
 
@@ -136,7 +136,7 @@ private:
     QTextStream &m_err;
     QDateTime m_now;
     QTimeZone m_zone;
-    Paint m_paint;
+    greylock::cli::Paint m_paint;
     Zoom *m_zoom = nullptr;
 };
 
