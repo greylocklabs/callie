@@ -74,6 +74,7 @@ private Q_SLOTS:
     void movesAnEventKeepingItsLength();
     void copiesAndDuplicatesEvents();
     void onlyChangesWhatCanBeChanged();
+    void anEventMovedOutOfViewClosesItsFields();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -682,6 +683,28 @@ void TestTui::onlyChangesWhatCanBeChanged()
     state.press(u"e"_s);
     QCOMPARE(state.mode(), TuiState::Mode::Details);
     QVERIFY(state.messageIsError());
+}
+
+void TestTui::anEventMovedOutOfViewClosesItsFields()
+{
+    // From its details, a new start in another week takes the event out of what is shown; the
+    // fields close, rather than going back to the details of whatever is selected then.
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"e"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    m_state->press(u"j"_s);
+    m_state->press(u"j"_s);
+    QCOMPARE(m_state->field(), TuiState::Field::Starts);
+    m_state->press(u"Enter"_s);
+    retype(u"2026-11-20 10:00"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(!m_state->messageIsError());
+    QVERIFY(!shown(u"Dentist"_s));
+    QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
+    const QStringList before = summaries();
+    m_state->press(u"x"_s);
+    QCOMPARE(summaries(), before);
 }
 
 QTEST_GUILESS_MAIN(TestTui)

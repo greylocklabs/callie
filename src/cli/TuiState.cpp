@@ -105,6 +105,12 @@ void TuiState::reload()
     // declining it with declined events hidden, they close rather than move on.
     if (m_selected < 0 && m_mode == Mode::Details)
         m_mode = Mode::Browse;
+    // The fields too, as when a new start moves the event out of what is shown, so no key that
+    // follows acts on another event.
+    const bool fields =
+        m_mode == Mode::Editing || (m_mode == Mode::Typing && m_typing == Typing::Field);
+    if (fields && !editing())
+        m_mode = Mode::Browse;
     if (m_selected < 0 && !m_events.isEmpty())
         m_selected = 0;
     Q_EMIT changed();
@@ -407,7 +413,7 @@ void TuiState::submit()
         m_mode = Mode::Editing;
         const std::optional<Event> event = editing();
         if (!event) {
-            m_mode = m_editingFrom;
+            m_mode = Mode::Browse;
             Q_EMIT changed();
             return;
         }
@@ -533,7 +539,12 @@ void TuiState::say(const QString &message, bool error)
 bool TuiState::pressEditing(const QString &key)
 {
     const std::optional<Event> event = editing();
-    if (!event || key == u"Escape" || key == u"q") {
+    if (!event) {
+        m_mode = Mode::Browse;
+        Q_EMIT changed();
+        return true;
+    }
+    if (key == u"Escape" || key == u"q") {
         m_mode = m_editingFrom;
         Q_EMIT changed();
         return true;
