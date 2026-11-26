@@ -1,6 +1,6 @@
 # Maintainer: Lara Kelley <hello@greylocklabs.org>
 pkgname=callie-git
-pkgver=0.5.2.r0.g0000000
+pkgver=0.7.5.r0.g0000000
 pkgrel=1
 pkgdesc='An elegant calendar for Linux (from main)'
 arch=(x86_64)
@@ -10,8 +10,9 @@ depends=(gcc-libs glibc hicolor-icon-theme kcalendarcore qt6-base qt6-declarativ
          qt6-networkauth qtkeychain-qt6 tomlplusplus)
 # Arch has no FTXUI for the TUI, so a static one is built alongside.
 _ftxui=7.0.3
-# Callie's Google OAuth client, filled in on the AUR's copy only. Empty, Google
-# accounts need a client set at runtime.
+# Callie's Google OAuth client. Empty, as the AUR has it, Google accounts need a
+# client set at runtime; the release workflow's own build takes it from the
+# environment, as the rpm and deb do.
 _google_client_id=''
 _google_client_secret=''
 makedepends=(cmake git ninja qt6-tools)
