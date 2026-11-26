@@ -1645,6 +1645,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>t this event   a all events   Esc cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>y delete   n keep</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Enter switch   j k fields   u take back   Esc back</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4136,6 +4144,18 @@
     </message>
     <message>
         <source>That did not work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete %1, which repeats:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete %1?</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Answer %1, which repeats:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

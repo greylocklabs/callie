@@ -377,6 +377,9 @@ QString keysFor(const TuiState &state)
         keys << QObject::tr("Esc back");
         return keys.join(u"   "_s);
     }
+    case TuiState::Mode::Confirming:
+        return state.askingScope() ? QObject::tr("t this event   a all events   Esc cancel")
+                                   : QObject::tr("y delete   n keep");
     case TuiState::Mode::Editing:
         return state.field() == TuiState::Field::AllDay
                    ? QObject::tr("Enter switch   j k fields   u take back   Esc back")
@@ -404,6 +407,8 @@ Element footer(const TuiState &state, const Look &look)
     if (!state.message().isEmpty())
         left = label(state.message()) |
                color(rgb(state.messageIsError() ? look.c.danger : look.c.accent));
+    if (state.mode() == TuiState::Mode::Confirming)
+        left = label(state.question()) | bold | color(rgb(look.c.danger));
     if (state.pending() == u"leader")
         left = label(QObject::tr("d day   w week   a agenda")) | color(rgb(look.c.accent));
     if (state.mode() == TuiState::Mode::Typing) {
@@ -464,12 +469,15 @@ Element render(const TuiState &state, const Look &look)
     const bool editing =
         state.mode() == TuiState::Mode::Editing ||
         (state.mode() == TuiState::Mode::Typing && state.typing() == TuiState::Typing::Field);
-    Element body = editing                                   ? editView(state, look)
-                   : state.mode() == TuiState::Mode::Details ? detailsView(state, look)
-                   : state.mode() == TuiState::Mode::Found   ? foundView(state, look)
-                   : state.view() == TuiState::View::Week    ? weekView(state, look)
-                   : state.view() == TuiState::View::Agenda  ? agendaView(state, look)
-                                                             : dayView(state, look);
+    // The details stay in view while a question about the event is asked.
+    const bool details =
+        state.mode() == TuiState::Mode::Details || state.mode() == TuiState::Mode::Confirming;
+    Element body = editing                                  ? editView(state, look)
+                   : details                                ? detailsView(state, look)
+                   : state.mode() == TuiState::Mode::Found  ? foundView(state, look)
+                   : state.view() == TuiState::View::Week   ? weekView(state, look)
+                   : state.view() == TuiState::View::Agenda ? agendaView(state, look)
+                                                            : dayView(state, look);
     Element page = vbox({header(state, look), separatorLight() | color(rgb(look.c.hairline)),
                          body | yframe | flex, footer(state, look)});
     Element screen = hbox({text(" "), page | flex, text(" ")}) | color(rgb(look.c.text)) |

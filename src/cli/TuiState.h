@@ -28,8 +28,9 @@ class TuiState : public QObject
 public:
     enum class View { Day, Week, Agenda };
     /// What keys go to: moving around, an event's details, a line being
-    /// typed, a list of found events, the calendars, or an event's fields to change.
-    enum class Mode { Browse, Details, Typing, Found, Calendars, Editing };
+    /// typed, a list of found events, the calendars, an event's fields to change,
+    /// or a question before deleting or answering.
+    enum class Mode { Browse, Details, Typing, Found, Calendars, Editing, Confirming };
     /// What a line being typed is for: a new event, a search, a field of the
     /// event being changed, or where to move it.
     enum class Typing { NewEvent, Search, Field, Move };
@@ -74,6 +75,11 @@ public:
     [[nodiscard]] static QString fieldName(Field field);
     /// `field` of `event` as it is shown, and as it is typed to change it.
     [[nodiscard]] QString fieldValue(const Event &event, Field field) const;
+    /// While confirming: what is asked, and whether it asks about one occurrence or the series.
+    [[nodiscard]] QString question() const;
+    [[nodiscard]] bool askingScope() const { return m_askScope; }
+    /// Whether `event` is one occurrence of a series, so a change may be to it or to all.
+    [[nodiscard]] static bool repeats(const Event &event);
     /// What the last action did, or why it could not.
     [[nodiscard]] QString message() const { return m_message; }
     [[nodiscard]] bool messageIsError() const { return m_messageIsError; }
@@ -105,6 +111,9 @@ private:
     bool pressFound(const QString &key);
     bool pressCalendars(const QString &key);
     bool pressEditing(const QString &key);
+    bool pressConfirming(const QString &key);
+    /// Asks before deleting `event`, or answering it with `answer`, then does it.
+    void confirm(const Event &event, const QString &answer);
     /// Lists the fields of `event` to change, if it can be changed here.
     bool startEditing(const Event &event);
     /// Changes the event being edited, or `event`, as `options` says.
@@ -150,6 +159,11 @@ private:
     Mode m_editingFrom = Mode::Browse;
     /// The event copied with y, for p.
     std::optional<Event> m_copied;
+    /// What is being confirmed: the event, the answer ("" to delete it), and whether to ask
+    /// this or all.
+    std::optional<Event> m_confirming;
+    QString m_answer;
+    bool m_askScope = false;
 };
 
 } // namespace callie::cli
