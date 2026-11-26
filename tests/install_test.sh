@@ -34,7 +34,7 @@ installs_on() {
 # A package manager that answers a query with $1 and exits with $2.
 answers() {
     mkdir -p "$tmp/bin"
-    for tool in rpm dpkg-query; do
+    for tool in rpm dpkg-query pacman; do
         printf '#!/bin/sh\nprintf %%s %s\nexit %s\n' "'$1'" "$2" >"$tmp/bin/$tool"
         chmod +x "$tmp/bin/$tool"
     done
@@ -110,9 +110,9 @@ expect "debian 12" "older than Debian 13"
 installs_on ID=ubuntu VERSION_ID=24.04 'PRETTY_NAME="Ubuntu 24.04 LTS"'
 expect_status "ubuntu 24.04" 1
 expect "ubuntu 24.04" "older than Ubuntu 26.04"
-installs_on ID=arch 'PRETTY_NAME="Arch Linux"'
-expect_status arch 1
-expect arch "not one Callie ships packages for"
+installs_on ID=opensuse-tumbleweed 'ID_LIKE="opensuse suse"' 'PRETTY_NAME="openSUSE Tumbleweed"'
+expect_status opensuse 1
+expect opensuse "not one Callie ships packages for"
 
 # A package without a checksum is not installed.
 json="$tmp/no-digest.json"
@@ -162,6 +162,22 @@ installs_on ID=fedora VERSION_ID=44 "$fedora"
 expect "downgrade rpm" "dnf downgrade -y ./callie-0.2.1-1.fc44.x86_64.rpm"
 unset options installed
 
+# Arch, and systems built on it, get the Arch package and pacman; Manjaro does not.
+installs_on ID=arch 'PRETTY_NAME="Arch Linux"'
+expect_status arch 0
+expect arch "/v0.2.1/callie-0.2.1-1-x86_64.pkg.tar.zst"
+expect arch "sha256 6666666666666666666666666666666666666666666666666666666666666666"
+expect arch "pacman -U --noconfirm ./callie-0.2.1-1-x86_64.pkg.tar.zst"
+expect arch "would add the Greylock Labs repository: /etc/pacman.conf"
+expect arch "trusting key 09361156310986845012EA9E3E6A2C1FAFEEECEC"
+refuse arch "debug"
+installs_on ID=endeavouros ID_LIKE=arch 'PRETTY_NAME="EndeavourOS"'
+expect_status endeavouros 0
+expect endeavouros "pacman -U --noconfirm"
+installs_on ID=manjaro ID_LIKE=arch 'PRETTY_NAME="Manjaro Linux"'
+expect_status manjaro 1
+expect manjaro "Manjaro Linux is not one Callie ships packages for."
+
 # The repository is added once: not again when its files are all there.
 mkdir -p "$tmp/root/etc/yum.repos.d" "$tmp/root/usr/share/keyrings"
 touch "$tmp/root/etc/yum.repos.d/greylocklabs.repo" "$tmp/root/usr/share/keyrings/greylocklabs.asc"
@@ -169,6 +185,14 @@ installs_on ID=fedora VERSION_ID=44 "$fedora"
 refuse "rpm repo added" "would add the Greylock Labs repository"
 installs_on ID=debian VERSION_ID=13 "$debian"
 expect "deb repo half added" "would add the Greylock Labs repository"
+# pacman's is there when its configuration names it.
+mkdir -p "$tmp/root/etc"
+echo '[core]' >"$tmp/root/etc/pacman.conf"
+installs_on ID=arch
+expect "pkg repo missing" "would add the Greylock Labs repository"
+printf '[greylocklabs]\n' >>"$tmp/root/etc/pacman.conf"
+installs_on ID=arch
+refuse "pkg repo added" "would add the Greylock Labs repository"
 rm -rf "$tmp/root"
 
 # The installed version comes from rpm or dpkg-query, without the packaging's
@@ -186,6 +210,9 @@ expect "deb older" "updating Callie 0.2.0 to 0.2.1"
 answers 'deinstall ok config-files|0.2.1-1' 0
 installs_on ID=debian VERSION_ID=13 "$debian"
 expect "deb removed" "installing Callie 0.2.1 on"
+answers 'callie 0.2.0-2' 0
+installs_on ID=arch
+expect "pkg older" "updating Callie 0.2.0 to 0.2.1"
 unset installed
 
 # Setting the repository up for real, with Callie already up to date so nothing
@@ -208,7 +235,11 @@ if [ -n "${CURL_FAILS:-}" ]; then
 fi
 printf '%s\n' "$1" >"$out"
 CURL
-chmod +x "$tmp/fake/sudo" "$tmp/fake/curl"
+# pacman-key notes what it was asked, in the stand-in system's root.
+printf '#!/bin/sh
+echo "$*" >>"%s/root/pacman-key.log"
+' "$tmp" >"$tmp/fake/pacman-key"
+chmod +x "$tmp/fake/sudo" "$tmp/fake/curl" "$tmp/fake/pacman-key"
 sets_up_on() {
     printf '%s\n' "$@" >"$tmp/os-release"
     output="$(PATH="$tmp/fake:$PATH" CALLIE_INSTALL_OS_RELEASE="$tmp/os-release" \
@@ -232,6 +263,17 @@ sets_up_on ID=fedora VERSION_ID=44 "$fedora"
 refuse "real present" "Added the Greylock Labs repository"
 grep -qx kept "$repo/greylocklabs.repo" ||
     { echo "FAIL real present: greylocklabs.repo was replaced"; failures=$((failures + 1)); }
+rm -rf "$tmp/root"
+
+# On Arch, the key is trusted and the repository's section added to pacman.conf.
+mkdir -p "$tmp/root/etc/pacman.d"
+echo '[core]' >"$tmp/root/etc/pacman.conf"
+sets_up_on ID=arch
+expect "real pkg add" "Added the Greylock Labs repository"
+grep -qx 'https://packages.greylocklabs.org/arch/greylocklabs.conf' "$tmp/root/etc/pacman.conf" ||
+    { echo "FAIL real pkg add: pacman.conf does not end with the repository's section"; failures=$((failures + 1)); }
+grep -qx -- '--lsign-key 09361156310986845012EA9E3E6A2C1FAFEEECEC' "$tmp/root/pacman-key.log" ||
+    { echo "FAIL real pkg add: the key was not signed locally"; failures=$((failures + 1)); }
 rm -rf "$tmp/root"
 
 # An interrupted download leaves neither a truncated file nor its partial copy.

@@ -15,19 +15,19 @@ for teaching me that Linux calendars don't have to stink!
 
 ## Installation
 
-On Fedora 44 or later, Debian 13 (trixie) or later, or Ubuntu 26.04 or later, on x86_64:
+On Fedora 44 or later, Debian 13 (trixie) or later, Ubuntu 26.04 or later, or Arch Linux, on x86_64:
 
 ```sh
 curl -fsSL https://callieapp.org/install.sh | sh
 ```
 
 It finds the latest [GitHub release](https://github.com/greylocklabs/callie/releases), checks the
-package against the checksum GitHub records for it, and installs it with `dnf` or `apt`. On any
+package against the checksum GitHub records for it, and installs it with `dnf`, `apt` or `pacman`. On any
 other system it stops before changing anything. Run again, it updates Callie, or says it is up to
 date. `sh -s -- --dry-run` shows what it would do, `--version 0.2.1` installs that version, older
 ones included, and `--force` installs it again. It also adds the
 [Greylock Labs repository](https://packages.greylocklabs.org), which carries Callie and Jot, so
-later updates come with `dnf upgrade` or `apt upgrade`.
+later updates come with `dnf upgrade`, `apt upgrade` or `pacman -Syu`.
 
 To add the repository yourself instead, on Fedora:
 
@@ -47,12 +47,21 @@ sudo apt update && sudo apt install callie
 On Ubuntu, the same with `greylocklabs-ubuntu.sources` in place of `greylocklabs.sources`, for the
 packages built against Ubuntu's own libraries.
 
+On Arch Linux, trust the repository's key and add its section to `pacman.conf`:
+
+```sh
+curl -fsSL https://packages.greylocklabs.org/greylocklabs.asc | sudo pacman-key --add -
+sudo pacman-key --lsign-key 09361156310986845012EA9E3E6A2C1FAFEEECEC
+curl -fsSL https://packages.greylocklabs.org/arch/greylocklabs.conf | sudo tee -a /etc/pacman.conf
+sudo pacman -Syu callie
+```
+
 The packages can also be downloaded from the release and installed by hand.
 
 Installation provides the `Callie` desktop app and a `callie` CLI for those who prefer to live in
 the terminal 🖥️
 
-FlatHub, Arch and Nix packages are planned. Elsewhere, build Callie from source as described under
+FlatHub and Nix packages are planned. Elsewhere, build Callie from source as described under
 [Development](#development).
 
 ## Using Callie
