@@ -295,6 +295,27 @@ Element detailsView(const TuiState &state, const Look &look)
     return vbox(std::move(rows));
 }
 
+/// The fields of the event being changed, the selected one marked.
+Element editView(const TuiState &state, const Look &look)
+{
+    using namespace ftxui;
+    const std::optional<Event> event = state.editing();
+    if (!event)
+        return text("");
+    Elements rows = {sticker(*event, event->summary, look) | bold, text("")};
+    const QList<TuiState::Field> fields = TuiState::fields();
+    for (int i = 0; i < fields.size(); ++i) {
+        const TuiState::Field field = fields.at(i);
+        const bool selected = field == state.field();
+        Element row = hbox(
+            {marker(selected, look),
+             label(TuiState::fieldName(field).leftJustified(12)) | color(rgb(look.c.textMuted)),
+             label(state.fieldValue(*event, field)), filler()});
+        rows.push_back(selected ? row | focus : row);
+    }
+    return vbox(std::move(rows));
+}
+
 Element foundView(const TuiState &state, const Look &look)
 {
     using namespace ftxui;
@@ -352,14 +373,22 @@ QString keysFor(const TuiState &state)
         if (event && !event->joinUrl().isEmpty())
             keys << QObject::tr("o join");
         if (event && event->canEdit)
-            keys << QObject::tr("x delete");
+            keys << QObject::tr("e change   x delete");
         keys << QObject::tr("Esc back");
         return keys.join(u"   "_s);
     }
+    case TuiState::Mode::Editing:
+        return state.field() == TuiState::Field::AllDay
+                   ? QObject::tr("Enter switch   j k fields   u take back   Esc back")
+                   : QObject::tr("Enter change   j k fields   u take back   Esc back");
     case TuiState::Mode::Typing:
-        return state.typing() == TuiState::Typing::NewEvent
-                   ? QObject::tr("Enter add   Esc cancel")
-                   : QObject::tr("Enter search   Esc cancel");
+        switch (state.typing()) {
+        case TuiState::Typing::NewEvent: return QObject::tr("Enter add   Esc cancel");
+        case TuiState::Typing::Search: return QObject::tr("Enter search   Esc cancel");
+        case TuiState::Typing::Field: return QObject::tr("Enter save   Esc cancel");
+        case TuiState::Typing::Move: return QObject::tr("Enter move   Esc cancel");
+        }
+        break;
     case TuiState::Mode::Found: return QObject::tr("Enter go to it   Esc back");
     case TuiState::Mode::Calendars: return QObject::tr("Space show or hide   Esc back");
     case TuiState::Mode::Browse: break;
@@ -378,9 +407,15 @@ Element footer(const TuiState &state, const Look &look)
     if (state.pending() == u"leader")
         left = label(QObject::tr("d day   w week   a agenda")) | color(rgb(look.c.accent));
     if (state.mode() == TuiState::Mode::Typing) {
-        const QString prompt = state.typing() == TuiState::Typing::NewEvent
-                                   ? QObject::tr("New event: ")
-                                   : QObject::tr("Search: ");
+        QString prompt;
+        switch (state.typing()) {
+        case TuiState::Typing::NewEvent: prompt = QObject::tr("New event: "); break;
+        case TuiState::Typing::Search: prompt = QObject::tr("Search: "); break;
+        case TuiState::Typing::Field:
+            prompt = QObject::tr("%1: ").arg(TuiState::fieldName(state.field()));
+            break;
+        case TuiState::Typing::Move: prompt = QObject::tr("Move to: "); break;
+        }
         left = hbox({label(prompt) | bold | color(rgb(look.c.accent)), label(state.input()),
                      text("█") | color(rgb(look.c.accent))});
     }
@@ -402,6 +437,10 @@ Element help(const Look &look)
         {u"Tab"_s, QObject::tr("Next view")},
         {u"Enter"_s, QObject::tr("The event's details")},
         {u"n"_s, QObject::tr("New event, as callie add reads it")},
+        {u"e"_s, QObject::tr("Change the event: its title, place, times or calendar")},
+        {u"m"_s, QObject::tr("Move the event, keeping its length")},
+        {u"y  p"_s, QObject::tr("Copy the event, put a copy on the selected day")},
+        {u"D"_s, QObject::tr("Duplicate the event")},
         {u"/"_s, QObject::tr("Search")},
         {u"i"_s, QObject::tr("Invitations")},
         {u"c"_s, QObject::tr("Show or hide calendars")},
@@ -422,11 +461,15 @@ Element help(const Look &look)
 Element render(const TuiState &state, const Look &look)
 {
     using namespace ftxui;
-    Element body = state.mode() == TuiState::Mode::Details  ? detailsView(state, look)
-                   : state.mode() == TuiState::Mode::Found  ? foundView(state, look)
-                   : state.view() == TuiState::View::Week   ? weekView(state, look)
-                   : state.view() == TuiState::View::Agenda ? agendaView(state, look)
-                                                            : dayView(state, look);
+    const bool editing =
+        state.mode() == TuiState::Mode::Editing ||
+        (state.mode() == TuiState::Mode::Typing && state.typing() == TuiState::Typing::Field);
+    Element body = editing                                   ? editView(state, look)
+                   : state.mode() == TuiState::Mode::Details ? detailsView(state, look)
+                   : state.mode() == TuiState::Mode::Found   ? foundView(state, look)
+                   : state.view() == TuiState::View::Week    ? weekView(state, look)
+                   : state.view() == TuiState::View::Agenda  ? agendaView(state, look)
+                                                             : dayView(state, look);
     Element page = vbox({header(state, look), separatorLight() | color(rgb(look.c.hairline)),
                          body | yframe | flex, footer(state, look)});
     Element screen = hbox({text(" "), page | flex, text(" ")}) | color(rgb(look.c.text)) |
