@@ -75,6 +75,9 @@ private Q_SLOTS:
     void copiesAndDuplicatesEvents();
     void onlyChangesWhatCanBeChanged();
     void anEventMovedOutOfViewClosesItsFields();
+    void aRepeatingEventIsDeletedOnceOrWhole();
+    void aRepeatingInvitationIsAnsweredOnceOrWhole();
+    void aOneOffEventIsDeletedOnceConfirmed();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -299,7 +302,11 @@ void TestTui::detailsAnswerAndTakeBack()
     QVERIFY2(drawn.contains(u"Not answered"_s), qPrintable(drawn));
     QVERIFY(drawn.contains(u"y yes"_s));
 
+    // It repeats, so the answer is for this occurrence or all of them.
     m_state->press(u"y"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
+    m_state->press(u"t"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Details);
     QCOMPARE(m_state->current()->responseStatus, u"accepted"_s);
     QVERIFY2(m_state->message().contains(u"u takes it back"_s), qPrintable(m_state->message()));
     // Taken back from the details, as the message says.
@@ -325,6 +332,7 @@ void TestTui::decliningAHiddenOneClosesItsDetails()
     const int shown = int(m_state->events().size());
     m_state->press(u"Enter"_s);
     m_state->press(u"n"_s);
+    m_state->press(u"t"_s);
     // Declined, so no longer shown, and the details do not move on to another
     // event that a following x would delete.
     for (const Event &e : m_state->events())
@@ -339,6 +347,7 @@ void TestTui::deletingCanBeTakenBack()
     QVERIFY(select(u"Dentist"_s));
     m_state->press(u"Enter"_s);
     m_state->press(u"x"_s);
+    m_state->press(u"y"_s);
     QVERIFY(!summaries().contains(u"Dentist"_s));
     QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
     m_state->press(u"u"_s);
@@ -705,6 +714,88 @@ void TestTui::anEventMovedOutOfViewClosesItsFields()
     const QStringList before = summaries();
     m_state->press(u"x"_s);
     QCOMPARE(summaries(), before);
+}
+
+void TestTui::aRepeatingEventIsDeletedOnceOrWhole()
+{
+    // The vendor call repeats every Wednesday, as one series.
+    const auto calls = [this] {
+        int found = 0;
+        for (const Event &e :
+             m_queue->eventsBetween(kNow.addDays(-1), kNow.addDays(14), QTimeZone::UTC))
+            found += e.summary == u"Vendor call"_s;
+        return found;
+    };
+    const int before = calls();
+    QVERIFY(before >= 2);
+    QVERIFY(select(u"Vendor call"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"x"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY2(drawn.contains(u"t this event"_s) && drawn.contains(u"a all events"_s),
+             qPrintable(drawn));
+
+    // Escape keeps it, and goes back to its details.
+    m_state->press(u"Escape"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Details);
+    QCOMPARE(calls(), before);
+
+    // t deletes this one alone, a every one of them.
+    m_state->press(u"x"_s);
+    m_state->press(u"t"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
+    QCOMPARE(calls(), before - 1);
+    m_state->press(u"u"_s);
+    QCOMPARE(calls(), before);
+    QVERIFY(select(u"Vendor call"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"x"_s);
+    m_state->press(u"a"_s);
+    QCOMPARE(calls(), 0);
+}
+
+void TestTui::aRepeatingInvitationIsAnsweredOnceOrWhole()
+{
+    m_state->press(m_settings->leaderKey());
+    m_state->press(u"a"_s);
+    QVERIFY(select(u"Berlin sync"_s));
+    const QString series = m_state->current()->seriesId;
+    m_state->press(u"Enter"_s);
+    m_state->press(u"y"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
+    m_state->press(u"a"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Details);
+    // Every occurrence of the series has the answer.
+    int answered = 0;
+    for (const Event &e : m_queue->eventsBetween(kNow, kNow.addDays(28), QTimeZone::UTC)) {
+        if (e.seriesId == series) {
+            QCOMPARE(e.responseStatus, u"accepted"_s);
+            ++answered;
+        }
+    }
+    QVERIFY(answered >= 2);
+}
+
+void TestTui::aOneOffEventIsDeletedOnceConfirmed()
+{
+    m_state->press(u"n"_s);
+    for (const QChar c : u"Pottery today 6-8pm"_s)
+        m_state->press(QString(c));
+    m_state->press(u"Enter"_s);
+    QVERIFY(select(u"Pottery"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"x"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
+    QVERIFY(!m_state->askingScope());
+    QVERIFY(m_state->question().contains(u"Pottery"_s));
+    // n keeps it, y deletes it.
+    m_state->press(u"n"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Details);
+    QVERIFY(summaries().contains(u"Pottery"_s));
+    m_state->press(u"x"_s);
+    m_state->press(u"y"_s);
+    QVERIFY(!summaries().contains(u"Pottery"_s));
 }
 
 QTEST_GUILESS_MAIN(TestTui)

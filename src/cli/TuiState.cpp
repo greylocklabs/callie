@@ -103,7 +103,7 @@ void TuiState::reload()
     }
     // Details are of one event; once it is no longer shown, such as after
     // declining it with declined events hidden, they close rather than move on.
-    if (m_selected < 0 && m_mode == Mode::Details)
+    if (m_selected < 0 && (m_mode == Mode::Details || m_mode == Mode::Confirming))
         m_mode = Mode::Browse;
     // The fields too, as when a new start moves the event out of what is shown, so no key that
     // follows acts on another event.
@@ -158,6 +158,7 @@ bool TuiState::press(const QString &key)
         return false;
     }
     switch (m_mode) {
+    case Mode::Confirming: return pressConfirming(key);
     case Mode::Editing: return pressEditing(key);
     case Mode::Typing: return pressTyping(key);
     case Mode::Details: return pressDetails(key);
@@ -306,6 +307,11 @@ bool TuiState::pressDetails(const QString &key)
             say(tr("%1 is not an invitation.").arg(event->summary), true);
             return true;
         }
+        // One that repeats is answered for this occurrence or the series, as asked.
+        if (repeats(*event)) {
+            confirm(*event, answers.value(key));
+            return true;
+        }
         const QString id = Commands::reference(*event);
         const QString answer = answers.value(key);
         act([id, answer](Commands &commands, const std::function<void(int)> &done) {
@@ -320,11 +326,7 @@ bool TuiState::pressDetails(const QString &key)
             say(tr("%1 cannot be changed from here.").arg(event->summary), true);
             return true;
         }
-        const QString id = Commands::reference(*event);
-        m_mode = Mode::Browse;
-        act([id](Commands &commands, const std::function<void(int)> &done) {
-            commands.remove(id, {}, done);
-        });
+        confirm(*event, {});
         return true;
     }
     if (key == u"o") {
@@ -571,6 +573,64 @@ bool TuiState::pressEditing(const QString &key)
         return false;
     }
     Q_EMIT changed();
+    return true;
+}
+
+bool TuiState::repeats(const Event &event)
+{
+    return !event.seriesId.isEmpty() && !event.detached;
+}
+
+void TuiState::confirm(const Event &event, const QString &answer)
+{
+    m_confirming = event;
+    m_answer = answer;
+    m_askScope = repeats(event);
+    m_mode = Mode::Confirming;
+    Q_EMIT changed();
+}
+
+QString TuiState::question() const
+{
+    if (!m_confirming)
+        return {};
+    const QString name = m_confirming->summary;
+    if (m_answer.isEmpty())
+        return m_askScope ? tr("Delete %1, which repeats:").arg(name) : tr("Delete %1?").arg(name);
+    return tr("Answer %1, which repeats:").arg(name);
+}
+
+bool TuiState::pressConfirming(const QString &key)
+{
+    if (!m_confirming)
+        return false;
+    QString scope;
+    if (m_askScope && (key == u"t" || key == u"a")) {
+        scope = key == u"t" ? u"this"_s : u"all"_s;
+    } else if (!m_askScope && (key == u"y" || key == u"Enter")) {
+        scope = u"this"_s;
+    } else if (key == u"Escape" || key == u"q" || (!m_askScope && key == u"n")) {
+        m_confirming.reset();
+        m_mode = Mode::Details;
+        Q_EMIT changed();
+        return true;
+    } else {
+        return false;
+    }
+    const QString id = Commands::reference(*m_confirming);
+    const QString answer = m_answer;
+    m_confirming.reset();
+    // A deleted event's details close; an answered one's stay open.
+    m_mode = answer.isEmpty() ? Mode::Browse : Mode::Details;
+    if (answer.isEmpty()) {
+        act([id, scope](Commands &commands, const std::function<void(int)> &done) {
+            commands.remove(id, scope, done);
+        });
+    } else {
+        act([id, answer, scope](Commands &commands, const std::function<void(int)> &done) {
+            commands.respond(id, answer, scope, done);
+        });
+    }
     return true;
 }
 
