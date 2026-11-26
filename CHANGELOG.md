@@ -10,6 +10,7 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - The terminal calendar can change events: `e` lists an event's title, place, times, all-day and
   calendar to change one by one, `m` moves it to a time typed, keeping its length, `y` and `p` copy
   it onto another day, and `D` duplicates it. Each change can be taken back with `u`.
+- Callie has Arch Linux packages, in each release and in the Greylock Labs repository.
 
 ## 0.7.5 - 2026-11-13
 
