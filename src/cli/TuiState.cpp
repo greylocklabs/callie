@@ -152,6 +152,7 @@ bool TuiState::press(const QString &key)
         return false;
     }
     switch (m_mode) {
+    case Mode::Editing: return pressEditing(key);
     case Mode::Typing: return pressTyping(key);
     case Mode::Details: return pressDetails(key);
     case Mode::Found: return pressFound(key);
@@ -226,6 +227,43 @@ bool TuiState::pressBrowsing(const QString &key)
     } else if (key == u"c") {
         m_mode = Mode::Calendars;
         m_calendarSelected = 0;
+    } else if (key == u"e") {
+        const std::optional<Event> event = current();
+        return event && startEditing(*event);
+    } else if (key == u"m") {
+        const std::optional<Event> event = current();
+        if (!event)
+            return false;
+        if (!event->canEdit) {
+            say(tr("%1 cannot be changed from here.").arg(event->summary), true);
+            return true;
+        }
+        m_mode = Mode::Typing;
+        m_typing = Typing::Move;
+        m_input.clear();
+    } else if (key == u"y") {
+        const std::optional<Event> event = current();
+        if (!event)
+            return false;
+        m_copied = event;
+        say(tr("Copied %1. p puts a copy on the day of the selected event.").arg(event->summary));
+        return true;
+    } else if (key == u"p") {
+        if (!m_copied) {
+            say(tr("Nothing copied; y copies the selected event."), true);
+            return true;
+        }
+        paste();
+        return true;
+    } else if (key == u"D") {
+        const std::optional<Event> event = current();
+        if (!event)
+            return false;
+        const QString id = Commands::reference(*event);
+        act([id](Commands &commands, const std::function<void(int)> &done) {
+            commands.duplicate(id, std::nullopt, done);
+        });
+        return true;
     } else if (key == u"u") {
         if (m_lastChange.isEmpty() || !m_source->undoChange(m_lastChange)) {
             say(tr("Nothing to take back."), true);
@@ -269,6 +307,8 @@ bool TuiState::pressDetails(const QString &key)
         });
         return true;
     }
+    if (key == u"e")
+        return startEditing(*event);
     if (key == u"x") {
         if (!event->canEdit) {
             say(tr("%1 cannot be changed from here.").arg(event->summary), true);
@@ -298,7 +338,8 @@ bool TuiState::pressDetails(const QString &key)
 bool TuiState::pressTyping(const QString &key)
 {
     if (key == u"Escape") {
-        m_mode = Mode::Browse;
+        // A field given up on goes back to the fields.
+        m_mode = m_typing == Typing::Field ? Mode::Editing : Mode::Browse;
     } else if (key == u"Enter") {
         submit();
         return true;
@@ -362,8 +403,45 @@ void TuiState::submit()
 {
     const QString text = m_input.trimmed();
     m_mode = Mode::Browse;
+    if (m_typing == Typing::Field) {
+        m_mode = Mode::Editing;
+        const std::optional<Event> event = editing();
+        if (!event) {
+            m_mode = m_editingFrom;
+            Q_EMIT changed();
+            return;
+        }
+        // An unchanged field changes nothing; a title or a time cannot be left empty.
+        const Field which = field();
+        if (text == fieldValue(*event, which) || (text.isEmpty() && which != Field::Where)) {
+            Q_EMIT changed();
+            return;
+        }
+        EditOptions options;
+        switch (which) {
+        case Field::Title: options.title = text; break;
+        case Field::Where: options.where = text; break;
+        case Field::Starts: options.start = text; break;
+        case Field::Ends: options.end = text; break;
+        case Field::Calendar: options.calendar = text; break;
+        case Field::AllDay: break;
+        }
+        change(Commands::reference(*event), options);
+        return;
+    }
     if (text.isEmpty()) {
         Q_EMIT changed();
+        return;
+    }
+    if (m_typing == Typing::Move) {
+        const std::optional<Event> event = current();
+        if (!event) {
+            Q_EMIT changed();
+            return;
+        }
+        EditOptions options;
+        options.start = text;
+        change(Commands::reference(*event), options);
         return;
     }
     if (m_typing == Typing::NewEvent) {
@@ -450,6 +528,130 @@ void TuiState::say(const QString &message, bool error)
                            }
                        });
     Q_EMIT changed();
+}
+
+bool TuiState::pressEditing(const QString &key)
+{
+    const std::optional<Event> event = editing();
+    if (!event || key == u"Escape" || key == u"q") {
+        m_mode = m_editingFrom;
+        Q_EMIT changed();
+        return true;
+    }
+    if (key == u"j" || key == u"Down") {
+        m_field = std::min(m_field + 1, int(fields().size()) - 1);
+    } else if (key == u"k" || key == u"Up") {
+        m_field = std::max(m_field - 1, 0);
+    } else if (key == u"Enter" || key == u" ") {
+        if (field() == Field::AllDay) {
+            EditOptions options;
+            options.allDay = !event->allDay;
+            change(Commands::reference(*event), options);
+            return true;
+        }
+        if (key == u" ")
+            return false;
+        m_mode = Mode::Typing;
+        m_typing = Typing::Field;
+        m_input = fieldValue(*event, field());
+    } else if (key == u"u") {
+        return pressBrowsing(key);
+    } else {
+        return false;
+    }
+    Q_EMIT changed();
+    return true;
+}
+
+bool TuiState::startEditing(const Event &event)
+{
+    if (!event.canEdit) {
+        say(tr("%1 cannot be changed from here.").arg(event.summary), true);
+        return true;
+    }
+    m_editingFrom = m_mode;
+    m_editingId = event.eventId;
+    m_editingCalendar = event.calendarId;
+    m_field = 0;
+    m_mode = Mode::Editing;
+    Q_EMIT changed();
+    return true;
+}
+
+std::optional<Event> TuiState::editing() const
+{
+    if (m_mode != Mode::Editing && !(m_mode == Mode::Typing && m_typing == Typing::Field))
+        return std::nullopt;
+    for (const Event &event : m_events) {
+        if (event.eventId == m_editingId && event.calendarId == m_editingCalendar)
+            return event;
+    }
+    return std::nullopt;
+}
+
+QList<TuiState::Field> TuiState::fields()
+{
+    return {Field::Title, Field::Where, Field::Starts, Field::Ends, Field::AllDay, Field::Calendar};
+}
+
+QString TuiState::fieldName(Field field)
+{
+    switch (field) {
+    case Field::Title: return tr("Title");
+    case Field::Where: return tr("Where");
+    case Field::Starts: return tr("Starts");
+    case Field::Ends: return tr("Ends");
+    case Field::AllDay: return tr("All day");
+    case Field::Calendar: return tr("Calendar");
+    }
+    return {};
+}
+
+QString TuiState::fieldValue(const Event &event, Field field) const
+{
+    const Times &times = *m_settings.times();
+    // As callie add and callie edit read them: an all-day event's days alone,
+    // and its end as its last day.
+    const auto at = [&](const QDateTime &when, bool end) {
+        if (event.allDay)
+            return times.date(when).date().addDays(end ? -1 : 0).toString(Qt::ISODate);
+        return when.toTimeZone(times.zone()).toString(u"yyyy-MM-dd HH:mm"_s);
+    };
+    switch (field) {
+    case Field::Title: return event.summary;
+    case Field::Where: return event.location;
+    case Field::Starts: return at(event.start, false);
+    case Field::Ends: return at(event.end, true);
+    case Field::AllDay: return event.allDay ? tr("yes") : tr("no");
+    case Field::Calendar:
+        for (const CalendarInfo &calendar : calendars()) {
+            if (calendar.id == event.calendarId)
+                return calendar.displayName;
+        }
+        return event.calendarId;
+    }
+    return {};
+}
+
+void TuiState::change(const QString &id, const EditOptions &options)
+{
+    act([id, options](Commands &commands, const std::function<void(int)> &done) {
+        commands.edit(id, options, {}, done);
+    });
+}
+
+void TuiState::paste()
+{
+    // On the day of the selected event, or the day in view, at the copy's own time.
+    const std::optional<Event> here = current();
+    const QDate day = here ? dayOf(*here) : m_day;
+    QString at = day.toString(Qt::ISODate);
+    if (!m_copied->allDay)
+        at += u' ' + m_copied->start.toTimeZone(m_settings.times()->zone()).toString(u"HH:mm"_s);
+    const QString id = Commands::reference(*m_copied);
+    act([id, at](Commands &commands, const std::function<void(int)> &done) {
+        commands.duplicate(id, at, done);
+    });
 }
 
 QList<CalendarInfo> TuiState::calendars() const

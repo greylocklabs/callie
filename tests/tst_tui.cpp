@@ -70,6 +70,10 @@ private Q_SLOTS:
     void calendarsShowAndHide();
     void callsOpen();
     void onlyWebCallsOpen();
+    void changesAnEventsFields();
+    void movesAnEventKeepingItsLength();
+    void copiesAndDuplicatesEvents();
+    void onlyChangesWhatCanBeChanged();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -82,6 +86,10 @@ private:
     std::unique_ptr<TuiState> m_state;
     /// Selects the first event called `summary` in what is shown.
     bool select(const QString &summary);
+    /// Types `text` in place of what the line being typed holds.
+    void retype(const QString &text);
+    /// When the event called `summary` starts on the day shown, or nothing.
+    [[nodiscard]] std::optional<Event> shown(const QString &summary) const;
 };
 
 void TestTui::init()
@@ -530,6 +538,149 @@ void TestTui::onlyWebCallsOpen()
     state.press(u"Enter"_s);
     state.press(u"o"_s);
     QCOMPARE(opened.size(), 0);
+    QVERIFY(state.messageIsError());
+}
+
+void TestTui::retype(const QString &text)
+{
+    while (!m_state->input().isEmpty())
+        m_state->press(u"Backspace"_s);
+    for (const QChar c : text)
+        m_state->press(QString(c));
+}
+
+std::optional<Event> TestTui::shown(const QString &summary) const
+{
+    for (const Event &e : m_state->events()) {
+        if (e.summary == summary)
+            return e;
+    }
+    return std::nullopt;
+}
+
+void TestTui::changesAnEventsFields()
+{
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"e"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    QCOMPARE(m_state->field(), TuiState::Field::Title);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY2(drawn.contains(u"Where"_s) && drawn.contains(u"Clinic"_s), qPrintable(drawn));
+    QVERIFY(drawn.contains(u"2026-10-07 16:00"_s));
+
+    // A field is typed again from what it holds, and saved as callie edit saves it.
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
+    QCOMPARE(m_state->input(), u"Dentist"_s);
+    retype(u"Orthodontist"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    QVERIFY2(shown(u"Orthodontist"_s), qPrintable(summaries().join(u", "_s)));
+    QVERIFY(!m_state->messageIsError());
+
+    // Its place, and its end, later the same day.
+    m_state->press(u"j"_s);
+    QCOMPARE(m_state->field(), TuiState::Field::Where);
+    m_state->press(u"Enter"_s);
+    retype(u"Smile Studio"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(shown(u"Orthodontist"_s)->location, u"Smile Studio"_s);
+    m_state->press(u"j"_s);
+    m_state->press(u"j"_s);
+    QCOMPARE(m_state->field(), TuiState::Field::Ends);
+    m_state->press(u"Enter"_s);
+    retype(u"18:00"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(shown(u"Orthodontist"_s)->end,
+             QDateTime(QDate(2026, 10, 7), QTime(18, 0), QTimeZone::UTC));
+
+    // What cannot be read is said, and changes nothing.
+    m_state->press(u"Enter"_s);
+    retype(u"sometime"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(m_state->messageIsError());
+    QCOMPARE(shown(u"Orthodontist"_s)->end,
+             QDateTime(QDate(2026, 10, 7), QTime(18, 0), QTimeZone::UTC));
+
+    // Escape on a field keeps it, and goes back to the fields; u takes back the last change.
+    m_state->press(u"Enter"_s);
+    retype(u"19:00"_s);
+    m_state->press(u"Escape"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    m_state->press(u"u"_s);
+    QCOMPARE(shown(u"Orthodontist"_s)->end,
+             QDateTime(QDate(2026, 10, 7), QTime(17, 0), QTimeZone::UTC));
+
+    // All day switches with Enter or Space.
+    m_state->press(u"j"_s);
+    QCOMPARE(m_state->field(), TuiState::Field::AllDay);
+    m_state->press(u" "_s);
+    QVERIFY(shown(u"Orthodontist"_s)->allDay);
+    m_state->press(u"Escape"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
+}
+
+void TestTui::movesAnEventKeepingItsLength()
+{
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"m"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
+    const QString prompt = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY(prompt.contains(u"Move to:"_s));
+    retype(u"tomorrow 9am"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(!m_state->messageIsError());
+    QVERIFY(!shown(u"Dentist"_s));
+    m_state->press(u"l"_s);
+    const std::optional<Event> moved = shown(u"Dentist"_s);
+    QVERIFY2(moved, qPrintable(summaries().join(u", "_s)));
+    QCOMPARE(moved->start, QDateTime(QDate(2026, 10, 8), QTime(9, 0), QTimeZone::UTC));
+    QCOMPARE(moved->start.secsTo(moved->end), 3600);
+}
+
+void TestTui::copiesAndDuplicatesEvents()
+{
+    // p with nothing copied says what y does.
+    m_state->press(u"p"_s);
+    QVERIFY(m_state->messageIsError());
+
+    // Copied, then put on the day of the event selected there, at its own time.
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"y"_s);
+    QVERIFY(!m_state->messageIsError());
+    m_state->press(u"l"_s);
+    QVERIFY(!shown(u"Dentist"_s));
+    m_state->press(u"p"_s);
+    QVERIFY(!m_state->messageIsError());
+    const std::optional<Event> copy = shown(u"Dentist"_s);
+    QVERIFY2(copy, qPrintable(summaries().join(u", "_s)));
+    QCOMPARE(copy->start, QDateTime(QDate(2026, 10, 8), QTime(16, 0), QTimeZone::UTC));
+
+    // D duplicates the selected event where it is.
+    QVERIFY(select(u"Standup"_s));
+    const qsizetype before = summaries().count(u"Standup"_s);
+    m_state->press(u"D"_s);
+    QCOMPARE(summaries().count(u"Standup"_s), before + 1);
+}
+
+void TestTui::onlyChangesWhatCanBeChanged()
+{
+    Event e;
+    e.eventId = u"read-only"_s;
+    e.calendarId = u"shared"_s;
+    e.summary = u"Board meeting"_s;
+    e.start = QDateTime(QDate(2026, 10, 7), QTime(15, 0), QTimeZone::UTC);
+    e.end = e.start.addSecs(3600);
+    FixedSource source({e});
+    TuiState state(source, *m_settings, [] { return kNow; });
+    for (const QString &key : {u"e"_s, u"m"_s}) {
+        state.press(key);
+        QCOMPARE(state.mode(), TuiState::Mode::Browse);
+        QVERIFY(state.messageIsError());
+    }
+    state.press(u"Enter"_s);
+    state.press(u"e"_s);
+    QCOMPARE(state.mode(), TuiState::Mode::Details);
     QVERIFY(state.messageIsError());
 }
 

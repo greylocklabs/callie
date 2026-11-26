@@ -1637,11 +1637,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>x delete</source>
+        <source>e change   x delete</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Esc back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter switch   j k fields   u take back   Esc back</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter change   j k fields   u take back   Esc back</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1650,6 +1658,14 @@
     </message>
     <message>
         <source>Enter search   Esc cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter save   Esc cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter move   Esc cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1674,6 +1690,14 @@
     </message>
     <message>
         <source>Search: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move to: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1714,6 +1738,22 @@
     </message>
     <message>
         <source>New event, as callie add reads it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change the event: its title, place, times or calendar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move the event, keeping its length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy the event, put a copy on the selected day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate the event</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4079,6 +4119,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Copied %1. p puts a copy on the day of the selected event.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Nothing copied; y copies the selected event.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 has no call to join.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4088,6 +4136,38 @@
     </message>
     <message>
         <source>That did not work.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Where</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Starts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Ends</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Calendar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>yes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>no</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

@@ -17,6 +17,7 @@ class Settings;
 namespace callie::cli {
 
 class Commands;
+struct EditOptions;
 
 /// What the TUI shows and how keys change it, apart from drawing it, so it can
 /// be tested without a terminal. The keys follow the app's vi mode.
@@ -27,10 +28,13 @@ class TuiState : public QObject
 public:
     enum class View { Day, Week, Agenda };
     /// What keys go to: moving around, an event's details, a line being
-    /// typed, a list of found events, or the calendars.
-    enum class Mode { Browse, Details, Typing, Found, Calendars };
-    /// What a line being typed is for.
-    enum class Typing { NewEvent, Search };
+    /// typed, a list of found events, the calendars, or an event's fields to change.
+    enum class Mode { Browse, Details, Typing, Found, Calendars, Editing };
+    /// What a line being typed is for: a new event, a search, a field of the
+    /// event being changed, or where to move it.
+    enum class Typing { NewEvent, Search, Field, Move };
+    /// The fields of an event that can be changed, in the order they are listed.
+    enum class Field { Title, Where, Starts, Ends, AllDay, Calendar };
     using Now = std::function<QDateTime()>;
 
     TuiState(CalendarSource &source, Settings &settings, Now now, QObject *parent = nullptr);
@@ -63,6 +67,13 @@ public:
     [[nodiscard]] bool calendarShown(const CalendarInfo &calendar) const;
     /// The event whose details are open, or the selected one.
     [[nodiscard]] std::optional<Event> current() const;
+    /// The event being changed, while its fields are listed, and which field is selected.
+    [[nodiscard]] std::optional<Event> editing() const;
+    [[nodiscard]] static QList<Field> fields();
+    [[nodiscard]] Field field() const { return fields().at(m_field); }
+    [[nodiscard]] static QString fieldName(Field field);
+    /// `field` of `event` as it is shown, and as it is typed to change it.
+    [[nodiscard]] QString fieldValue(const Event &event, Field field) const;
     /// What the last action did, or why it could not.
     [[nodiscard]] QString message() const { return m_message; }
     [[nodiscard]] bool messageIsError() const { return m_messageIsError; }
@@ -93,6 +104,13 @@ private:
     bool pressTyping(const QString &key);
     bool pressFound(const QString &key);
     bool pressCalendars(const QString &key);
+    bool pressEditing(const QString &key);
+    /// Lists the fields of `event` to change, if it can be changed here.
+    bool startEditing(const Event &event);
+    /// Changes the event being edited, or `event`, as `options` says.
+    void change(const QString &id, const EditOptions &options);
+    /// A copy of the event copied with y, on the selected event's day at its own time.
+    void paste();
     void submit();
     /// What `what` lists, asked of the CLI's commands so both list the same.
     [[nodiscard]] QList<Event> ask(const std::function<QList<Event>(const Commands &)> &what) const;
@@ -124,6 +142,14 @@ private:
     bool m_messageIsError = false;
     /// The last change made here, for undo.
     QString m_lastChange;
+    /// The event whose fields are listed, by its id and calendar, as a sync can move it.
+    QString m_editingId;
+    QString m_editingCalendar;
+    int m_field = 0;
+    /// What Escape goes back to from the fields.
+    Mode m_editingFrom = Mode::Browse;
+    /// The event copied with y, for p.
+    std::optional<Event> m_copied;
 };
 
 } // namespace callie::cli
