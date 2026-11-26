@@ -6,10 +6,11 @@
 #
 # Installs the latest release's package with the system's package manager, on
 # the systems Callie ships packages for: Fedora 44 or later, Debian 13 (trixie)
-# or later, and Ubuntu 26.04 or later, on x86_64. Anything else stops before changing anything.
+# or later, Ubuntu 26.04 or later, and Arch Linux and the systems built on it
+# other than Manjaro, on x86_64. Anything else stops before changing anything.
 # Run again, it updates Callie, or says it is up to date without downloading.
-# It also adds the Greylock Labs dnf or apt repository, so later updates come
-# with the system's.
+# It also adds the Greylock Labs dnf, apt or pacman repository, so later updates
+# come with the system's.
 set -eu
 
 repo="greylocklabs/callie"
@@ -33,8 +34,8 @@ fail() {
 }
 unsupported() {
     fail "$1
-Packages are built for Fedora 44 or later, Debian 13 (trixie) or later and Ubuntu 26.04 or later,
-on x86_64.
+Packages are built for Fedora 44 or later, Debian 13 (trixie) or later, Ubuntu 26.04 or later
+and Arch Linux, on x86_64.
 On other systems, build Callie from source: https://github.com/$repo#development"
 }
 
@@ -50,8 +51,8 @@ while [ $# -gt 0 ]; do
     --version=*) version="${1#--version=}" ;;
     -h | --help)
         printf '%s\n' "usage: install.sh [--dry-run] [--force] [--version X.Y.Z]" \
-            "Installs or updates Callie from its GitHub release with dnf or apt, and" \
-            "adds the Greylock Labs repository so later updates come with the system's." \
+            "Installs or updates Callie from its GitHub release with dnf, apt or pacman," \
+            "and adds the Greylock Labs repository so later updates come with the system's." \
             "--version installs that release, older ones included; --force installs" \
             "it again when it is the one installed."
         exit 0
@@ -69,6 +70,7 @@ arch="$(uname -m)"
 [ -r "$os_release" ] || unsupported "Cannot tell which Linux this is: $os_release is missing."
 
 ID=""
+ID_LIKE=""
 VERSION_ID=""
 PRETTY_NAME=""
 # shellcheck disable=SC1090
@@ -102,8 +104,16 @@ ubuntu)
         unsupported "$system is older than Ubuntu 26.04, the first with the Qt Callie needs."
     kind=deb
     ;;
+arch)
+    kind=pkg
+    ;;
 *)
-    unsupported "$system is not one Callie ships packages for."
+    # Built on Arch and kept as current, as EndeavourOS and CachyOS are; Manjaro
+    # holds its packages back, so a build for Arch's libraries may not run there.
+    case " $ID_LIKE " in
+    *" arch "*) [ "$ID" = manjaro ] || kind=pkg ;;
+    esac
+    [ -n "${kind:-}" ] || unsupported "$system is not one Callie ships packages for."
     ;;
 esac
 
@@ -137,6 +147,7 @@ fi
 case "$kind" in
 rpm) pattern='callie-[0-9][^"]*\.x86_64\.rpm' ;;
 deb) pattern='callie_[0-9][^"]*_amd64\.deb' ;;
+pkg) pattern='callie-[0-9][^"]*-x86_64\.pkg\.tar\.zst' ;;
 esac
 # Named apart, so an installer from before Ubuntu's debs never takes one for Debian.
 [ "$ID" != ubuntu ] || pattern='callie-ubuntu_[0-9][^"]*_amd64\.deb'
@@ -168,6 +179,7 @@ else
         "install ok installed|"*) installed="${state#*|}" ;;
         esac
         ;;
+    pkg) installed="$(pacman -Q callie 2>/dev/null)" && installed="${installed#callie }" || installed="" ;;
     esac
     # Only the release, without the packaging's own revision.
     installed="${installed%%-*}"
@@ -182,7 +194,12 @@ rpm)
 deb)
     repo_files="/usr/share/keyrings/greylocklabs.asc /etc/apt/sources.list.d/greylocklabs.sources"
     ;;
+pkg)
+    repo_files="/etc/pacman.conf"
+    ;;
 esac
+# pacman trusts the repository's packages once its key is signed locally.
+fingerprint=09361156310986845012EA9E3E6A2C1FAFEEECEC
 # Ubuntu's section of the apt repository holds the debs built for it.
 sources=greylocklabs.sources
 [ "$ID" != ubuntu ] || sources=greylocklabs-ubuntu.sources
@@ -191,10 +208,15 @@ add_repo() {
     for file in $repo_files; do
         [ -e "$root$file" ] || present=0
     done
+    # pacman's repositories are sections of its one configuration file.
+    [ "$kind" != pkg ] || grep -qs '^\[greylocklabs\]' "$root/etc/pacman.conf" || present=0
     [ "$present" -eq 0 ] || return 0
     if [ "$dry_run" -eq 1 ]; then
-        from="$packages/rpm/greylocklabs.repo"
-        [ "$kind" = rpm ] || from="$packages/greylocklabs.asc and $packages/deb/$sources"
+        case "$kind" in
+        rpm) from="$packages/rpm/greylocklabs.repo" ;;
+        deb) from="$packages/greylocklabs.asc and $packages/deb/$sources" ;;
+        pkg) from="$packages/greylocklabs.asc, trusting key $fingerprint, and $packages/arch/greylocklabs.conf" ;;
+        esac
         say "would add the Greylock Labs repository: $repo_files, from $from"
         return 0
     fi
@@ -207,6 +229,13 @@ add_repo() {
     deb)
         fetch /usr/share/keyrings/greylocklabs.asc "$packages/greylocklabs.asc" &&
             fetch /etc/apt/sources.list.d/greylocklabs.sources "$packages/deb/$sources"
+        ;;
+    pkg)
+        fetch /etc/pacman.d/greylocklabs.asc "$packages/greylocklabs.asc" &&
+            fetch /etc/pacman.d/greylocklabs.conf "$packages/arch/greylocklabs.conf" &&
+            $sudo pacman-key --add "$root/etc/pacman.d/greylocklabs.asc" >/dev/null 2>&1 &&
+            $sudo pacman-key --lsign-key "$fingerprint" >/dev/null 2>&1 &&
+            $sudo tee -a "$root/etc/pacman.conf" <"$root/etc/pacman.d/greylocklabs.conf" >/dev/null
         ;;
     esac || {
         say "The Greylock Labs repository could not be added; callie upgrade still updates Callie."
@@ -258,6 +287,9 @@ case "$kind:$action" in
 rpm:reinstall) install="dnf reinstall -y" ;;
 rpm:downgrade) install="dnf downgrade -y" ;;
 rpm:*) install="dnf install -y" ;;
+# pacman installs, updates, reinstalls and goes back alike, and reads the
+# dependencies from its own lists, which a system kept up to date has.
+pkg:*) install="pacman -U --noconfirm" ;;
 deb:*)
     refresh="apt-get update"
     install="apt-get install -y"
