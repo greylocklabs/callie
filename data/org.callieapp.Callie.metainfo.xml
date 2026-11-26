@@ -42,6 +42,15 @@
   </categories>
 
   <releases>
+    <release version="0.7.6" date="2026-11-26">
+      <description>
+        <ul>
+          <li>The terminal calendar can change events: e lists an event's title, place, times, all-day and calendar to change one by one, m moves it to a time typed, keeping its length, y and p copy it onto another day, and D duplicates it. Each change can be taken back with u.</li>
+          <li>Callie has Arch Linux packages, in each release and in the Greylock Labs repository.</li>
+          <li>The installer sets Callie up on Arch and the systems built on it, other than Manjaro.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.5" date="2026-11-13">
       <description>
         <ul>
