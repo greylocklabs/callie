@@ -19,8 +19,9 @@ it drafted are then uncommitted, to commit and push before releasing again. The 
 to `main`, which repository admins may do.
 
 Pushing the tag runs the release workflow. It checks the versions again, builds the source tarball
-and the `.deb` and `.rpm` packages, and publishes a GitHub release with the notes from
-`CHANGELOG.md`. The [Greylock Labs repository](https://github.com/greylocklabs/packages) picks the
+and the `.deb`, `.rpm` and Arch packages, and publishes a GitHub release with the notes from
+`CHANGELOG.md`. The Arch package does not hold the release back: when it fails, the release goes
+out without it. The [Greylock Labs repository](https://github.com/greylocklabs/packages) picks the
 packages up within the hour.
 
 The packages take the Google OAuth client from the repository's `CALLIE_GOOGLE_CLIENT_ID` and
@@ -32,13 +33,18 @@ it, Callie does not offer Zoom.
 
 ## AUR
 
-`packaging/arch/` holds the PKGBUILDs for the AUR: `callie` builds a release's tarball and
-`callie-git` builds `main`. The release workflow builds `callie` against each release's own source.
-After a release, set `pkgver` and the tarball's first `sha256sums` entry in
-`packaging/arch/callie/PKGBUILD`, then copy it into the AUR's `callie` repository with the
-`.SRCINFO` that `makepkg --printsrcinfo` writes, fill in `_google_client_id` and
-`_google_client_secret` there, and push. The Google client stays out of this repository, where
-secret scanning would report it.
+`packaging/arch/` holds the PKGBUILDs: `callie` builds a release's tarball and `callie-git` builds
+`main`. The release workflow's `arch` job fills in the release's version and the tarball's
+checksum, builds `callie` against it with the Google client from the Actions secrets, as the rpm and
+deb have it, and attaches the package to the release. It also runs `callie-git`'s `prepare()` and
+`pkgver()`.
+
+After the release, the `aur` job pushes both PKGBUILDs and their `.SRCINFO`, as the `arch` job
+filled them in, to the AUR. It needs an AUR account's SSH key in the `AUR_SSH_PRIVATE_KEY` secret;
+without it, it warns and skips. See
+[greylocklabs/packages#11](https://github.com/greylocklabs/packages/issues/11). The AUR's copies
+leave `_google_client_id` and `_google_client_secret` empty, so the client stays out of public
+PKGBUILDs; an AUR build asks for a client to be set before it adds a Google account.
 
 ## Flatpak
 
