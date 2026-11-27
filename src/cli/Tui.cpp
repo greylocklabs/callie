@@ -148,7 +148,8 @@ Element agendaView(const TuiState &state, const Look &look)
         rows.push_back(eventRow(state, i, timeColumn, look));
     }
     if (rows.empty())
-        rows.push_back(empty(QObject::tr("Nothing in the next two weeks."), look));
+        rows.push_back(
+            empty(QObject::tr("Nothing in the next %n days.", nullptr, state.rangeDays()), look));
     return vbox(std::move(rows));
 }
 
@@ -392,6 +393,7 @@ QString keysFor(const TuiState &state)
         case TuiState::Typing::Field: return QObject::tr("Enter save   Esc cancel");
         case TuiState::Typing::Move: return QObject::tr("Enter move   Esc cancel");
         case TuiState::Typing::Command: return QObject::tr("Enter run   Esc cancel");
+        case TuiState::Typing::Date: return QObject::tr("Enter go   Esc cancel");
         }
         break;
     case TuiState::Mode::Found: return QObject::tr("Enter go to it   Esc back");
@@ -411,6 +413,8 @@ Element footer(const TuiState &state, const Look &look)
                color(rgb(state.messageIsError() ? look.c.danger : look.c.accent));
     if (state.mode() == TuiState::Mode::Confirming)
         left = label(state.question()) | bold | color(rgb(look.c.danger));
+    if (state.count() > 0)
+        left = label(QString::number(state.count())) | bold | color(rgb(look.c.accent));
     if (state.pending() == u"leader")
         left = label(QObject::tr("d day   w week   a agenda")) | color(rgb(look.c.accent));
     if (state.mode() == TuiState::Mode::Typing) {
@@ -423,6 +427,7 @@ Element footer(const TuiState &state, const Look &look)
             break;
         case TuiState::Typing::Move: prompt = QObject::tr("Move to: "); break;
         case TuiState::Typing::Command: prompt = u":"_s; break;
+        case TuiState::Typing::Date: prompt = QObject::tr("Go to: "); break;
         }
         // The cursor on the character it is before, or after the line's end.
         const QString line = state.input();
@@ -547,8 +552,12 @@ QString renderTui(const TuiState &state, const Settings &settings, const Palette
 int runTui(TuiState &state, const Settings &settings, const Palette &palette)
 {
     auto screen = ftxui::ScreenInteractive::Fullscreen();
-    auto view = ftxui::Renderer(
-        [&] { return render(state, Look{palette, settings, ftxui::Terminal::Size().dimx}); });
+    auto view = ftxui::Renderer([&] {
+        const ftxui::Dimensions size = ftxui::Terminal::Size();
+        // Less the header, its rule and the footer.
+        state.setVisibleRows(size.dimy - 3);
+        return render(state, Look{palette, settings, size.dimx});
+    });
     auto keyed = ftxui::CatchEvent(view, [&](const ftxui::Event &event) {
         const QString key = keyName(event);
         if (key.isEmpty())

@@ -1552,9 +1552,12 @@
         <source>Nothing on this day.</source>
         <translation type="unfinished"></translation>
     </message>
-    <message>
-        <source>Nothing in the next two weeks.</source>
-        <translation type="unfinished"></translation>
+    <message numerus="yes">
+        <source>Nothing in the next %n days.</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
     </message>
     <message>
         <source>From %1</source>
@@ -1681,6 +1684,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Enter go   Esc cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Enter go to it   Esc back</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1710,6 +1717,10 @@
     </message>
     <message>
         <source>Move to: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3693,6 +3704,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Down half a screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Up half a screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to a date</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Next view</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4166,11 +4189,19 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No command %1. There are day, week, agenda, today, add, search, invites, calendars, sync, undo, help and q.</source>
+        <source>The agenda takes 1 to 366 days, as :agenda 30.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No command %1. There are day, week, agenda, today, go, add, search, invites, calendars, sync, undo, help and q.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Found for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not read %1 as a day.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

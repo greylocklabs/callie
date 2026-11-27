@@ -18,9 +18,6 @@ namespace callie::cli {
 
 namespace {
 
-/// How far the agenda reads ahead.
-constexpr int kAgendaDays = 14;
-
 /// The terminal's action for `keys`: its vi keys, or the key after the leader, in the list or
 /// in an event's details.
 QString actionFor(const QString &keys, bool afterLeader, bool inDetails)
@@ -98,7 +95,7 @@ QDate TuiState::rangeStart() const
 
 int TuiState::rangeDays() const
 {
-    return m_view == View::Day ? 1 : m_view == View::Week ? 7 : kAgendaDays;
+    return m_view == View::Day ? 1 : m_view == View::Week ? 7 : m_agendaDays;
 }
 
 QDate TuiState::dayOf(const Event &event) const
@@ -209,6 +206,13 @@ bool TuiState::press(const QString &key)
 
 bool TuiState::pressBrowsing(const QString &key)
 {
+    // A count, as 3 in 3j, for the move that follows; 0 only after another digit.
+    if (m_pending.isEmpty() && key.size() == 1 && key.at(0).isDigit() &&
+        (key != u"0" || m_count > 0)) {
+        m_count = std::min(m_count * 10 + key.at(0).digitValue(), 999);
+        Q_EMIT changed();
+        return true;
+    }
     // The second key of a command.
     const QString pending = std::exchange(m_pending, QString());
     if (pending == u"leader") {
@@ -244,6 +248,25 @@ bool TuiState::pressBrowsing(const QString &key)
 
 bool TuiState::run(const QString &id)
 {
+    // A count repeats a move; anything else drops it.
+    const int times = std::max(1, std::exchange(m_count, 0));
+    if (id == u"halfDown" || id == u"halfUp") {
+        const int rows = std::max(1, m_visibleRows / 2) * (id == u"halfDown" ? 1 : -1);
+        if (!m_events.isEmpty())
+            m_selected = std::clamp(m_selected + rows * times, 0, int(m_events.size()) - 1);
+        Q_EMIT changed();
+        return true;
+    }
+    if (times > 1 &&
+        (id == u"previous" || id == u"next" || id == u"nextEvent" || id == u"previousEvent")) {
+        for (int i = 0; i < times; ++i)
+            run(id);
+        return true;
+    }
+    if (id == u"goToDate") {
+        startTyping(Typing::Date);
+        return true;
+    }
     if (id == u"previous" || id == u"next") {
         step(id == u"next" ? 1 : -1);
         return true;
@@ -541,14 +564,29 @@ void TuiState::runCommand(const QString &line)
         run(actions.value(name));
         return;
     }
+    if (name == u"go" && !rest.isEmpty()) {
+        goTo(rest);
+        return;
+    }
+    if (name == u"agenda" && !rest.isEmpty()) {
+        bool ok = false;
+        const int days = rest.toInt(&ok);
+        if (!ok || days < 1 || days > 366) {
+            say(tr("The agenda takes 1 to 366 days, as :agenda 30."), true);
+            return;
+        }
+        m_agendaDays = days;
+        setView(View::Agenda);
+        return;
+    }
     if ((name == u"add" || name == u"search") && !rest.isEmpty()) {
         m_typing = name == u"add" ? Typing::NewEvent : Typing::Search;
         m_input = rest;
         submit();
         return;
     }
-    say(tr("No command %1. There are day, week, agenda, today, add, search, invites, calendars, "
-           "sync, undo, help and q.")
+    say(tr("No command %1. There are day, week, agenda, today, go, add, search, invites, "
+           "calendars, sync, undo, help and q.")
             .arg(line),
         true);
 }
@@ -636,6 +674,10 @@ void TuiState::submit()
         runCommand(text);
         return;
     }
+    if (m_typing == Typing::Date) {
+        goTo(text);
+        return;
+    }
     if (m_typing == Typing::Move) {
         const std::optional<Event> event = current();
         if (!event) {
@@ -682,6 +724,22 @@ void TuiState::showFound(const QString &title, QList<Event> events)
     }
     m_mode = Mode::Found;
     Q_EMIT changed();
+}
+
+void TuiState::goTo(const QString &text)
+{
+    QString unused;
+    QTextStream out(&unused), err(&unused);
+    const Commands commands(*m_source, m_settings, out, err, m_now(), m_settings.times()->zone());
+    const std::optional<QDateTime> when = commands.when(text, today());
+    if (!when) {
+        say(tr("Could not read %1 as a day.").arg(text), true);
+        return;
+    }
+    m_mode = Mode::Browse;
+    m_day = m_settings.times()->date(*when).date();
+    reload();
+    selectFirstOf(m_day);
 }
 
 void TuiState::remind(const Event &event)

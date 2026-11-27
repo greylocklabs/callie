@@ -75,6 +75,12 @@ QList<KeyAction> keyActions()
         act(u"quit"_s, KeyActions::tr("Quit Callie"), u"general"_s, {int(K::Quit)}, {}, {}, false,
             W::App),
 
+        act(u"halfDown"_s, KeyActions::tr("Down half a screen"), u"views"_s, {}, u"Ctrl+D"_s, {},
+            false, W::Terminal),
+        act(u"halfUp"_s, KeyActions::tr("Up half a screen"), u"views"_s, {}, u"Ctrl+U"_s, {}, false,
+            W::Terminal),
+        act(u"goToDate"_s, KeyActions::tr("Go to a date"), u"views"_s, {}, u"gd"_s, {}, false,
+            W::Terminal),
         // The terminal calendar's own.
         act(u"nextView"_s, KeyActions::tr("Next view"), u"views"_s, {}, u"Tab"_s, {}, false,
             W::Terminal),

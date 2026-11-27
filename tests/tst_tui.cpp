@@ -85,6 +85,10 @@ private Q_SLOTS:
     void searchesAsItIsTyped();
     void completesCalendarNames();
     void runsCommandsAfterAColon();
+    void goesToADate();
+    void countsRepeatMoves();
+    void movesHalfAScreen();
+    void setsTheAgendasLength();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -990,6 +994,80 @@ void TestTui::runsCommandsAfterAColon()
     retype(u"q"_s);
     m_state->press(u"Enter"_s);
     QVERIFY(m_state->quitRequested());
+}
+
+void TestTui::goesToADate()
+{
+    // gd asks for a day, as callie add reads one; :go does the same.
+    m_state->press(u"g"_s);
+    m_state->press(u"d"_s);
+    QCOMPARE(m_state->typing(), TuiState::Typing::Date);
+    retype(u"2026-12-25"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
+    QCOMPARE(m_state->day(), QDate(2026, 12, 25));
+    m_state->press(u":"_s);
+    retype(u"go friday"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->day().dayOfWeek(), int(Qt::Friday));
+    m_state->press(u":"_s);
+    retype(u"go someday"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(m_state->messageIsError());
+}
+
+void TestTui::countsRepeatMoves()
+{
+    // 3l goes three days on; the count shows until the move takes it.
+    m_state->press(u"3"_s);
+    QCOMPARE(m_state->count(), 3);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY(drawn.contains(u" 3 "_s));
+    m_state->press(u"l"_s);
+    QCOMPARE(m_state->day(), QDate(2026, 10, 10));
+    QCOMPARE(m_state->count(), 0);
+    // 1 0 h is ten days back; a count before anything else is dropped.
+    m_state->press(u"1"_s);
+    m_state->press(u"0"_s);
+    m_state->press(u"h"_s);
+    QCOMPARE(m_state->day(), QDate(2026, 9, 30));
+    m_state->press(u"t"_s);
+    m_state->press(u"2"_s);
+    m_state->press(u"?"_s);
+    m_state->press(u"Escape"_s);
+    QCOMPARE(m_state->count(), 0);
+}
+
+void TestTui::movesHalfAScreen()
+{
+    // Ctrl-D and Ctrl-U move by half the rows the terminal shows.
+    m_state->press(m_settings->leaderKey());
+    m_state->press(u"a"_s);
+    m_state->setVisibleRows(6);
+    m_state->press(u"g"_s);
+    m_state->press(u"g"_s);
+    QCOMPARE(m_state->selected(), 0);
+    m_state->press(u"Ctrl+D"_s);
+    QCOMPARE(m_state->selected(), 3);
+    m_state->press(u"2"_s);
+    m_state->press(u"Ctrl+D"_s);
+    QCOMPARE(m_state->selected(), 9);
+    m_state->press(u"Ctrl+U"_s);
+    QCOMPARE(m_state->selected(), 6);
+}
+
+void TestTui::setsTheAgendasLength()
+{
+    m_state->press(u":"_s);
+    retype(u"agenda 30"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->view(), TuiState::View::Agenda);
+    QCOMPARE(m_state->rangeDays(), 30);
+    m_state->press(u":"_s);
+    retype(u"agenda 0"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(m_state->messageIsError());
+    QCOMPARE(m_state->rangeDays(), 30);
 }
 
 QTEST_GUILESS_MAIN(TestTui)

@@ -13,6 +13,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - The terminal calendar's typed lines edit as in a shell, with the arrows, Ctrl-A, Ctrl-E, Ctrl-W
   and Ctrl-U, and Up and Down bring back earlier ones. A search shows what it finds as it is typed,
   Tab completes a calendar's name, and `:` runs a command such as `:week` or `:add`.
+- The terminal calendar goes to a day with `gd` or `:go`, repeats a move given a count, as `3l`,
+  moves half a screen with Ctrl-D and Ctrl-U, and shows an agenda of any length with `:agenda 30`.
 
 ### Changed
 
