@@ -36,7 +36,7 @@ public:
     /// event being changed, where to move it, or a command.
     enum class Typing { NewEvent, Search, Field, Move, Command, Date };
     /// The fields of an event that can be changed, in the order they are listed.
-    enum class Field { Title, Where, Starts, Ends, AllDay, Calendar };
+    enum class Field { Title, Where, Starts, Ends, AllDay, Calendar, Repeats, Guests, Call, Notes };
     using Now = std::function<QDateTime()>;
 
     TuiState(CalendarSource &source, Settings &settings, Now now, QObject *parent = nullptr);
@@ -131,8 +131,10 @@ private:
     void goTo(const QString &text);
     /// The search typed so far, as its results, while it is typed.
     void searchAsTyped();
-    /// The next calendar name that starts as the field does, for Tab.
-    void completeCalendar();
+    /// The next of `choices` that starts as the field does, for Tab.
+    void complete(const QStringList &choices);
+    /// Adds the new event typed, and lists its fields to fill in the rest.
+    void addAndOpen(const QString &text);
     /// Does the action `id` of the keys' table, as its keys do in the list.
     bool run(const QString &id);
     bool pressDetails(const QString &key);

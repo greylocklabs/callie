@@ -20,6 +20,8 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 - The terminal calendar can show days and weeks as an hour grid, with each event at its time and a
   line at the current time, switched with the leader then g or `:grid` and kept in Settings. In
   the week's grid, j and k stay within a day, and H and L go to the day before or after.
+- In the terminal calendar, Tab on a new event's line adds it and opens its fields, which now take
+  its repeat, guests, video call and notes too, as well as its title, place, times and calendar.
 
 ### Changed
 

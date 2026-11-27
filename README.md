@@ -193,7 +193,8 @@ Run on its own in a terminal, `callie` opens your calendar full screen, in the a
 week, a month or the next two weeks, with the app's vi keys (`h` and `l` to move, `t` for today,
 `j` and `k` between events, the leader then `d`, `w`, `m` or `a` for a view, `?` for the rest). Enter opens an event:
 answer it with `y`, `m` or `n`, join its call with `o`, or delete it with `x`. `n` adds an event as
-`callie add` reads it, `/` searches, `i` lists invitations, `c` shows or hides calendars, and `u`
+`callie add` reads it, and Tab instead of Enter opens its fields to fill in the rest, from guests
+and repeats to notes and a video call, `/` searches, `i` lists invitations, `c` shows or hides calendars, and `u`
 takes back the last change while it is held. A line being typed edits as in a shell, with the
 arrows, Ctrl-A, Ctrl-E, Ctrl-W and Ctrl-U, and Up and Down bring back earlier ones; a search shows
 what it finds as it is typed. `:` runs a command, such as `:week`, `:today` or

@@ -93,6 +93,7 @@ private Q_SLOTS:
     void showsDaysAsAnHourGrid();
     void movesWithinAndBetweenDaysInTheWeeksGrid();
     void placesAnEventFromTheDayBeforeAtMidnight();
+    void fillsInANewEventsForm();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -1183,6 +1184,63 @@ void TestTui::placesAnEventFromTheDayBeforeAtMidnight()
     };
     QVERIFY2(line(u"Night shift"_s) >= 0, qPrintable(drawn));
     QVERIFY(line(u"Night shift"_s) < line(m_settings->times()->hour(1)));
+}
+
+void TestTui::fillsInANewEventsForm()
+{
+    // Tab on a new event's line adds it, on its day, and lists its fields.
+    m_state->press(u"n"_s);
+    retype(u"Pottery tomorrow 6-8pm"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    QCOMPARE(m_state->editing()->summary, u"Pottery"_s);
+    QCOMPARE(m_state->day(), QDate(2026, 10, 8));
+    const auto to = [this](TuiState::Field field) {
+        while (m_state->field() != field)
+            m_state->press(u"j"_s);
+    };
+    const auto value = [this](TuiState::Field field) {
+        return m_state->fieldValue(*m_state->editing(), field);
+    };
+
+    // Repeats completes its choices with Tab.
+    to(TuiState::Field::Repeats);
+    QCOMPARE(value(TuiState::Field::Repeats), u"none"_s);
+    m_state->press(u"Enter"_s);
+    retype(u"wee"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->input(), u"weekdays"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->input(), u"weekly"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(value(TuiState::Field::Repeats), u"weekly"_s);
+
+    // Guests, by their addresses, and notes.
+    to(TuiState::Field::Guests);
+    m_state->press(u"Enter"_s);
+    retype(u"priya@example.com, alex@example.com"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(value(TuiState::Field::Guests), u"priya@example.com, alex@example.com"_s);
+    to(TuiState::Field::Notes);
+    m_state->press(u"Enter"_s);
+    retype(u"Bring clay"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(value(TuiState::Field::Notes), u"Bring clay"_s);
+    QVERIFY(!m_state->messageIsError());
+    // A video call is asked for with Enter; its link comes from the calendar once it syncs.
+    m_state->press(u"k"_s);
+    QCOMPARE(m_state->field(), TuiState::Field::Call);
+    QCOMPARE(value(TuiState::Field::Call), u"no"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY2(!m_state->messageIsError(), qPrintable(m_state->message()));
+
+    // What cannot be read as an event says so, and adds nothing.
+    m_state->press(u"Escape"_s);
+    m_state->press(u"n"_s);
+    retype(u"tomorrow 3pm"_s);
+    m_state->press(u"Tab"_s);
+    QVERIFY(m_state->messageIsError());
+    QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
 }
 
 QTEST_GUILESS_MAIN(TestTui)
