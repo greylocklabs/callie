@@ -80,6 +80,12 @@ QList<KeyAction> keyActions()
             W::Terminal),
         act(u"goToDate"_s, KeyActions::tr("Go to a date"), u"views"_s, {}, u"gd"_s, {}, false,
             W::Terminal),
+        act(u"previousDay"_s, KeyActions::tr("Event on the day before"), u"views"_s, {}, u"H"_s, {},
+            false, W::Terminal),
+        act(u"nextDay"_s, KeyActions::tr("Event on the day after"), u"views"_s, {}, u"L"_s, {},
+            false, W::Terminal),
+        act(u"toggleGrid"_s, KeyActions::tr("Grid or lists"), u"views"_s, {}, {}, u"g"_s, false,
+            W::Terminal),
         // The terminal calendar's own.
         act(u"nextView"_s, KeyActions::tr("Next view"), u"views"_s, {}, u"Tab"_s, {}, false,
             W::Terminal),

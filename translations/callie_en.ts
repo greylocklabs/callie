@@ -1735,7 +1735,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>In an event&apos;s details</source>
+        <source> Keys in an event&apos;s details </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3727,6 +3727,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Event on the day before</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Event on the day after</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Grid or lists</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Next view</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4180,6 +4192,14 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Days and weeks as an hour grid.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Days and weeks as lists.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is not an invitation.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4204,7 +4224,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No command %1. There are day, week, month, agenda, today, go, add, search, invites, calendars, sync, undo, help and q.</source>
+        <source>No command %1. There are day, week, month, agenda, grid, today, go, add, search, invites, calendars, sync, undo, help and q.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

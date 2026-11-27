@@ -42,6 +42,8 @@ public:
     TuiState(CalendarSource &source, Settings &settings, Now now, QObject *parent = nullptr);
 
     [[nodiscard]] View view() const { return m_view; }
+    /// Whether the day or week shown is an hour grid, as Settings chooses, rather than lists.
+    [[nodiscard]] bool grid() const;
     /// The day in focus: the one shown, or inside the week or agenda shown.
     [[nodiscard]] QDate day() const { return m_day; }
     [[nodiscard]] QDate rangeStart() const;
@@ -113,6 +115,9 @@ Q_SIGNALS:
 
 private:
     void step(int direction);
+    /// Selects the event on the day `direction` days away within the range, nearest in time to
+    /// the one selected; days with none are passed over.
+    void stepDay(int direction);
     void setView(View view);
     void selectFirstOf(QDate day);
     bool pressBrowsing(const QString &key);
