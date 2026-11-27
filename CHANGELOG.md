@@ -22,6 +22,10 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
   the week's grid, j and k stay within a day, and H and L go to the day before or after.
 - In the terminal calendar, Tab on a new event's line adds it and opens its fields, which now take
   its repeat, guests, video call and notes too, as well as its title, place, times and calendar.
+- An event's details in the terminal calendar open its place in a map with M and its page with O,
+  and copy its call's link, or its page's, with c.
+- `callie next` prints the event on now, or the next, in one line for a status bar such as
+  waybar, polybar or tmux, or as JSON with `--json`.
 
 ### Changed
 

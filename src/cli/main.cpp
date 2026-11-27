@@ -121,6 +121,7 @@ const QList<std::pair<QString, QString>> kCommands = {
     {u"reminders"_s,
      u"Remind about events with desktop notifications until stopped, without the app open"_s},
     {u"agenda"_s, u"Upcoming events; --json for scripts, with ids. The default when piped"_s},
+    {u"next"_s, u"The event on now, or the next, in one line for a status bar; --json too"_s},
     {u"search"_s, u"Events with every word given"_s},
     {u"invites"_s, u"Invitations waiting for an answer"_s},
     {u"contacts"_s, u"People to invite whose name or address matches"_s},
@@ -1012,8 +1013,8 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
     // Renaming and recoloring reach CalDAV servers.
     const bool looks = command == u"calendars" &&
                        QStringList{u"rename"_s, u"color"_s, u"reset"_s}.contains(args.value(1));
-    const bool reading = command == u"agenda" || command == u"search" || command == u"invites" ||
-                         command == u"contacts" || command == u"export" ||
+    const bool reading = command == u"agenda" || command == u"next" || command == u"search" ||
+                         command == u"invites" || command == u"contacts" || command == u"export" ||
                          (command == u"calendars" && !looks) || command == u"accounts";
     // Sample data and scripts that only read leave the user's settings alone.
     QTemporaryDir scratch;
@@ -1059,6 +1060,8 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
         return commands.renameAccount(args.value(2), args.mid(3).join(u' '));
     if (command == u"agenda")
         return commands.agenda(parser.value(u"days"_s).toInt(), json);
+    if (command == u"next")
+        return commands.next(json);
     if (command == u"reminders") {
         if (!settings.notify()) {
             err << QObject::tr("callie: reminders are off; turn them on in Settings, or with "
@@ -1425,8 +1428,8 @@ int main(int argc, char *argv[])
     }
 
     static const QStringList kEventCommands = {
-        u"agenda"_s,  u"search"_s,    u"invites"_s,  u"add"_s, u"edit"_s,     u"delete"_s,
-        u"respond"_s, u"duplicate"_s, u"contacts"_s, u"tui"_s, u"reminders"_s};
+        u"agenda"_s,  u"search"_s,    u"invites"_s,  u"add"_s, u"edit"_s,      u"delete"_s,
+        u"respond"_s, u"duplicate"_s, u"contacts"_s, u"tui"_s, u"reminders"_s, u"next"_s};
     if (kEventCommands.contains(command))
         return runEvents(app, command, args, parser, parser.isSet(sampleOption));
 

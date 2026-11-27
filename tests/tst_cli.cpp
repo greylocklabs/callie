@@ -130,6 +130,7 @@ class TestCli : public QObject
 private Q_SLOTS:
     void init();
     void agendaGivesIdsToScripts();
+    void nextIsOneLineForAStatusBar();
     void agendaMarksCallsInNotes();
     void agendaLeavesOutWorkPlaces();
     void agendaTakesTheThemesColors();
@@ -204,6 +205,33 @@ void TestCli::init()
     m_errStream = std::make_unique<QTextStream>(&m_err);
     m_commands = std::make_unique<Commands>(*m_source, *m_settings, *m_outStream, *m_errStream,
                                             kNow, QTimeZone::UTC);
+}
+
+void TestCli::nextIsOneLineForAStatusBar()
+{
+    // At 13:40 on the Wednesday, the Dentist at four is next.
+    QCOMPARE(m_commands->next(false), 0);
+    m_outStream->flush();
+    QCOMPARE(m_out.count(u'\n'), 1);
+    QVERIFY2(m_out.contains(u"Dentist"_s) && !m_out.startsWith(u"Now"_s), qPrintable(m_out));
+    m_out.clear();
+    QCOMPARE(m_commands->next(true), 0);
+    m_outStream->flush();
+    const QJsonObject json = QJsonDocument::fromJson(m_out.toUtf8()).object();
+    QCOMPARE(json.value(u"summary"_s).toString(), u"Dentist"_s);
+    QVERIFY(!json.value(u"now"_s).toBool());
+
+    // An event on now comes first, with when it ends.
+    EventDraft draft;
+    draft.calendarId = m_source->calendars().first().id;
+    draft.summary = u"Pairing"_s;
+    draft.start = at(7, 13);
+    draft.end = at(7, 14);
+    m_source->createEvent(draft, [](const QString &) {});
+    m_out.clear();
+    QCOMPARE(m_commands->next(false), 0);
+    m_outStream->flush();
+    QVERIFY2(m_out.startsWith(u"Now: Pairing, until "_s), qPrintable(m_out));
 }
 
 void TestCli::agendaMarksCallsInNotes()

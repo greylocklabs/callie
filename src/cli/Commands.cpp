@@ -80,6 +80,42 @@ int Commands::agenda(int days, bool json)
     return 0;
 }
 
+int Commands::next(bool json)
+{
+    QList<Event> events = visibleEvents(m_now, m_now.addDays(7));
+    events.removeIf([this](const Event &e) { return e.allDay || e.end <= m_now; });
+    std::sort(events.begin(), events.end(), byStart);
+    if (events.isEmpty()) {
+        if (json)
+            m_out << "{}\n";
+        return 0;
+    }
+    const Event &event = events.first();
+    const bool now = event.start <= m_now;
+    const Times &times = *m_settings.times();
+    if (json) {
+        QJsonObject object{{u"summary"_s, event.summary},
+                           {u"start"_s, event.start.toString(Qt::ISODate)},
+                           {u"end"_s, event.end.toString(Qt::ISODate)},
+                           {u"now"_s, now},
+                           {u"location"_s, event.location},
+                           {u"join"_s, event.joinUrl().toString()}};
+        m_out << QJsonDocument(object).toJson(QJsonDocument::Compact) << "\n";
+        return 0;
+    }
+    const QDate day = event.start.toTimeZone(m_zone).date();
+    if (now)
+        m_out << tr("Now: %1, until %2").arg(event.summary, times.time(event.end));
+    else if (day == m_now.toTimeZone(m_zone).date())
+        m_out << tr("%1 %2").arg(times.time(event.start), event.summary);
+    else
+        m_out << tr("%1 %2 %3")
+                     .arg(QLocale().toString(day, u"ddd"_s), times.time(event.start),
+                          event.summary);
+    m_out << "\n";
+    return 0;
+}
+
 QList<Event> Commands::found(const QStringList &words) const
 {
     // A repeating event once: its next occurrence, or its last if all have passed.
