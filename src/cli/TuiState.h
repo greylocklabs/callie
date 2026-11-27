@@ -34,7 +34,7 @@ public:
     enum class Mode { Browse, Details, Typing, Found, Calendars, Editing, Confirming };
     /// What a line being typed is for: a new event, a search, a field of the
     /// event being changed, where to move it, or a command.
-    enum class Typing { NewEvent, Search, Field, Move, Command };
+    enum class Typing { NewEvent, Search, Field, Move, Command, Date };
     /// The fields of an event that can be changed, in the order they are listed.
     enum class Field { Title, Where, Starts, Ends, AllDay, Calendar };
     using Now = std::function<QDateTime()>;
@@ -87,6 +87,10 @@ public:
     [[nodiscard]] bool messageIsError() const { return m_messageIsError; }
     /// "leader" or "g" while waiting for the key that finishes a command.
     [[nodiscard]] QString pending() const { return m_pending; }
+    /// The count typed before a move, as 3 in 3j, or 0.
+    [[nodiscard]] int count() const { return m_count; }
+    /// How many rows of events the terminal shows, for Ctrl-D and Ctrl-U.
+    void setVisibleRows(int rows) { m_visibleRows = std::max(2, rows); }
     /// The sync state in a few words, and whether it is an error.
     [[nodiscard]] QString syncStatus() const;
     [[nodiscard]] bool syncFailed() const;
@@ -116,6 +120,8 @@ private:
     void startTyping(Typing typing, const QString &text = {});
     /// Runs a command typed after `:`.
     void runCommand(const QString &line);
+    /// Shows the day `text` names, as callie add reads a day, or says it cannot.
+    void goTo(const QString &text);
     /// The search typed so far, as its results, while it is typed.
     void searchAsTyped();
     /// The next calendar name that starts as the field does, for Tab.
@@ -160,6 +166,9 @@ private:
     Typing m_typing = Typing::NewEvent;
     QString m_input;
     int m_cursor = 0;
+    int m_count = 0;
+    int m_visibleRows = 20;
+    int m_agendaDays = 14;
     /// Lines typed before, by what they were for, newest last; and which is shown, or -1 for the
     /// line being typed, kept in m_draft while an older one is.
     QHash<int, QStringList> m_history;
