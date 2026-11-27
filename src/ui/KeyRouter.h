@@ -1,5 +1,7 @@
 #pragma once
 
+#include "callie/KeyActions.h"
+
 #include <QKeySequence>
 #include <QObject>
 #include <QPointer>
@@ -9,23 +11,6 @@
 #include <QVariantList>
 
 namespace callie {
-
-/// Something the keyboard can do, and every way to do it.
-struct KeyAction
-{
-    QString id;
-    QString label;
-    /// "general", "views" or "events", for grouping in the help.
-    QString group;
-    /// Shortcuts that always work, as QKeySequence::StandardKey values or text.
-    QVariantList standard;
-    /// The keys for it in vi mode, such as "j" or "gg".
-    QString vi;
-    /// The key after the leader in vi mode.
-    QString leader;
-    /// Only works while an event's card is open.
-    bool inCard = false;
-};
 
 /// Turns typed keys into actions. Standard shortcuts are left to QML's
 /// Shortcut, made from actions(); in vi mode single keys act too, and the

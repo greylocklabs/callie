@@ -2,10 +2,12 @@
 
 #include "Commands.h"
 
+#include "callie/KeyActions.h"
 #include "callie/QueuedSource.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
 
+#include <QHash>
 #include <QTextStream>
 #include <QTimer>
 
@@ -17,6 +19,41 @@ namespace {
 
 /// How far the agenda reads ahead.
 constexpr int kAgendaDays = 14;
+
+/// The terminal's action for `keys`: its vi keys, or the key after the leader, in the list or
+/// in an event's details.
+QString actionFor(const QString &keys, bool afterLeader, bool inDetails)
+{
+    for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
+        if (action.inCard == inDetails && (afterLeader ? action.leader : action.vi) == keys)
+            return action.id;
+    }
+    return {};
+}
+
+/// Whether `key` starts a two-key command, as g starts gg.
+bool startsCommand(const QString &key)
+{
+    if (key.size() != 1)
+        return false;
+    for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
+        if (!action.inCard && action.vi.size() == 2 && action.vi.startsWith(key))
+            return true;
+    }
+    return false;
+}
+
+/// Keys the terminal takes besides the table's: the arrows, Home and End, and i and r, which it
+/// had before it shared the app's leader keys.
+QString aliasFor(const QString &key)
+{
+    static const QHash<QString, QString> aliases = {
+        {u"Left"_s, u"previous"_s},  {u"Right"_s, u"next"_s},       {u"Home"_s, u"today"_s},
+        {u"Down"_s, u"nextEvent"_s}, {u"Up"_s, u"previousEvent"_s}, {u"End"_s, u"lastEvent"_s},
+        {u"i"_s, u"invites"_s},      {u"r"_s, u"refresh"_s},
+    };
+    return aliases.value(key);
+}
 
 } // namespace
 
@@ -174,70 +211,120 @@ bool TuiState::pressBrowsing(const QString &key)
     // The second key of a command.
     const QString pending = std::exchange(m_pending, QString());
     if (pending == u"leader") {
-        if (key == u"d")
-            setView(View::Day);
-        else if (key == u"w")
-            setView(View::Week);
-        else if (key == u"a")
-            setView(View::Agenda);
-        else
-            Q_EMIT changed();
-        return true;
-    }
-    if (pending == u"g") {
-        if (key == u"g" && !m_events.isEmpty()) {
-            m_selected = 0;
+        const QString id = actionFor(key, true, false);
+        if (id.isEmpty()) {
             Q_EMIT changed();
             return true;
         }
+        return run(id);
+    }
+    if (!pending.isEmpty()) {
+        const QString id = actionFor(pending + key, false, false);
+        if (!id.isEmpty())
+            return run(id);
+        // Not a command, so the key is taken on its own.
         Q_EMIT changed();
     }
 
-    if (key == m_settings.leaderKey()) {
-        m_pending = u"leader"_s;
-    } else if (key == u"g") {
-        m_pending = u"g"_s;
-    } else if (key == u"h" || key == u"Left") {
-        step(-1);
+    if (key == m_settings.leaderKey() || startsCommand(key)) {
+        m_pending = key == m_settings.leaderKey() ? u"leader"_s : key;
+        Q_EMIT changed();
         return true;
-    } else if (key == u"l" || key == u"Right") {
-        step(1);
+    }
+    QString id = actionFor(key, false, false);
+    if (id.isEmpty())
+        id = aliasFor(key);
+    return !id.isEmpty() && run(id);
+}
+
+bool TuiState::run(const QString &id)
+{
+    if (id == u"previous" || id == u"next") {
+        step(id == u"next" ? 1 : -1);
         return true;
-    } else if (key == u"t" || key == u"Home") {
+    }
+    if (id == u"today") {
         m_day = today();
         reload();
         selectFirstOf(m_day);
         return true;
-    } else if (key == u"j" || key == u"Down") {
-        if (m_selected + 1 < m_events.size())
-            ++m_selected;
-    } else if (key == u"k" || key == u"Up") {
-        if (m_selected > 0)
-            --m_selected;
-    } else if (key == u"G" || key == u"End") {
-        m_selected = int(m_events.size()) - 1;
-    } else if (key == u"Tab") {
+    }
+    if (id == u"dayView" || id == u"weekView" || id == u"agendaView") {
+        setView(id == u"dayView" ? View::Day : id == u"weekView" ? View::Week : View::Agenda);
+        return true;
+    }
+    if (id == u"nextView") {
         setView(m_view == View::Day ? View::Week : m_view == View::Week ? View::Agenda : View::Day);
         return true;
-    } else if (key == u"Enter") {
-        if (m_selected < 0)
-            return false;
-        m_mode = Mode::Details;
-    } else if (key == u"n" || key == u"/") {
-        m_mode = Mode::Typing;
-        m_typing = key == u"n" ? Typing::NewEvent : Typing::Search;
-        m_input.clear();
-    } else if (key == u"i") {
+    }
+    if (id == u"invites") {
         showFound(tr("Invitations"),
                   ask([](const Commands &commands) { return commands.waitingInvites(); }));
         return true;
-    } else if (key == u"c") {
-        m_mode = Mode::Calendars;
-        m_calendarSelected = 0;
-    } else if (key == u"e") {
+    }
+    if (id == u"change") {
         const std::optional<Event> event = current();
         return event && startEditing(*event);
-    } else if (key == u"m") {
+    }
+    if (id == u"copyEvent") {
+        const std::optional<Event> event = current();
+        if (!event)
+            return false;
+        m_copied = event;
+        say(tr("Copied %1. p puts a copy on the day of the selected event.").arg(event->summary));
+        return true;
+    }
+    if (id == u"pasteEvent") {
+        if (!m_copied) {
+            say(tr("Nothing copied; y copies the selected event."), true);
+            return true;
+        }
+        paste();
+        return true;
+    }
+    if (id == u"duplicateEvent") {
+        const std::optional<Event> event = current();
+        if (!event)
+            return false;
+        const QString ref = Commands::reference(*event);
+        act([ref](Commands &commands, const std::function<void(int)> &done) {
+            commands.duplicate(ref, std::nullopt, done);
+        });
+        return true;
+    }
+    if (id == u"undo") {
+        if (m_lastChange.isEmpty() || !m_source->undoChange(m_lastChange)) {
+            say(tr("Nothing to take back."), true);
+            return true;
+        }
+        m_lastChange.clear();
+        say(tr("Taken back."));
+        return true;
+    }
+
+    if (id == u"nextEvent") {
+        if (m_selected + 1 < m_events.size())
+            ++m_selected;
+    } else if (id == u"previousEvent") {
+        if (m_selected > 0)
+            --m_selected;
+    } else if (id == u"firstEvent") {
+        if (!m_events.isEmpty())
+            m_selected = 0;
+    } else if (id == u"lastEvent") {
+        m_selected = int(m_events.size()) - 1;
+    } else if (id == u"details") {
+        if (m_selected < 0)
+            return false;
+        m_mode = Mode::Details;
+    } else if (id == u"newEvent" || id == u"search") {
+        m_mode = Mode::Typing;
+        m_typing = id == u"newEvent" ? Typing::NewEvent : Typing::Search;
+        m_input.clear();
+    } else if (id == u"calendars") {
+        m_mode = Mode::Calendars;
+        m_calendarSelected = 0;
+    } else if (id == u"move") {
         const std::optional<Event> event = current();
         if (!event)
             return false;
@@ -248,42 +335,11 @@ bool TuiState::pressBrowsing(const QString &key)
         m_mode = Mode::Typing;
         m_typing = Typing::Move;
         m_input.clear();
-    } else if (key == u"y") {
-        const std::optional<Event> event = current();
-        if (!event)
-            return false;
-        m_copied = event;
-        say(tr("Copied %1. p puts a copy on the day of the selected event.").arg(event->summary));
-        return true;
-    } else if (key == u"p") {
-        if (!m_copied) {
-            say(tr("Nothing copied; y copies the selected event."), true);
-            return true;
-        }
-        paste();
-        return true;
-    } else if (key == u"D") {
-        const std::optional<Event> event = current();
-        if (!event)
-            return false;
-        const QString id = Commands::reference(*event);
-        act([id](Commands &commands, const std::function<void(int)> &done) {
-            commands.duplicate(id, std::nullopt, done);
-        });
-        return true;
-    } else if (key == u"u") {
-        if (m_lastChange.isEmpty() || !m_source->undoChange(m_lastChange)) {
-            say(tr("Nothing to take back."), true);
-            return true;
-        }
-        m_lastChange.clear();
-        say(tr("Taken back."));
-        return true;
-    } else if (key == u"r") {
+    } else if (id == u"refresh") {
         m_source->refresh();
-    } else if (key == u"?") {
+    } else if (id == u"help") {
         m_help = true;
-    } else if (key == u"q") {
+    } else if (id == u"quitTerminal") {
         m_quit = true;
     } else {
         return false;
@@ -300,28 +356,29 @@ bool TuiState::pressDetails(const QString &key)
         Q_EMIT changed();
         return true;
     }
+    const QString id = actionFor(key, false, true);
     static const QHash<QString, QString> answers = {
-        {u"y"_s, u"yes"_s}, {u"m"_s, u"maybe"_s}, {u"n"_s, u"no"_s}};
-    if (answers.contains(key)) {
+        {u"accept"_s, u"yes"_s}, {u"maybe"_s, u"maybe"_s}, {u"decline"_s, u"no"_s}};
+    if (answers.contains(id)) {
         if (!event->canRespond) {
             say(tr("%1 is not an invitation.").arg(event->summary), true);
             return true;
         }
         // One that repeats is answered for this occurrence or the series, as asked.
         if (repeats(*event)) {
-            confirm(*event, answers.value(key));
+            confirm(*event, answers.value(id));
             return true;
         }
-        const QString id = Commands::reference(*event);
-        const QString answer = answers.value(key);
-        act([id, answer](Commands &commands, const std::function<void(int)> &done) {
-            commands.respond(id, answer, {}, done);
+        const QString ref = Commands::reference(*event);
+        const QString answer = answers.value(id);
+        act([ref, answer](Commands &commands, const std::function<void(int)> &done) {
+            commands.respond(ref, answer, {}, done);
         });
         return true;
     }
-    if (key == u"e")
+    if (id == u"changeOpen")
         return startEditing(*event);
-    if (key == u"x") {
+    if (id == u"delete") {
         if (!event->canEdit) {
             say(tr("%1 cannot be changed from here.").arg(event->summary), true);
             return true;
@@ -329,7 +386,7 @@ bool TuiState::pressDetails(const QString &key)
         confirm(*event, {});
         return true;
     }
-    if (key == u"o") {
+    if (id == u"join") {
         const QUrl url = event->joinUrl();
         if (url.isEmpty()) {
             say(tr("%1 has no call to join.").arg(event->summary), true);
@@ -338,8 +395,11 @@ bool TuiState::pressDetails(const QString &key)
         Q_EMIT openRequested(url);
         return true;
     }
-    if (key == u"j" || key == u"Down" || key == u"k" || key == u"Up" || key == u"u")
-        return pressBrowsing(key);
+    // Moving between events and taking a change back work from the details as from the list.
+    const QString listed =
+        !actionFor(key, false, false).isEmpty() ? actionFor(key, false, false) : aliasFor(key);
+    if (listed == u"nextEvent" || listed == u"previousEvent" || listed == u"undo")
+        return run(listed);
     return false;
 }
 
