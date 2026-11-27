@@ -75,6 +75,9 @@ private:
     QString m_lockPath;
     std::unique_ptr<QLockFile> m_lock;
     QTimer m_retry;
+    /// Whether starting says the reminders of the last few minutes; not when taking over from
+    /// another process, which said them.
+    bool m_catchUp = true;
     QHash<uint, Event> m_shown;
 };
 

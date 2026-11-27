@@ -66,12 +66,12 @@ void ReminderScheduler::setHiddenCalendars(const QStringList &calendars)
     m_hidden = calendars;
 }
 
-void ReminderScheduler::setEnabled(bool enabled)
+void ReminderScheduler::setEnabled(bool enabled, bool catchUp)
 {
     if (m_enabled == enabled)
         return;
     m_enabled = enabled;
-    m_lastCheck = {};
+    m_lastCheck = catchUp ? QDateTime() : m_now();
     if (m_enabled) {
         check();
     } else {

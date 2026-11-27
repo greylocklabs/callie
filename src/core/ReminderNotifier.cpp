@@ -76,6 +76,8 @@ void ReminderNotifier::claim()
         // over the lock of a holder that is gone, as after a crash.
         m_lock->setStaleLockTime(0);
         m_lock->tryLock(0);
+        if (isNotifying() && m_retry.isActive())
+            m_catchUp = false;
     }
     if (isNotifying())
         m_retry.stop();
@@ -91,7 +93,8 @@ void ReminderNotifier::applySettings()
     m_scheduler->setHiddenCalendars(m_settings->hiddenCalendars());
     m_scheduler->setTimeZone(m_settings->timeZone());
     m_scheduler->setDefaultMinutes(m_settings->reminderMinutes());
-    m_scheduler->setEnabled(m_settings->notify() && isNotifying());
+    m_scheduler->setEnabled(m_settings->notify() && isNotifying(), m_catchUp);
+    m_catchUp = true;
 }
 
 ReminderNotifier::Text ReminderNotifier::describe(const Event &event, const QDateTime &now,

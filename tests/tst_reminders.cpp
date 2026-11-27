@@ -93,6 +93,7 @@ private Q_SLOTS:
     void turningOffStopsReminders();
     void oneProcessRemindsAtATime();
     void aGoneHoldersLockIsTakenOver();
+    void takingOverSaysNothingTwice();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -291,6 +292,37 @@ void TestReminders::aGoneHoldersLockIsTakenOver()
     FakeServer server;
     notifier.setup(&scheduler, &server, m_settings.get(), u"Open"_s);
     QVERIFY(notifier.isNotifying());
+}
+
+void TestReminders::takingOverSaysNothingTwice()
+{
+    // The first notifier says the 9:15 reminder; the second, waiting for the lock, takes over a
+    // minute later and does not say it again.
+    const QString lock = m_dir->filePath(u"handover.lock"_s);
+    m_source.events = {eventAt(u"Standup"_s, at(9, 15))};
+    m_now = at(9, 5);
+    FakeServer firstServer, secondServer;
+    ReminderScheduler firstScheduler, secondScheduler;
+    for (ReminderScheduler *scheduler : {&firstScheduler, &secondScheduler}) {
+        scheduler->setNow([this] { return m_now; });
+        scheduler->setSource(&m_source);
+    }
+    auto first = std::make_unique<ReminderNotifier>();
+    first->setLockPath(lock);
+    first->setup(&firstScheduler, &firstServer, m_settings.get(), u"Open"_s);
+    ReminderNotifier second;
+    second.setLockPath(lock);
+    second.setup(&secondScheduler, &secondServer, m_settings.get(), u"Open"_s);
+    firstScheduler.check();
+    QCOMPARE(firstServer.shown.size(), 1);
+
+    first.reset();
+    m_now = at(9, 6);
+    // As its retry would, a minute on.
+    second.setup(&secondScheduler, &secondServer, m_settings.get(), u"Open"_s);
+    QVERIFY(second.isNotifying());
+    secondScheduler.check();
+    QVERIFY(secondServer.shown.isEmpty());
 }
 
 QTEST_GUILESS_MAIN(TestReminders)
