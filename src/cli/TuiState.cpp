@@ -89,13 +89,28 @@ QDate TuiState::rangeStart() const
         const int back = (m_day.dayOfWeek() - m_settings.firstDayOfWeek() + 7) % 7;
         return m_day.addDays(-back);
     }
+    case View::Month: {
+        // From the start of the week the month's first day is in.
+        const QDate first(m_day.year(), m_day.month(), 1);
+        return first.addDays(-((first.dayOfWeek() - m_settings.firstDayOfWeek() + 7) % 7));
+    }
     }
     return m_day;
 }
 
 int TuiState::rangeDays() const
 {
-    return m_view == View::Day ? 1 : m_view == View::Week ? 7 : m_agendaDays;
+    switch (m_view) {
+    case View::Day: return 1;
+    case View::Week: return 7;
+    case View::Agenda: return m_agendaDays;
+    case View::Month: {
+        // Whole weeks, to the end of the week the month's last day is in.
+        const QDate last(m_day.year(), m_day.month(), m_day.daysInMonth());
+        return int((rangeStart().daysTo(last) / 7 + 1) * 7);
+    }
+    }
+    return 1;
 }
 
 QDate TuiState::dayOf(const Event &event) const
@@ -170,9 +185,13 @@ void TuiState::selectFirstOf(QDate day)
 
 void TuiState::step(int direction)
 {
-    m_day = m_day.addDays(direction * (m_view == View::Week ? 7 : m_view == View::Day ? 1 : 7));
+    m_day = m_view == View::Month ? m_day.addMonths(direction)
+                                  : m_day.addDays(direction * (m_view == View::Day ? 1 : 7));
     reload();
-    selectFirstOf(m_view == View::Day ? m_day : rangeStart());
+    // A month starts at its first day, not the days before it from the week before.
+    selectFirstOf(m_view == View::Day     ? m_day
+                  : m_view == View::Month ? QDate(m_day.year(), m_day.month(), 1)
+                                          : rangeStart());
 }
 
 void TuiState::setView(View view)
@@ -290,12 +309,18 @@ bool TuiState::run(const QString &id)
         selectFirstOf(m_day);
         return true;
     }
-    if (id == u"dayView" || id == u"weekView" || id == u"agendaView") {
-        setView(id == u"dayView" ? View::Day : id == u"weekView" ? View::Week : View::Agenda);
+    if (id == u"dayView" || id == u"weekView" || id == u"monthView" || id == u"agendaView") {
+        setView(id == u"dayView"     ? View::Day
+                : id == u"weekView"  ? View::Week
+                : id == u"monthView" ? View::Month
+                                     : View::Agenda);
         return true;
     }
     if (id == u"nextView") {
-        setView(m_view == View::Day ? View::Week : m_view == View::Week ? View::Agenda : View::Day);
+        setView(m_view == View::Day     ? View::Week
+                : m_view == View::Week  ? View::Month
+                : m_view == View::Month ? View::Agenda
+                                        : View::Day);
         return true;
     }
     if (id == u"invites") {
@@ -566,12 +591,12 @@ void TuiState::runCommand(const QString &line)
     const QString name = line.section(u' ', 0, 0).toLower();
     const QString rest = line.section(u' ', 1).trimmed();
     static const QHash<QString, QString> actions = {
-        {u"day"_s, u"dayView"_s},       {u"week"_s, u"weekView"_s},
-        {u"agenda"_s, u"agendaView"_s}, {u"today"_s, u"today"_s},
-        {u"invites"_s, u"invites"_s},   {u"calendars"_s, u"calendars"_s},
-        {u"sync"_s, u"refresh"_s},      {u"undo"_s, u"undo"_s},
-        {u"help"_s, u"help"_s},         {u"q"_s, u"quitTerminal"_s},
-        {u"quit"_s, u"quitTerminal"_s},
+        {u"day"_s, u"dayView"_s},         {u"week"_s, u"weekView"_s},
+        {u"month"_s, u"monthView"_s},     {u"agenda"_s, u"agendaView"_s},
+        {u"today"_s, u"today"_s},         {u"invites"_s, u"invites"_s},
+        {u"calendars"_s, u"calendars"_s}, {u"sync"_s, u"refresh"_s},
+        {u"undo"_s, u"undo"_s},           {u"help"_s, u"help"_s},
+        {u"q"_s, u"quitTerminal"_s},      {u"quit"_s, u"quitTerminal"_s},
     };
     if (actions.contains(name) && rest.isEmpty()) {
         run(actions.value(name));
@@ -598,7 +623,7 @@ void TuiState::runCommand(const QString &line)
         submit();
         return;
     }
-    say(tr("No command %1. There are day, week, agenda, today, go, add, search, invites, "
+    say(tr("No command %1. There are day, week, month, agenda, today, go, add, search, invites, "
            "calendars, sync, undo, help and q.")
             .arg(line),
         true);

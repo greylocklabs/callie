@@ -184,6 +184,63 @@ Element weekView(const TuiState &state, const Look &look)
     return hbox(std::move(columns));
 }
 
+/// The month as weeks of days, each day with its first events and how many more it has.
+Element monthView(const TuiState &state, const Look &look)
+{
+    using namespace ftxui;
+    const int column = std::max(4, (look.width - 2 - 6) / 7);
+    const int month = state.day().month();
+    // A day's first few events; the rest it counts.
+    constexpr int kShown = 3;
+    Elements weeks;
+    Elements names;
+    for (int d = 0; d < 7; ++d) {
+        names.push_back(label(QLocale().toString(state.rangeStart().addDays(d), u"ddd"_s)) |
+                        color(rgb(look.c.textMuted)) | size(WIDTH, EQUAL, column));
+        if (d < 6)
+            names.push_back(text(" "));
+    }
+    weeks.push_back(hbox(std::move(names)));
+    for (int w = 0; w < state.rangeDays() / 7; ++w) {
+        weeks.push_back(separatorLight() | color(rgb(look.c.hairline)));
+        Elements days;
+        for (int d = 0; d < 7; ++d) {
+            const QDate day = state.rangeStart().addDays(w * 7 + d);
+            const bool today = day == state.today();
+            Elements cells;
+            Element number = label(QString::number(day.day())) | bold;
+            cells.push_back(today                  ? number | color(rgb(look.c.accent))
+                            : day.month() != month ? number | color(rgb(look.c.textFaint))
+                                                   : number);
+            int shown = 0, more = 0;
+            for (int i = 0; i < state.events().size(); ++i) {
+                const Event &event = state.events().at(i);
+                if (state.dayOf(event) != day)
+                    continue;
+                // The selected event shows, though the day has more than fit.
+                if (shown >= kShown && i != state.selected()) {
+                    ++more;
+                    continue;
+                }
+                ++shown;
+                Element cell = hbox({marker(i == state.selected(), look),
+                                     sticker(event, event.summary, look) | flex});
+                if (event.end <= state.now() || day.month() != month)
+                    cell = cell | dim;
+                cells.push_back(i == state.selected() ? cell | focus : cell);
+            }
+            if (more > 0)
+                cells.push_back(label(QObject::tr("+%n more", nullptr, more)) |
+                                color(rgb(look.c.textMuted)));
+            days.push_back(vbox(std::move(cells)) | size(WIDTH, EQUAL, column));
+            if (d < 6)
+                days.push_back(separatorLight() | color(rgb(look.c.hairline)));
+        }
+        weeks.push_back(hbox(std::move(days)));
+    }
+    return vbox(std::move(weeks));
+}
+
 QString title(const TuiState &state)
 {
     if (state.mode() == TuiState::Mode::Found)
@@ -201,6 +258,7 @@ QString title(const TuiState &state)
                                                         locale.toString(last, u"MMMM d, yyyy"_s));
     }
     case TuiState::View::Agenda: return QObject::tr("From %1").arg(dayHeading(state.day(), state));
+    case TuiState::View::Month: return QLocale().toString(state.day(), u"MMMM yyyy"_s);
     }
     return {};
 }
@@ -212,6 +270,7 @@ Element header(const TuiState &state, const Look &look)
     const std::pair<TuiState::View, QString> views[] = {
         {TuiState::View::Day, QObject::tr("Day")},
         {TuiState::View::Week, QObject::tr("Week")},
+        {TuiState::View::Month, QObject::tr("Month")},
         {TuiState::View::Agenda, QObject::tr("Agenda")}};
     for (const auto &[view, name] : views) {
         Element tab = label(u' ' + name + u' ');
@@ -416,7 +475,8 @@ Element footer(const TuiState &state, const Look &look)
     if (state.count() > 0)
         left = label(QString::number(state.count())) | bold | color(rgb(look.c.accent));
     if (state.pending() == u"leader")
-        left = label(QObject::tr("d day   w week   a agenda")) | color(rgb(look.c.accent));
+        left =
+            label(QObject::tr("d day   w week   m month   a agenda")) | color(rgb(look.c.accent));
     if (state.mode() == TuiState::Mode::Typing) {
         QString prompt;
         switch (state.typing()) {
@@ -488,6 +548,7 @@ Element render(const TuiState &state, const Look &look)
                    : details                                ? detailsView(state, look)
                    : found                                  ? foundView(state, look)
                    : state.view() == TuiState::View::Week   ? weekView(state, look)
+                   : state.view() == TuiState::View::Month  ? monthView(state, look)
                    : state.view() == TuiState::View::Agenda ? agendaView(state, look)
                                                             : dayView(state, look);
     Element page = vbox({header(state, look), separatorLight() | color(rgb(look.c.hairline)),

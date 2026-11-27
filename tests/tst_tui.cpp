@@ -196,6 +196,23 @@ void TestTui::viewsCoverTheirDays()
     m_state->press(u"l"_s);
     QCOMPARE(m_state->day(), QDate(2026, 10, 14));
 
+    // The month: whole weeks, from the week of its first day to the week of its last.
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->view(), TuiState::View::Month);
+    QCOMPARE(m_state->rangeStart().dayOfWeek(), m_settings->firstDayOfWeek());
+    QVERIFY(m_state->rangeStart() <= QDate(2026, 10, 1));
+    QVERIFY(m_state->rangeStart().addDays(m_state->rangeDays() - 1) >= QDate(2026, 10, 31));
+    QCOMPARE(m_state->rangeDays() % 7, 0);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 120, 40);
+    QVERIFY2(drawn.contains(u"October 2026"_s), qPrintable(drawn));
+    QVERIFY(drawn.contains(u"more"_s));
+    // h and l go a month at a time, to its first day.
+    m_state->press(u"l"_s);
+    QCOMPARE(m_state->day().month(), 11);
+    QVERIFY(m_state->dayOf(m_state->events().at(m_state->selected())) >= QDate(2026, 11, 1));
+    m_state->press(u"h"_s);
+    QCOMPARE(m_state->day().month(), 10);
+
     m_state->press(u"Tab"_s);
     QCOMPARE(m_state->view(), TuiState::View::Agenda);
     QCOMPARE(m_state->rangeDays(), 14);

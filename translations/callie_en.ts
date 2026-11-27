@@ -1559,6 +1559,13 @@
             <numerusform></numerusform>
         </translation>
     </message>
+    <message numerus="yes">
+        <source>+%n more</source>
+        <translation type="unfinished">
+            <numerusform></numerusform>
+            <numerusform></numerusform>
+        </translation>
+    </message>
     <message>
         <source>From %1</source>
         <translation type="unfinished"></translation>
@@ -1569,6 +1576,10 @@
     </message>
     <message>
         <source>Week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Month</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1700,7 +1711,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>d day   w week   a agenda</source>
+        <source>d day   w week   m month   a agenda</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4193,7 +4204,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No command %1. There are day, week, agenda, today, go, add, search, invites, calendars, sync, undo, help and q.</source>
+        <source>No command %1. There are day, week, month, agenda, today, go, add, search, invites, calendars, sync, undo, help and q.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
