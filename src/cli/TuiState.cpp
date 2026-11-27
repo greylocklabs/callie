@@ -12,6 +12,7 @@
 
 #include <QHash>
 #include <QRegularExpression>
+#include <QSet>
 #include <QTextDocumentFragment>
 #include <QTextStream>
 #include <QTimer>
@@ -585,7 +586,9 @@ bool TuiState::pressTyping(const QString &key)
     } else if (tab) {
         // A new event's line opens the full form; a field completes its choices.
         if (m_typing == Typing::NewEvent) {
-            addAndOpen(m_input.trimmed());
+            // An empty line waits, as Enter does.
+            if (!m_input.trimmed().isEmpty())
+                addAndOpen(m_input.trimmed());
             return true;
         }
         if (m_typing != Typing::Field)
@@ -1114,14 +1117,20 @@ void TuiState::addAndOpen(const QString &text)
         say(tr("Could not read an event from %1; try Lunch tomorrow 12-1pm.").arg(text), true);
         return;
     }
+    // On its day, with its fields listed to fill in the rest: the event that was not there
+    // before, not another of the same name and time, as a repeating one's.
+    m_day = m_settings.times()->date(draft.start).date();
+    reload();
+    QSet<QString> before;
+    for (const Event &event : std::as_const(m_events))
+        before.insert(event.calendarId + u'/' + event.eventId);
     act([text](Commands &commands, const std::function<void(int)> &done) {
         commands.add(text, {}, done);
     });
-    // On its day, with its fields listed to fill in the rest.
-    m_day = m_settings.times()->date(draft.start).date();
     reload();
     for (const Event &event : std::as_const(m_events)) {
-        if (event.summary == draft.summary && event.start == draft.start) {
+        if (event.summary == draft.summary && event.start == draft.start &&
+            !before.contains(event.calendarId + u'/' + event.eventId)) {
             startEditing(event);
             return;
         }
