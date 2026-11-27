@@ -213,6 +213,12 @@ bool TuiState::pressBrowsing(const QString &key)
         Q_EMIT changed();
         return true;
     }
+    // Any other key takes the count: a move repeats with it, and anything else drops it.
+    const int count = std::exchange(m_count, 0);
+    const auto runCounted = [this, count](const QString &id) {
+        m_repeat = count;
+        return run(id);
+    };
     // The second key of a command.
     const QString pending = std::exchange(m_pending, QString());
     if (pending == u"leader") {
@@ -221,12 +227,12 @@ bool TuiState::pressBrowsing(const QString &key)
             Q_EMIT changed();
             return true;
         }
-        return run(id);
+        return runCounted(id);
     }
     if (!pending.isEmpty()) {
         const QString id = actionFor(pending + key, false, false);
         if (!id.isEmpty())
-            return run(id);
+            return runCounted(id);
         // Not a command, so the key is taken on its own.
         Q_EMIT changed();
     }
@@ -236,6 +242,8 @@ bool TuiState::pressBrowsing(const QString &key)
         return true;
     }
     if (key == m_settings.leaderKey() || startsCommand(key)) {
+        // The count waits for the command's second key.
+        m_count = count;
         m_pending = key == m_settings.leaderKey() ? u"leader"_s : key;
         Q_EMIT changed();
         return true;
@@ -243,13 +251,18 @@ bool TuiState::pressBrowsing(const QString &key)
     QString id = actionFor(key, false, false);
     if (id.isEmpty())
         id = aliasFor(key);
-    return !id.isEmpty() && run(id);
+    if (id.isEmpty()) {
+        if (count > 0)
+            Q_EMIT changed();
+        return false;
+    }
+    return runCounted(id);
 }
 
 bool TuiState::run(const QString &id)
 {
-    // A count repeats a move; anything else drops it.
-    const int times = std::max(1, std::exchange(m_count, 0));
+    // The count pressBrowsing() hands on, for a move to repeat.
+    const int times = std::max(1, std::exchange(m_repeat, 0));
     if (id == u"halfDown" || id == u"halfUp") {
         const int rows = std::max(1, m_visibleRows / 2) * (id == u"halfDown" ? 1 : -1);
         if (!m_events.isEmpty())
