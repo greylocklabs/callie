@@ -92,6 +92,8 @@ QList<KeyAction> keyActions()
             false, W::Terminal),
         act(u"calendars"_s, KeyActions::tr("Show or hide calendars"), u"general"_s, {}, u"c"_s, {},
             false, W::Terminal),
+        act(u"commandLine"_s, KeyActions::tr("Command line, such as :week"), u"general"_s, {},
+            u":"_s, {}, false, W::Terminal),
         act(u"quitTerminal"_s, KeyActions::tr("Quit"), u"general"_s, {}, u"q"_s, {}, false,
             W::Terminal),
         // In an event's details.

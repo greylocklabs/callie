@@ -227,6 +227,10 @@ bool TuiState::pressBrowsing(const QString &key)
         Q_EMIT changed();
     }
 
+    if (key == (m_settings.leaderKey() == u":" ? u" "_s : u":"_s)) {
+        startTyping(Typing::Command);
+        return true;
+    }
     if (key == m_settings.leaderKey() || startsCommand(key)) {
         m_pending = key == m_settings.leaderKey() ? u"leader"_s : key;
         Q_EMIT changed();
@@ -319,9 +323,7 @@ bool TuiState::run(const QString &id)
             return false;
         m_mode = Mode::Details;
     } else if (id == u"newEvent" || id == u"search") {
-        m_mode = Mode::Typing;
-        m_typing = id == u"newEvent" ? Typing::NewEvent : Typing::Search;
-        m_input.clear();
+        startTyping(id == u"newEvent" ? Typing::NewEvent : Typing::Search);
     } else if (id == u"calendars") {
         m_mode = Mode::Calendars;
         m_calendarSelected = 0;
@@ -333,13 +335,14 @@ bool TuiState::run(const QString &id)
             say(tr("%1 cannot be changed from here.").arg(event->summary), true);
             return true;
         }
-        m_mode = Mode::Typing;
-        m_typing = Typing::Move;
-        m_input.clear();
+        startTyping(Typing::Move);
     } else if (id == u"refresh") {
         m_source->refresh();
     } else if (id == u"help") {
         m_help = true;
+    } else if (id == u"commandLine") {
+        startTyping(Typing::Command);
+        return true;
     } else if (id == u"quitTerminal") {
         m_quit = true;
     } else {
@@ -406,21 +409,146 @@ bool TuiState::pressDetails(const QString &key)
 
 bool TuiState::pressTyping(const QString &key)
 {
+    const auto wordStart = [this] {
+        int at = m_cursor;
+        while (at > 0 && m_input.at(at - 1).isSpace())
+            --at;
+        while (at > 0 && !m_input.at(at - 1).isSpace())
+            --at;
+        return at;
+    };
+    const bool tab = key == u"Tab";
+    if (!tab)
+        m_completing.reset();
+    QStringList &history = m_history[int(m_typing)];
+
     if (key == u"Escape") {
         // A field given up on goes back to the fields.
         m_mode = m_typing == Typing::Field ? Mode::Editing : Mode::Browse;
     } else if (key == u"Enter") {
+        const QString line = m_input.trimmed();
+        if (!line.isEmpty() && (history.isEmpty() || history.last() != line))
+            history.append(line);
         submit();
         return true;
+    } else if (key == u"Left" || key == u"Ctrl+B") {
+        m_cursor = std::max(0, m_cursor - 1);
+    } else if (key == u"Right" || key == u"Ctrl+F") {
+        m_cursor = std::min(int(m_input.size()), m_cursor + 1);
+    } else if (key == u"Home" || key == u"Ctrl+A") {
+        m_cursor = 0;
+    } else if (key == u"End" || key == u"Ctrl+E") {
+        m_cursor = int(m_input.size());
     } else if (key == u"Backspace") {
-        m_input.chop(1);
+        if (m_cursor > 0)
+            m_input.remove(--m_cursor, 1);
+    } else if (key == u"Delete") {
+        m_input.remove(m_cursor, 1);
+    } else if (key == u"Ctrl+W") {
+        const int from = wordStart();
+        m_input.remove(from, m_cursor - from);
+        m_cursor = from;
+    } else if (key == u"Ctrl+U") {
+        m_input.remove(0, m_cursor);
+        m_cursor = 0;
+    } else if (key == u"Up" || key == u"Down") {
+        // Back through what was typed before for the same thing, and forward to the line
+        // being typed.
+        if (history.isEmpty())
+            return true;
+        if (m_historyAt < 0)
+            m_draft = m_input;
+        if (key == u"Up")
+            m_historyAt = m_historyAt < 0 ? int(history.size()) - 1 : std::max(0, m_historyAt - 1);
+        else if (m_historyAt >= 0)
+            m_historyAt = m_historyAt + 1 < history.size() ? m_historyAt + 1 : -1;
+        m_input = m_historyAt < 0 ? m_draft : history.at(m_historyAt);
+        m_cursor = int(m_input.size());
+    } else if (tab) {
+        if (m_typing != Typing::Field || field() != Field::Calendar)
+            return false;
+        completeCalendar();
     } else if (key.size() == 1 && key.at(0).isPrint()) {
-        m_input += key;
+        m_input.insert(m_cursor++, key);
     } else {
         return false;
     }
+    if (m_mode == Mode::Typing && m_typing == Typing::Search)
+        searchAsTyped();
     Q_EMIT changed();
     return true;
+}
+
+void TuiState::startTyping(Typing typing, const QString &text)
+{
+    m_mode = Mode::Typing;
+    m_typing = typing;
+    m_input = text;
+    m_cursor = int(text.size());
+    m_historyAt = -1;
+    m_completing.reset();
+    if (typing == Typing::Search) {
+        m_found.clear();
+        m_foundSelected = -1;
+    }
+    Q_EMIT changed();
+}
+
+void TuiState::searchAsTyped()
+{
+    const QStringList words = m_input.split(u' ', Qt::SkipEmptyParts);
+    QList<Event> found =
+        words.isEmpty() ? QList<Event>()
+                        : ask([&words](const Commands &commands) { return commands.found(words); });
+    std::sort(found.begin(), found.end(),
+              [](const Event &a, const Event &b) { return a.start < b.start; });
+    m_found = found;
+    m_foundSelected = -1;
+}
+
+void TuiState::completeCalendar()
+{
+    if (!m_completing)
+        m_completing = m_input;
+    QStringList names;
+    for (const CalendarInfo &calendar : calendars()) {
+        if (calendar.displayName.startsWith(*m_completing, Qt::CaseInsensitive))
+            names.append(calendar.displayName);
+    }
+    if (names.isEmpty())
+        return;
+    // Tab again goes on to the next that matches.
+    const qsizetype at = names.indexOf(m_input);
+    m_input = names.at(at < 0 ? 0 : (at + 1) % names.size());
+    m_cursor = int(m_input.size());
+}
+
+void TuiState::runCommand(const QString &line)
+{
+    const QString name = line.section(u' ', 0, 0).toLower();
+    const QString rest = line.section(u' ', 1).trimmed();
+    static const QHash<QString, QString> actions = {
+        {u"day"_s, u"dayView"_s},       {u"week"_s, u"weekView"_s},
+        {u"agenda"_s, u"agendaView"_s}, {u"today"_s, u"today"_s},
+        {u"invites"_s, u"invites"_s},   {u"calendars"_s, u"calendars"_s},
+        {u"sync"_s, u"refresh"_s},      {u"undo"_s, u"undo"_s},
+        {u"help"_s, u"help"_s},         {u"q"_s, u"quitTerminal"_s},
+        {u"quit"_s, u"quitTerminal"_s},
+    };
+    if (actions.contains(name) && rest.isEmpty()) {
+        run(actions.value(name));
+        return;
+    }
+    if ((name == u"add" || name == u"search") && !rest.isEmpty()) {
+        m_typing = name == u"add" ? Typing::NewEvent : Typing::Search;
+        m_input = rest;
+        submit();
+        return;
+    }
+    say(tr("No command %1. There are day, week, agenda, today, add, search, invites, calendars, "
+           "sync, undo, help and q.")
+            .arg(line),
+        true);
 }
 
 bool TuiState::pressFound(const QString &key)
@@ -500,6 +628,10 @@ void TuiState::submit()
     }
     if (text.isEmpty()) {
         Q_EMIT changed();
+        return;
+    }
+    if (m_typing == Typing::Command) {
+        runCommand(text);
         return;
     }
     if (m_typing == Typing::Move) {
@@ -638,9 +770,7 @@ bool TuiState::pressEditing(const QString &key)
         }
         if (key == u" ")
             return false;
-        m_mode = Mode::Typing;
-        m_typing = Typing::Field;
-        m_input = fieldValue(*event, field());
+        startTyping(Typing::Field, fieldValue(*event, field()));
     } else if (key == u"u") {
         return pressBrowsing(key);
     } else {
