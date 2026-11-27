@@ -94,6 +94,7 @@ private Q_SLOTS:
     void movesWithinAndBetweenDaysInTheWeeksGrid();
     void placesAnEventFromTheDayBeforeAtMidnight();
     void fillsInANewEventsForm();
+    void changesARepeatFromAnOccurrence();
     void callFieldIsTheEventsOwnCall();
 
 private:
@@ -564,6 +565,22 @@ void TestTui::callsOpen()
     m_state->press(u"o"_s);
     QCOMPARE(opened.size(), 1);
     QCOMPARE(opened.first().first().toUrl(), m_state->current()->joinUrl());
+}
+
+void TestTui::changesARepeatFromAnOccurrence()
+{
+    // A repeat is the series', so an occurrence's form changes the whole series.
+    QVERIFY(select(u"Standup"_s));
+    QVERIFY(!m_state->current()->seriesId.isEmpty());
+    m_state->press(u"e"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    while (m_state->field() != TuiState::Field::Repeats)
+        m_state->press(u"j"_s);
+    m_state->press(u"Enter"_s);
+    retype(u"daily"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY2(!m_state->messageIsError(), qPrintable(m_state->message()));
+    QCOMPARE(m_state->fieldValue(*m_state->editing(), TuiState::Field::Repeats), u"daily"_s);
 }
 
 void TestTui::callFieldIsTheEventsOwnCall()

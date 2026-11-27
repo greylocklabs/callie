@@ -784,7 +784,9 @@ void TuiState::submit()
         case Field::AllDay:
         case Field::Call: break;
         }
-        change(Commands::reference(*event), options);
+        // A repeat belongs to the whole series, so changing it from an occurrence changes that.
+        change(Commands::reference(*event), options,
+               which == Field::Repeats ? u"all"_s : QString());
         return;
     }
     if (text.isEmpty()) {
@@ -1146,10 +1148,10 @@ void TuiState::addAndOpen(const QString &text)
     selectFirstOf(m_day);
 }
 
-void TuiState::change(const QString &id, const EditOptions &options)
+void TuiState::change(const QString &id, const EditOptions &options, const QString &scope)
 {
-    act([id, options](Commands &commands, const std::function<void(int)> &done) {
-        commands.edit(id, options, {}, done);
+    act([id, options, scope](Commands &commands, const std::function<void(int)> &done) {
+        commands.edit(id, options, scope, done);
     });
 }
 
