@@ -1036,6 +1036,18 @@ void TestTui::countsRepeatMoves()
     m_state->press(u"?"_s);
     m_state->press(u"Escape"_s);
     QCOMPARE(m_state->count(), 0);
+    // A key that does nothing, or a command line, drops it too, so the next move is one.
+    m_state->press(u"3"_s);
+    m_state->press(u"Escape"_s);
+    QCOMPARE(m_state->count(), 0);
+    m_state->press(u"l"_s);
+    QCOMPARE(m_state->day(), QDate(2026, 10, 8));
+    m_state->press(u"3"_s);
+    m_state->press(u":"_s);
+    retype(u"today"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"l"_s);
+    QCOMPARE(m_state->day(), QDate(2026, 10, 8));
 }
 
 void TestTui::movesHalfAScreen()

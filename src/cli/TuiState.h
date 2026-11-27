@@ -167,6 +167,7 @@ private:
     QString m_input;
     int m_cursor = 0;
     int m_count = 0;
+    int m_repeat = 0;
     int m_visibleRows = 20;
     int m_agendaDays = 14;
     /// Lines typed before, by what they were for, newest last; and which is shown, or -1 for the
