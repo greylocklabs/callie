@@ -81,6 +81,9 @@ public:
     [[nodiscard]] static QString fieldName(Field field);
     /// `field` of `event` as it is shown, and as it is typed to change it.
     [[nodiscard]] QString fieldValue(const Event &event, Field field) const;
+    /// Whether the event has a call the switch can take off: the calendar's own, or a Zoom link in
+    /// its place while the switch makes Zoom meetings, but not a link pasted in its notes.
+    [[nodiscard]] bool hasCall(const Event &event) const;
     /// While confirming: what is asked, and whether it asks about one occurrence or the series.
     [[nodiscard]] QString question() const;
     [[nodiscard]] bool askingScope() const { return m_askScope; }
