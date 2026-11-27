@@ -151,7 +151,7 @@ private:
     /// Lists the fields of `event` to change, if it can be changed here.
     bool startEditing(const Event &event);
     /// Changes the event being edited, or `event`, as `options` says.
-    void change(const QString &id, const EditOptions &options);
+    void change(const QString &id, const EditOptions &options, const QString &scope = {});
     /// A copy of the event copied with y, on the selected event's day at its own time.
     void paste();
     void submit();
