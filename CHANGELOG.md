@@ -5,6 +5,12 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 ## Unreleased
 
+### Added
+
+- Reminders come without the app: the terminal calendar notifies while it is open, and
+  `callie reminders` runs on its own, as from a systemd user service. Only one of them and the app
+  reminds at a time, so none comes twice.
+
 ### Changed
 
 - In the terminal calendar, deleting asks first, and deleting or answering an event that repeats

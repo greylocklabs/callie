@@ -79,6 +79,7 @@ private Q_SLOTS:
     void aRepeatingInvitationIsAnsweredOnceOrWhole();
     void aOneOffEventIsDeletedOnceConfirmed();
     void sharesTheAppsKeys();
+    void remindersShowInTheFooter();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -828,6 +829,25 @@ void TestTui::sharesTheAppsKeys()
          {u": i"_s, u": w"_s, u"Next event"_s, u"Quit"_s, u"Duplicate the event"_s, u"Answer yes"_s,
           u"Delete the event"_s, u"Change the event"_s})
         QVERIFY2(drawn.contains(shown), qPrintable(shown + u"\n"_s + drawn));
+}
+
+void TestTui::remindersShowInTheFooter()
+{
+    // A reminder says so in the footer, and its click shows the event on its day.
+    Event dentist;
+    for (const Event &e : m_state->events()) {
+        if (e.summary == u"Dentist"_s)
+            dentist = e;
+    }
+    QVERIFY(!dentist.eventId.isEmpty());
+    m_state->remind(dentist);
+    QVERIFY2(m_state->message().startsWith(u"Reminder: Dentist, "_s),
+             qPrintable(m_state->message()));
+    QVERIFY(!m_state->messageIsError());
+    m_state->press(u"l"_s);
+    m_state->showEvent(dentist);
+    QCOMPARE(m_state->day(), QDate(2026, 10, 7));
+    QCOMPARE(selected(), u"Dentist"_s);
 }
 
 QTEST_GUILESS_MAIN(TestTui)

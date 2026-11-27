@@ -196,6 +196,8 @@ add_library(calliecore STATIC
     TimeFormat.cpp
     callie/Times.h
     Times.cpp
+    callie/ReminderNotifier.h
+    ReminderNotifier.cpp
     callie/KeyActions.h
     KeyActions.cpp
     callie/ViewRange.h

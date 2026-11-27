@@ -1,10 +1,13 @@
 #include "Reminders.h"
 
+#include "callie/ReminderNotifier.h"
 #include "callie/ReminderScheduler.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
 #include "greylock/Notifications.h"
 
+#include <QFile>
+#include <QLockFile>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -88,6 +91,8 @@ private Q_SLOTS:
     void openShowsTheEventsDay();
     void snoozeComesBack();
     void turningOffStopsReminders();
+    void oneProcessRemindsAtATime();
+    void aGoneHoldersLockIsTakenOver();
 
 private:
     std::unique_ptr<QTemporaryDir> m_dir;
@@ -111,6 +116,8 @@ void TestReminders::init()
     m_scheduler = std::make_unique<ReminderScheduler>();
     m_scheduler->setNow([this] { return m_now; });
     m_scheduler->setSource(&m_source);
+    // Its own runtime folder, so a Callie running here holds no lock these need.
+    qputenv("XDG_RUNTIME_DIR", m_dir->path().toUtf8());
     Reminders::instance()->setup(m_scheduler.get(), &m_server, m_settings.get());
 }
 
@@ -217,6 +224,73 @@ void TestReminders::turningOffStopsReminders()
     m_now = at(9, 30);
     m_scheduler->check();
     QVERIFY(m_server.shown.isEmpty());
+}
+
+void TestReminders::oneProcessRemindsAtATime()
+{
+    // Two notifiers on one lock, as the app and the terminal calendar would be: the first holds
+    // it and reminds, the second stays quiet.
+    const QString lock = m_dir->filePath(u"two.lock"_s);
+    m_source.events = {eventAt(u"Standup"_s, at(9, 15))};
+    m_now = at(9, 5);
+    FakeServer firstServer, secondServer;
+    ReminderScheduler firstScheduler, secondScheduler;
+    for (ReminderScheduler *scheduler : {&firstScheduler, &secondScheduler}) {
+        scheduler->setNow([this] { return m_now; });
+        scheduler->setSource(&m_source);
+    }
+    auto first = std::make_unique<ReminderNotifier>();
+    first->setLockPath(lock);
+    first->setup(&firstScheduler, &firstServer, m_settings.get(), u"Open"_s);
+    ReminderNotifier second;
+    second.setLockPath(lock);
+    second.setup(&secondScheduler, &secondServer, m_settings.get(), u"Open"_s);
+    QVERIFY(first->isNotifying());
+    QVERIFY(!second.isNotifying());
+    firstScheduler.check();
+    secondScheduler.check();
+    QCOMPARE(firstServer.shown.size(), 1);
+    QVERIFY(secondServer.shown.isEmpty());
+
+    // Once the first is gone, a notifier that starts then reminds.
+    first.reset();
+    ReminderNotifier third;
+    third.setLockPath(lock);
+    FakeServer thirdServer;
+    ReminderScheduler thirdScheduler;
+    thirdScheduler.setNow([this] { return m_now; });
+    thirdScheduler.setSource(&m_source);
+    third.setup(&thirdScheduler, &thirdServer, m_settings.get(), u"Open"_s);
+    QVERIFY(third.isNotifying());
+}
+
+void TestReminders::aGoneHoldersLockIsTakenOver()
+{
+    // A lock left by a process that is no longer running, as after a crash.
+    const QString taken = m_dir->filePath(u"taken.lock"_s);
+    QByteArray contents;
+    {
+        QLockFile held(taken);
+        QVERIFY(held.tryLock(0));
+        QFile file(taken);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        contents = file.readAll();
+    }
+    const qsizetype end = contents.indexOf('\n');
+    QVERIFY(end > 0);
+    contents.replace(0, end, "999999999");
+    const QString left = m_dir->filePath(u"left.lock"_s);
+    QFile file(left);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write(contents);
+    file.close();
+
+    ReminderNotifier notifier;
+    notifier.setLockPath(left);
+    ReminderScheduler scheduler;
+    FakeServer server;
+    notifier.setup(&scheduler, &server, m_settings.get(), u"Open"_s);
+    QVERIFY(notifier.isNotifying());
 }
 
 QTEST_GUILESS_MAIN(TestReminders)
