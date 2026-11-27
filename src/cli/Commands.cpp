@@ -83,7 +83,8 @@ int Commands::agenda(int days, bool json)
 int Commands::next(bool json)
 {
     QList<Event> events = visibleEvents(m_now, m_now.addDays(7));
-    events.removeIf([this](const Event &e) { return e.allDay || e.end <= m_now; });
+    // What a status bar shows is what is next to go to, so declined events are passed over.
+    events.removeIf([this](const Event &e) { return e.allDay || e.declined || e.end <= m_now; });
     std::sort(events.begin(), events.end(), byStart);
     if (events.isEmpty()) {
         if (json)
