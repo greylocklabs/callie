@@ -607,7 +607,7 @@ bool TuiState::pressConfirming(const QString &key)
     QString scope;
     if (m_askScope && (key == u"t" || key == u"a")) {
         scope = key == u"t" ? u"this"_s : u"all"_s;
-    } else if (!m_askScope && (key == u"y" || key == u"Enter")) {
+    } else if (!m_askScope && key == u"y") {
         scope = u"this"_s;
     } else if (key == u"Escape" || key == u"q" || (!m_askScope && key == u"n")) {
         m_confirming.reset();

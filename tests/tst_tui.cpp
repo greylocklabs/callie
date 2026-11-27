@@ -789,7 +789,9 @@ void TestTui::aOneOffEventIsDeletedOnceConfirmed()
     QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
     QVERIFY(!m_state->askingScope());
     QVERIFY(m_state->question().contains(u"Pottery"_s));
-    // n keeps it, y deletes it.
+    // Enter, which opens and closes details, does not delete; n keeps it, y deletes it.
+    QVERIFY(!m_state->press(u"Enter"_s));
+    QCOMPARE(m_state->mode(), TuiState::Mode::Confirming);
     m_state->press(u"n"_s);
     QCOMPARE(m_state->mode(), TuiState::Mode::Details);
     QVERIFY(summaries().contains(u"Pottery"_s));
