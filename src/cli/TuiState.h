@@ -27,7 +27,7 @@ class TuiState : public QObject
     Q_OBJECT
 
 public:
-    enum class View { Day, Week, Agenda };
+    enum class View { Day, Week, Month, Agenda };
     /// What keys go to: moving around, an event's details, a line being
     /// typed, a list of found events, the calendars, an event's fields to change,
     /// or a question before deleting or answering.
