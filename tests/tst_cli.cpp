@@ -221,6 +221,14 @@ void TestCli::nextIsOneLineForAStatusBar()
     QCOMPARE(json.value(u"summary"_s).toString(), u"Dentist"_s);
     QVERIFY(!json.value(u"now"_s).toBool());
 
+    // A declined event is passed over for the one after it.
+    m_source->respond(named(u"Dentist"_s, QDate(2026, 10, 7)), u"declined"_s, false,
+                      [](const QString &) {});
+    m_out.clear();
+    QCOMPARE(m_commands->next(false), 0);
+    m_outStream->flush();
+    QVERIFY2(!m_out.isEmpty() && !m_out.contains(u"Dentist"_s), qPrintable(m_out));
+
     // An event on now comes first, with when it ends.
     EventDraft draft;
     draft.calendarId = m_source->calendars().first().id;
