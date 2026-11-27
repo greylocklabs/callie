@@ -1234,6 +1234,30 @@ void TestTui::fillsInANewEventsForm()
     m_state->press(u"Enter"_s);
     QVERIFY2(!m_state->messageIsError(), qPrintable(m_state->message()));
 
+    // Tab on an empty line waits, as Enter does.
+    m_state->press(u"Escape"_s);
+    m_state->press(u"n"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
+    QVERIFY(!m_state->messageIsError());
+    m_state->press(u"Escape"_s);
+
+    // One named and timed as another already there, as Thursday's repeating Standup, opens the
+    // new one, not the other.
+    QSet<QString> standups;
+    const QDateTime thursday(QDate(2026, 10, 8), QTime(0, 0), QTimeZone::UTC);
+    for (const Event &e : m_queue->eventsBetween(thursday, thursday.addDays(1), QTimeZone::UTC)) {
+        if (e.summary == u"Standup"_s)
+            standups.insert(e.eventId);
+    }
+    QVERIFY(!standups.isEmpty());
+    m_state->press(u"n"_s);
+    retype(u"Standup tomorrow 9:30-10am"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Editing);
+    QCOMPARE(m_state->editing()->summary, u"Standup"_s);
+    QVERIFY(!standups.contains(m_state->editing()->eventId));
+
     // What cannot be read as an event says so, and adds nothing.
     m_state->press(u"Escape"_s);
     m_state->press(u"n"_s);
