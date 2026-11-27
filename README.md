@@ -198,8 +198,10 @@ takes back the last change while it is held. A line being typed edits as in a sh
 arrows, Ctrl-A, Ctrl-E, Ctrl-W and Ctrl-U, and Up and Down bring back earlier ones; a search shows
 what it finds as it is typed. `:` runs a command, such as `:week`, `:today` or
 `:add Lunch fri 12-1pm`. `gd` or `:go friday` goes to a day, a count repeats a move, as `3l` for
-three days on, Ctrl-D and Ctrl-U move half a screen, and `:agenda 30` shows thirty days. Piped,
-it prints the agenda as before.
+three days on, Ctrl-D and Ctrl-U move half a screen, and `:agenda 30` shows thirty days. The leader
+then `g`, or `:grid`, shows days and weeks as an hour grid instead of lists, with a line at the
+current time; in the week's grid, `j` and `k` stay within a day and `H` and `L` go between days.
+Piped, it prints the agenda as before.
 
 While it is open, it reminds about events with desktop notifications, as the app does. For
 reminders when neither is open, run `callie reminders`, for instance from a systemd user service or

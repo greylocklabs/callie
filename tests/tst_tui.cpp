@@ -89,6 +89,8 @@ private Q_SLOTS:
     void countsRepeatMoves();
     void movesHalfAScreen();
     void setsTheAgendasLength();
+    void showsDaysAsAnHourGrid();
+    void movesWithinAndBetweenDaysInTheWeeksGrid();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -847,14 +849,19 @@ void TestTui::sharesTheAppsKeys()
     QCOMPARE(m_state->mode(), TuiState::Mode::Found);
     m_state->press(u"Escape"_s);
 
-    // The help lists the table's keys, with that leader, the details' beside the list's.
-    // On a standard terminal, all of it fits.
+    // The help lists the table's keys, with that leader, on a standard terminal: the list's,
+    // and in an event's details its own.
     m_state->press(u"?"_s);
     const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 80, 24);
-    for (const QString &shown :
-         {u": i"_s, u": w"_s, u"Next event"_s, u"Quit"_s, u"Duplicate the event"_s, u"Answer yes"_s,
-          u"Delete the event"_s, u"Change the event"_s})
+    for (const QString &shown : {u": i"_s, u": w"_s, u"Next event"_s, u"Quit"_s,
+                                 u"Duplicate the event"_s, u"Grid or lists"_s, u"Go to a date"_s})
         QVERIFY2(drawn.contains(shown), qPrintable(shown + u"\n"_s + drawn));
+    m_state->press(u"Escape"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"?"_s);
+    const QString inDetails = renderTui(*m_state, *m_settings, Palette::forTheme({}), 80, 24);
+    for (const QString &shown : {u"Answer yes"_s, u"Delete the event"_s, u"Join the call"_s})
+        QVERIFY2(inDetails.contains(shown), qPrintable(shown + u"\n"_s + inDetails));
 }
 
 void TestTui::remindersShowInTheFooter()
@@ -1097,6 +1104,58 @@ void TestTui::setsTheAgendasLength()
     m_state->press(u"Enter"_s);
     QVERIFY(m_state->messageIsError());
     QCOMPARE(m_state->rangeDays(), 30);
+}
+
+void TestTui::showsDaysAsAnHourGrid()
+{
+    // The leader then g switches days and weeks to the grid, and Settings keeps it.
+    QVERIFY(!m_state->grid());
+    m_state->press(m_settings->leaderKey());
+    m_state->press(u"g"_s);
+    QVERIFY(m_settings->terminalGrid());
+    QVERIFY(m_state->grid());
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 60);
+    // Hours down the side, the events at theirs, and a line across now, 13:40.
+    QVERIFY2(drawn.contains(m_settings->times()->hour(9)), qPrintable(drawn));
+    QVERIFY(drawn.contains(m_settings->times()->hour(16)));
+    QVERIFY(drawn.contains(u"Dentist"_s));
+    QVERIFY(drawn.contains(u"────────"_s));
+    const auto line = [&drawn](const QString &words) {
+        const QStringList lines = drawn.split(u'\n');
+        for (int i = 0; i < lines.size(); ++i) {
+            if (lines.at(i).contains(words))
+                return i;
+        }
+        return -1;
+    };
+    QVERIFY(line(u"Dentist"_s) > line(m_settings->times()->hour(9)));
+    // The month and agenda stay as they are.
+    m_state->press(m_settings->leaderKey());
+    m_state->press(u"m"_s);
+    QVERIFY(!m_state->grid());
+    // :grid switches it back.
+    m_state->press(u":"_s);
+    retype(u"grid"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(!m_settings->terminalGrid());
+}
+
+void TestTui::movesWithinAndBetweenDaysInTheWeeksGrid()
+{
+    m_state->press(m_settings->leaderKey());
+    m_state->press(u"w"_s);
+    QVERIFY(select(u"Dentist"_s));
+    m_settings->setTerminalGrid(true);
+    const QDate wednesday = m_state->dayOf(m_state->events().at(m_state->selected()));
+    // j stays within the day: Dentist is its last, so it stays put.
+    m_state->press(u"j"_s);
+    QCOMPARE(selected(), u"Dentist"_s);
+    // L goes to the next day, to the event nearest in time; H comes back.
+    m_state->press(u"L"_s);
+    QCOMPARE(m_state->dayOf(m_state->events().at(m_state->selected())), wednesday.addDays(1));
+    QCOMPARE(selected(), u"Focus: QML views"_s);
+    m_state->press(u"H"_s);
+    QCOMPARE(selected(), u"Dentist"_s);
 }
 
 QTEST_GUILESS_MAIN(TestTui)

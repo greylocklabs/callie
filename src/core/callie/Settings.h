@@ -25,6 +25,8 @@ class Settings : public QObject
     Q_PROPERTY(bool use24Hour READ use24Hour NOTIFY timeFormatChanged)
     Q_PROPERTY(QString timeZoneId READ timeZoneId WRITE setTimeZoneId NOTIFY timeZoneChanged)
     Q_PROPERTY(bool showDeclined READ showDeclined WRITE setShowDeclined NOTIFY showDeclinedChanged)
+    /// Whether the terminal calendar shows a day and a week as an hour grid, not lists.
+    Q_PROPERTY(bool terminalGrid READ terminalGrid WRITE setTerminalGrid NOTIFY terminalGridChanged)
     Q_PROPERTY(bool dimPast READ dimPast WRITE setDimPast NOTIFY dimPastChanged)
     Q_PROPERTY(bool widenToday READ widenToday WRITE setWidenToday NOTIFY widenTodayChanged)
     /// The week's first day as chosen, 1 (Monday) to 7 (Sunday), or 0 to
@@ -120,6 +122,8 @@ public:
 
     [[nodiscard]] bool showDeclined() const { return m_showDeclined; }
     void setShowDeclined(bool show);
+    [[nodiscard]] bool terminalGrid() const { return m_terminalGrid; }
+    void setTerminalGrid(bool grid);
 
     [[nodiscard]] bool dimPast() const { return m_dimPast; }
     void setDimPast(bool dim);
@@ -249,6 +253,7 @@ Q_SIGNALS:
     void timeFormatChanged();
     void timeZoneChanged();
     void showDeclinedChanged();
+    void terminalGridChanged();
     void dimPastChanged();
     void widenTodayChanged();
     void weekChanged();
@@ -288,6 +293,7 @@ private:
     TimeFormat m_timeFormat = TimeFormat::Locale;
     QString m_timeZoneId;
     bool m_showDeclined = true;
+    bool m_terminalGrid = false;
     bool m_dimPast = true;
     bool m_widenToday = false;
     int m_weekStart = 0;

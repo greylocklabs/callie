@@ -184,6 +184,133 @@ Element weekView(const TuiState &state, const Look &look)
     return hbox(std::move(columns));
 }
 
+/// The day, or the week's days side by side, as half hours from the earliest event or eight to
+/// the latest or six: each event where its times put it, beside those it overlaps, free time
+/// left blank, and a line across today at the time it is.
+Element gridView(const TuiState &state, const Look &look)
+{
+    using namespace ftxui;
+    const Times &times = *look.settings.times();
+    const int days = state.rangeDays();
+    constexpr int kTimeColumn = 7;
+    const int column = std::max(6, (look.width - 2 - kTimeColumn - (days - 1)) / days);
+
+    // The hours shown: at least eight to six, and whatever the events need beyond.
+    int first = 8 * 60, last = 18 * 60;
+    for (const Event &event : state.events()) {
+        if (event.allDay)
+            continue;
+        first = std::min(first, times.minutesIntoDay(event.start) / 60 * 60);
+        const int end = state.dayOf(event) == times.date(event.end).date()
+                            ? times.minutesIntoDay(event.end)
+                            : 24 * 60;
+        last = std::max(last, (end + 59) / 60 * 60);
+    }
+    const int rows = (last - first) / 30;
+
+    // Each day's timed events in lanes, a later one beside any it overlaps.
+    struct Placed
+    {
+        int index, lane, from, to;
+    };
+    QList<QList<Placed>> placed(days);
+    QList<int> lanes(days, 1);
+    Elements allDay;
+    allDay.push_back(text(QString(kTimeColumn, u' ').toStdString()));
+    for (int d = 0; d < days; ++d) {
+        const QDate day = state.rangeStart().addDays(d);
+        Elements top;
+        QList<int> laneEnds;
+        for (int i = 0; i < state.events().size(); ++i) {
+            const Event &event = state.events().at(i);
+            if (state.dayOf(event) != day)
+                continue;
+            if (event.allDay) {
+                top.push_back(hbox({marker(i == state.selected(), look),
+                                    sticker(event, event.summary, look) | flex}));
+                continue;
+            }
+            const int from = (times.minutesIntoDay(event.start) - first) / 30;
+            const int to =
+                times.date(event.end).date() == day
+                    ? std::max(from + 1, (times.minutesIntoDay(event.end) - first + 29) / 30)
+                    : rows;
+            int lane = 0;
+            while (lane < laneEnds.size() && laneEnds.at(lane) > from)
+                ++lane;
+            if (lane == laneEnds.size())
+                laneEnds.append(to);
+            else
+                laneEnds[lane] = to;
+            placed[d].append({i, lane, from, to});
+        }
+        lanes[d] = std::max(1, int(laneEnds.size()));
+        if (top.empty())
+            top.push_back(text(""));
+        allDay.push_back(vbox(std::move(top)) | size(WIDTH, EQUAL, column));
+        if (d < days - 1)
+            allDay.push_back(text(" "));
+    }
+
+    Elements lines;
+    if (days > 1) {
+        Elements names;
+        names.push_back(text(QString(kTimeColumn, u' ').toStdString()));
+        for (int d = 0; d < days; ++d) {
+            const QDate day = state.rangeStart().addDays(d);
+            names.push_back(label(QLocale().toString(day, u"ddd d"_s)) | bold |
+                            color(rgb(day == state.today() ? look.c.accent : look.c.textMuted)) |
+                            size(WIDTH, EQUAL, column));
+            if (d < days - 1)
+                names.push_back(text(" "));
+        }
+        lines.push_back(hbox(std::move(names)));
+    }
+    lines.push_back(hbox(std::move(allDay)));
+    lines.push_back(separatorLight() | color(rgb(look.c.hairline)));
+
+    const QDateTime now = state.now();
+    for (int r = 0; r < rows; ++r) {
+        const int minute = first + r * 30;
+        Elements row;
+        // The hour on its first half hour.
+        row.push_back((minute % 60 == 0 ? label(times.hour(minute / 60)) : text("")) |
+                      color(rgb(look.c.textMuted)) | size(WIDTH, EQUAL, kTimeColumn));
+        for (int d = 0; d < days; ++d) {
+            const QDate day = state.rangeStart().addDays(d);
+            const bool nowHere = day == state.today() && times.minutesIntoDay(now) >= minute &&
+                                 times.minutesIntoDay(now) < minute + 30;
+            const int laneWidth = std::max(2, column / lanes.at(d));
+            Elements cells;
+            for (int lane = 0; lane < lanes.at(d); ++lane) {
+                Element cell = nowHere ? text(QString(laneWidth, u'─').toStdString()) |
+                                             color(rgb(look.c.accent))
+                                       : text("");
+                for (const Placed &p : placed.at(d)) {
+                    if (p.lane != lane || r < p.from || r >= p.to)
+                        continue;
+                    const Event &event = state.events().at(p.index);
+                    const bool selected = p.index == state.selected();
+                    // The title on the event's first half hour; its color below, to its end.
+                    cell = hbox(
+                        {marker(selected && r == p.from, look),
+                         sticker(event, r == p.from ? event.summary : QString(), look) | flex});
+                    if (event.end <= now)
+                        cell = cell | dim;
+                    if (selected && r == p.from)
+                        cell = cell | focus;
+                }
+                cells.push_back(cell | size(WIDTH, EQUAL, laneWidth));
+            }
+            row.push_back(hbox(std::move(cells)) | size(WIDTH, EQUAL, column));
+            if (d < days - 1)
+                row.push_back(separatorLight() | color(rgb(look.c.hairline)));
+        }
+        lines.push_back(hbox(std::move(row)));
+    }
+    return vbox(std::move(lines));
+}
+
 /// The month as weeks of days, each day with its first events and how many more it has.
 Element monthView(const TuiState &state, const Look &look)
 {
@@ -500,33 +627,33 @@ Element footer(const TuiState &state, const Look &look)
     return hbox({left, filler(), label(keysFor(state)) | color(rgb(look.c.textFaint))});
 }
 
-Element help(const Look &look)
+Element help(const TuiState &state, const Look &look)
 {
     using namespace ftxui;
-    // From the keys' table the app reads too, so both list the same keys for what they share.
-    // The list's keys fill two columns, and an event's details' go under the second, to fit an
-    // 80 by 24 terminal.
+    // From the keys' table the app reads too, so both list the same keys for what they share:
+    // the list's keys, or in an event's details its own, in two columns to fit 80 by 24.
+    const bool details = state.mode() == TuiState::Mode::Details;
     const QString leader = look.settings.leaderKey();
-    const auto row = [&](const QString &key, const QString &what) {
-        return hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
-                     label(what), text(" ")});
-    };
-    Elements list, details;
+    Elements rows;
     for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
+        if (action.inCard != details)
+            continue;
         QString key = action.leader.isEmpty() ? action.vi : leader + u' ' + action.leader;
         // The command line opens on Space when : is the leader.
         if (action.id == u"commandLine" && leader == u":")
             key = u"Space"_s;
-        if (!key.isEmpty())
-            (action.inCard ? details : list).push_back(row(key, action.label));
+        if (key.isEmpty())
+            continue;
+        rows.push_back(
+            hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
+                  label(action.label), text(" ")}));
     }
-    const auto half = list.begin() + (list.size() + 1) / 2;
-    Elements left(list.begin(), half);
-    Elements right(half, list.end());
-    right.push_back(text(""));
-    right.push_back(hbox({text(" "), label(QObject::tr("In an event's details")) | bold}));
-    right.insert(right.end(), details.begin(), details.end());
-    return window(label(QObject::tr(" Keys ")) | bold,
+    const auto half = rows.begin() + (rows.size() + 1) / 2;
+    Elements left(rows.begin(), half);
+    Elements right(half, rows.end());
+    const QString title =
+        details ? QObject::tr(" Keys in an event's details ") : QObject::tr(" Keys ");
+    return window(label(title) | bold,
                   hbox({vbox(std::move(left)), separatorLight() | color(rgb(look.c.hairline)),
                         vbox(std::move(right))})) |
            color(rgb(look.c.text)) | bgcolor(rgb(look.c.surface)) | clear_under | center;
@@ -547,6 +674,7 @@ Element render(const TuiState &state, const Look &look)
     Element body = editing                                  ? editView(state, look)
                    : details                                ? detailsView(state, look)
                    : found                                  ? foundView(state, look)
+                   : state.grid()                           ? gridView(state, look)
                    : state.view() == TuiState::View::Week   ? weekView(state, look)
                    : state.view() == TuiState::View::Month  ? monthView(state, look)
                    : state.view() == TuiState::View::Agenda ? agendaView(state, look)
@@ -556,7 +684,7 @@ Element render(const TuiState &state, const Look &look)
     Element screen = hbox({text(" "), page | flex, text(" ")}) | color(rgb(look.c.text)) |
                      bgcolor(rgb(look.c.background));
     if (state.helpShown())
-        return dbox({screen, help(look)});
+        return dbox({screen, help(state, look)});
     if (state.mode() == TuiState::Mode::Calendars)
         return dbox({screen, calendarsWindow(state, look)});
     return screen;

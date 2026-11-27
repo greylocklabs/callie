@@ -17,6 +17,9 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
   moves half a screen with Ctrl-D and Ctrl-U, and shows an agenda of any length with `:agenda 30`.
 - The terminal calendar has a month view: the month's weeks, each day with its first events and
   how many more it has, opened with the leader then m, as in the app, or `:month`.
+- The terminal calendar can show days and weeks as an hour grid, with each event at its time and a
+  line at the current time, switched with the leader then g or `:grid` and kept in Settings. In
+  the week's grid, j and k stay within a day, and H and L go to the day before or after.
 
 ### Changed
 

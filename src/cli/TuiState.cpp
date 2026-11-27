@@ -63,6 +63,7 @@ TuiState::TuiState(CalendarSource &source, Settings &settings, Now now, QObject 
     // A sync that finds nothing new, or fails, says so only here.
     connect(m_source, &CalendarSource::statusChanged, this, &TuiState::changed);
     connect(&m_settings, &Settings::hiddenCalendarsChanged, this, &TuiState::reload);
+    connect(&m_settings, &Settings::terminalGridChanged, this, &TuiState::changed);
     connect(m_source, &CalendarSource::errorOccurred, this,
             [this](const QString &message) { say(message, true); });
     // Each change can be taken back while it is held.
@@ -78,6 +79,38 @@ TuiState::TuiState(CalendarSource &source, Settings &settings, Now now, QObject 
 QDate TuiState::today() const
 {
     return m_settings.times()->date(m_now()).date();
+}
+
+bool TuiState::grid() const
+{
+    return m_settings.terminalGrid() && (m_view == View::Day || m_view == View::Week);
+}
+
+void TuiState::stepDay(int direction)
+{
+    if (m_selected < 0)
+        return;
+    const Event &from = m_events.at(m_selected);
+    const int minutes = m_settings.times()->minutesIntoDay(from.start);
+    const QDate last = rangeStart().addDays(rangeDays() - 1);
+    for (QDate day = dayOf(from).addDays(direction); day >= rangeStart() && day <= last;
+         day = day.addDays(direction)) {
+        int best = -1;
+        for (int i = 0; i < m_events.size(); ++i) {
+            if (dayOf(m_events.at(i)) != day)
+                continue;
+            const int distance =
+                std::abs(m_settings.times()->minutesIntoDay(m_events.at(i).start) - minutes);
+            if (best < 0 ||
+                distance <
+                    std::abs(m_settings.times()->minutesIntoDay(m_events.at(best).start) - minutes))
+                best = i;
+        }
+        if (best >= 0) {
+            m_selected = best;
+            return;
+        }
+    }
 }
 
 QDate TuiState::rangeStart() const
@@ -368,12 +401,21 @@ bool TuiState::run(const QString &id)
         return true;
     }
 
-    if (id == u"nextEvent") {
-        if (m_selected + 1 < m_events.size())
-            ++m_selected;
-    } else if (id == u"previousEvent") {
-        if (m_selected > 0)
-            --m_selected;
+    if (id == u"nextEvent" || id == u"previousEvent") {
+        const int step = id == u"nextEvent" ? 1 : -1;
+        const int next = m_selected + step;
+        // In the week's grid, j and k stay within the day; H and L go between days.
+        const bool sameDay = grid() && m_view == View::Week && m_selected >= 0;
+        if (next >= 0 && next < m_events.size() &&
+            (!sameDay || dayOf(m_events.at(next)) == dayOf(m_events.at(m_selected))))
+            m_selected = next;
+    } else if (id == u"nextDay" || id == u"previousDay") {
+        stepDay(id == u"nextDay" ? 1 : -1);
+    } else if (id == u"toggleGrid") {
+        m_settings.setTerminalGrid(!m_settings.terminalGrid());
+        say(m_settings.terminalGrid() ? tr("Days and weeks as an hour grid.")
+                                      : tr("Days and weeks as lists."));
+        return true;
     } else if (id == u"firstEvent") {
         if (!m_events.isEmpty())
             m_selected = 0;
@@ -443,6 +485,12 @@ bool TuiState::pressDetails(const QString &key)
     }
     if (id == u"changeOpen")
         return startEditing(*event);
+    // The help lists the details' own keys here.
+    if (key == u"?") {
+        m_help = true;
+        Q_EMIT changed();
+        return true;
+    }
     if (id == u"delete") {
         if (!event->canEdit) {
             say(tr("%1 cannot be changed from here.").arg(event->summary), true);
@@ -591,12 +639,13 @@ void TuiState::runCommand(const QString &line)
     const QString name = line.section(u' ', 0, 0).toLower();
     const QString rest = line.section(u' ', 1).trimmed();
     static const QHash<QString, QString> actions = {
-        {u"day"_s, u"dayView"_s},         {u"week"_s, u"weekView"_s},
-        {u"month"_s, u"monthView"_s},     {u"agenda"_s, u"agendaView"_s},
-        {u"today"_s, u"today"_s},         {u"invites"_s, u"invites"_s},
-        {u"calendars"_s, u"calendars"_s}, {u"sync"_s, u"refresh"_s},
-        {u"undo"_s, u"undo"_s},           {u"help"_s, u"help"_s},
-        {u"q"_s, u"quitTerminal"_s},      {u"quit"_s, u"quitTerminal"_s},
+        {u"day"_s, u"dayView"_s},       {u"week"_s, u"weekView"_s},
+        {u"month"_s, u"monthView"_s},   {u"grid"_s, u"toggleGrid"_s},
+        {u"agenda"_s, u"agendaView"_s}, {u"today"_s, u"today"_s},
+        {u"invites"_s, u"invites"_s},   {u"calendars"_s, u"calendars"_s},
+        {u"sync"_s, u"refresh"_s},      {u"undo"_s, u"undo"_s},
+        {u"help"_s, u"help"_s},         {u"q"_s, u"quitTerminal"_s},
+        {u"quit"_s, u"quitTerminal"_s},
     };
     if (actions.contains(name) && rest.isEmpty()) {
         run(actions.value(name));
@@ -623,8 +672,8 @@ void TuiState::runCommand(const QString &line)
         submit();
         return;
     }
-    say(tr("No command %1. There are day, week, month, agenda, today, go, add, search, invites, "
-           "calendars, sync, undo, help and q.")
+    say(tr("No command %1. There are day, week, month, agenda, grid, today, go, add, search, "
+           "invites, calendars, sync, undo, help and q.")
             .arg(line),
         true);
 }

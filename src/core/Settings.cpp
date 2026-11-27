@@ -17,6 +17,7 @@ namespace {
 const QString kTimeFormat = u"time/format"_s;
 const QString kTimeZone = u"time/zone"_s;
 const QString kShowDeclined = u"events/showDeclined"_s;
+const QString kTerminalGrid = u"terminal/timeGrid"_s;
 const QString kDimPast = u"events/dimPast"_s;
 const QString kWidenToday = u"week/widenToday"_s;
 const QString kWeekStart = u"week/start"_s;
@@ -119,6 +120,7 @@ void Settings::load()
     const QString zone = get(kTimeZone).toString();
     m_timeZoneId = QTimeZone::isTimeZoneIdAvailable(zone.toUtf8()) ? zone : QString();
     m_showDeclined = get(kShowDeclined, true).toBool();
+    m_terminalGrid = get(kTerminalGrid, false).toBool();
     m_dimPast = get(kDimPast, true).toBool();
     m_widenToday = get(kWidenToday, false).toBool();
     m_weekStart = std::clamp(get(kWeekStart, 0).toInt(), 0, 7);
@@ -209,6 +211,15 @@ void Settings::setShowDeclined(bool show)
     m_showDeclined = show;
     put(kShowDeclined, show);
     Q_EMIT showDeclinedChanged();
+}
+
+void Settings::setTerminalGrid(bool grid)
+{
+    if (m_terminalGrid == grid)
+        return;
+    m_terminalGrid = grid;
+    put(kTerminalGrid, grid);
+    Q_EMIT terminalGridChanged();
 }
 
 void Settings::setDimPast(bool dim)
@@ -688,6 +699,7 @@ void Settings::reset()
     const TimeFormat format = m_timeFormat;
     const QString zone = m_timeZoneId;
     const bool declined = m_showDeclined, dim = m_dimPast, widen = m_widenToday;
+    const bool grid = m_terminalGrid;
     const QStringList hidden = m_hiddenCalendars, known = m_knownCalendars;
     const QStringList collapsed = m_collapsedAccounts;
     const QVariantMap looks = m_calendarLooks, accountNames = m_accountNames;
@@ -732,6 +744,8 @@ void Settings::reset()
         Q_EMIT dimPastChanged();
     if (widen != m_widenToday)
         Q_EMIT widenTodayChanged();
+    if (grid != m_terminalGrid)
+        Q_EMIT terminalGridChanged();
     // Calendars no longer remembered as seen are seeded again, by whoever listens.
     if (hidden != m_hiddenCalendars || known != m_knownCalendars)
         Q_EMIT hiddenCalendarsChanged();
