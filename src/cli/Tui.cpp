@@ -563,6 +563,12 @@ QString keysFor(const TuiState &state)
             keys << QObject::tr("y yes   m maybe   n no");
         if (event && !event->joinUrl().isEmpty())
             keys << QObject::tr("o join");
+        if (event && !event->location.isEmpty())
+            keys << QObject::tr("M map");
+        if (event && !event->webUrl.isEmpty())
+            keys << QObject::tr("O page");
+        if (event && (!event->joinUrl().isEmpty() || !event->webUrl.isEmpty()))
+            keys << QObject::tr("c copy");
         if (event && event->canEdit)
             keys << QObject::tr("e change   x delete");
         keys << QObject::tr("Esc back");
