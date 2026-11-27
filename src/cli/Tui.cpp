@@ -476,9 +476,9 @@ Element render(const TuiState &state, const Look &look)
     // The details stay in view while a question about the event is asked.
     const bool details =
         state.mode() == TuiState::Mode::Details || state.mode() == TuiState::Mode::Confirming;
-    const bool found =
-        state.mode() == TuiState::Mode::Found ||
-        (state.mode() == TuiState::Mode::Typing && state.typing() == TuiState::Typing::Search);
+    const bool found = state.mode() == TuiState::Mode::Found ||
+                       (state.mode() == TuiState::Mode::Typing &&
+                        state.typing() == TuiState::Typing::Search && !state.input().isEmpty());
     Element body = editing                                  ? editView(state, look)
                    : details                                ? detailsView(state, look)
                    : found                                  ? foundView(state, look)

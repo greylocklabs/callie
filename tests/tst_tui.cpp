@@ -904,16 +904,37 @@ void TestTui::recallsEarlierLines()
     m_state->press(u"Down"_s);
     QCOMPARE(m_state->input(), u"ret"_s);
     m_state->press(u"Escape"_s);
-    // New events have their own.
+    // New events have their own, and so does each field of an event.
     m_state->press(u"n"_s);
     m_state->press(u"Up"_s);
     QCOMPARE(m_state->input(), QString());
+    m_state->press(u"Escape"_s);
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"e"_s);
+    m_state->press(u"Enter"_s);
+    retype(u"Orthodontist"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"j"_s);
+    m_state->press(u"Enter"_s);
+    const QString where = m_state->input();
+    m_state->press(u"Up"_s);
+    QCOMPARE(m_state->input(), where);
+    m_state->press(u"Escape"_s);
+    m_state->press(u"k"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"Up"_s);
+    QCOMPARE(m_state->input(), u"Orthodontist"_s);
+    m_state->press(u"Escape"_s);
     m_state->press(u"Escape"_s);
 }
 
 void TestTui::searchesAsItIsTyped()
 {
+    // Until something is typed, the view stays as it was.
     m_state->press(u"/"_s);
+    const QString empty = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY2(!empty.contains(u"Nothing found."_s) && empty.contains(u"Dentist"_s),
+             qPrintable(empty));
     for (const QChar c : u"dent"_s)
         m_state->press(QString(c));
     QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
