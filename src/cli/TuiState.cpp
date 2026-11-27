@@ -4,11 +4,15 @@
 
 #include "callie/KeyActions.h"
 #include "callie/QueuedSource.h"
+#include "callie/QuickAdd.h"
 #include "callie/ReminderNotifier.h"
+#include "callie/Repeat.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
 
 #include <QHash>
+#include <QRegularExpression>
+#include <QTextDocumentFragment>
 #include <QTextStream>
 #include <QTimer>
 
@@ -579,9 +583,23 @@ bool TuiState::pressTyping(const QString &key)
         m_input = m_historyAt < 0 ? m_draft : history.at(m_historyAt);
         m_cursor = int(m_input.size());
     } else if (tab) {
-        if (m_typing != Typing::Field || field() != Field::Calendar)
+        // A new event's line opens the full form; a field completes its choices.
+        if (m_typing == Typing::NewEvent) {
+            addAndOpen(m_input.trimmed());
+            return true;
+        }
+        if (m_typing != Typing::Field)
             return false;
-        completeCalendar();
+        if (field() == Field::Calendar) {
+            QStringList names;
+            for (const CalendarInfo &calendar : calendars())
+                names.append(calendar.displayName);
+            complete(names);
+        } else if (field() == Field::Repeats) {
+            complete(Repeat::choices());
+        } else {
+            return false;
+        }
     } else if (key.size() == 1 && key.at(0).isPrint()) {
         m_input.insert(m_cursor++, key);
     } else {
@@ -620,14 +638,14 @@ void TuiState::searchAsTyped()
     m_foundSelected = -1;
 }
 
-void TuiState::completeCalendar()
+void TuiState::complete(const QStringList &choices)
 {
     if (!m_completing)
         m_completing = m_input;
     QStringList names;
-    for (const CalendarInfo &calendar : calendars()) {
-        if (calendar.displayName.startsWith(*m_completing, Qt::CaseInsensitive))
-            names.append(calendar.displayName);
+    for (const QString &choice : choices) {
+        if (choice.startsWith(*m_completing, Qt::CaseInsensitive))
+            names.append(choice);
     }
     if (names.isEmpty())
         return;
@@ -738,9 +756,12 @@ void TuiState::submit()
             Q_EMIT changed();
             return;
         }
-        // An unchanged field changes nothing; a title or a time cannot be left empty.
+        // An unchanged field changes nothing; a title or a time cannot be left empty, but a
+        // place, the guests and notes can.
         const Field which = field();
-        if (text == fieldValue(*event, which) || (text.isEmpty() && which != Field::Where)) {
+        const bool clears =
+            which == Field::Where || which == Field::Guests || which == Field::Notes;
+        if (text == fieldValue(*event, which) || (text.isEmpty() && !clears)) {
             Q_EMIT changed();
             return;
         }
@@ -751,7 +772,13 @@ void TuiState::submit()
         case Field::Starts: options.start = text; break;
         case Field::Ends: options.end = text; break;
         case Field::Calendar: options.calendar = text; break;
-        case Field::AllDay: break;
+        case Field::Repeats: options.repeat = text; break;
+        case Field::Guests:
+            options.guests = text.split(QRegularExpression(u"[,\\s]+"_s), Qt::SkipEmptyParts);
+            break;
+        case Field::Notes: options.notes = text; break;
+        case Field::AllDay:
+        case Field::Call: break;
         }
         change(Commands::reference(*event), options);
         return;
@@ -912,9 +939,13 @@ bool TuiState::pressEditing(const QString &key)
     } else if (key == u"k" || key == u"Up") {
         m_field = std::max(m_field - 1, 0);
     } else if (key == u"Enter" || key == u" ") {
-        if (field() == Field::AllDay) {
+        // All day and the call switch rather than take a line.
+        if (field() == Field::AllDay || field() == Field::Call) {
             EditOptions options;
-            options.allDay = !event->allDay;
+            if (field() == Field::AllDay)
+                options.allDay = !event->allDay;
+            else
+                options.video = event->joinUrl().isEmpty();
             change(Commands::reference(*event), options);
             return true;
         }
@@ -1016,7 +1047,8 @@ std::optional<Event> TuiState::editing() const
 
 QList<TuiState::Field> TuiState::fields()
 {
-    return {Field::Title, Field::Where, Field::Starts, Field::Ends, Field::AllDay, Field::Calendar};
+    return {Field::Title,    Field::Where,   Field::Starts, Field::Ends, Field::AllDay,
+            Field::Calendar, Field::Repeats, Field::Guests, Field::Call, Field::Notes};
 }
 
 QString TuiState::fieldName(Field field)
@@ -1028,6 +1060,10 @@ QString TuiState::fieldName(Field field)
     case Field::Ends: return tr("Ends");
     case Field::AllDay: return tr("All day");
     case Field::Calendar: return tr("Calendar");
+    case Field::Repeats: return tr("Repeats");
+    case Field::Guests: return tr("Guests");
+    case Field::Call: return tr("Video call");
+    case Field::Notes: return tr("Notes");
     }
     return {};
 }
@@ -1054,8 +1090,43 @@ QString TuiState::fieldValue(const Event &event, Field field) const
                 return calendar.displayName;
         }
         return event.calendarId;
+    case Field::Repeats: return Repeat::choiceOf(event.recurrence, times.date(event.start).date());
+    case Field::Guests: {
+        QStringList guests;
+        for (const Guest &guest : event.guests) {
+            if (!guest.self)
+                guests.append(guest.email);
+        }
+        return guests.join(u", "_s);
+    }
+    case Field::Call: return event.joinUrl().isEmpty() ? tr("no") : tr("yes");
+    // Google's notes are HTML; they are typed as their text.
+    case Field::Notes: return QTextDocumentFragment::fromHtml(event.description).toPlainText();
     }
     return {};
+}
+
+void TuiState::addAndOpen(const QString &text)
+{
+    const EventDraft draft = QuickAdd::parse(text, m_now(), m_settings.times()->zone());
+    m_mode = Mode::Browse;
+    if (!draft.isValid()) {
+        say(tr("Could not read an event from %1; try Lunch tomorrow 12-1pm.").arg(text), true);
+        return;
+    }
+    act([text](Commands &commands, const std::function<void(int)> &done) {
+        commands.add(text, {}, done);
+    });
+    // On its day, with its fields listed to fill in the rest.
+    m_day = m_settings.times()->date(draft.start).date();
+    reload();
+    for (const Event &event : std::as_const(m_events)) {
+        if (event.summary == draft.summary && event.start == draft.start) {
+            startEditing(event);
+            return;
+        }
+    }
+    selectFirstOf(m_day);
 }
 
 void TuiState::change(const QString &id, const EditOptions &options)

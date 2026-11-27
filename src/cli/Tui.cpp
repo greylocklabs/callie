@@ -569,12 +569,13 @@ QString keysFor(const TuiState &state)
         return state.askingScope() ? QObject::tr("t this event   a all events   Esc cancel")
                                    : QObject::tr("y delete   n keep");
     case TuiState::Mode::Editing:
-        return state.field() == TuiState::Field::AllDay
+        return state.field() == TuiState::Field::AllDay || state.field() == TuiState::Field::Call
                    ? QObject::tr("Enter switch   j k fields   u take back   Esc back")
                    : QObject::tr("Enter change   j k fields   u take back   Esc back");
     case TuiState::Mode::Typing:
         switch (state.typing()) {
-        case TuiState::Typing::NewEvent: return QObject::tr("Enter add   Esc cancel");
+        case TuiState::Typing::NewEvent:
+            return QObject::tr("Enter add   Tab add and fill in the rest   Esc cancel");
         case TuiState::Typing::Search: return QObject::tr("Enter search   Esc cancel");
         case TuiState::Typing::Field: return QObject::tr("Enter save   Esc cancel");
         case TuiState::Typing::Move: return QObject::tr("Enter move   Esc cancel");

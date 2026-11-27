@@ -1675,7 +1675,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Enter add   Esc cancel</source>
+        <source>Enter add   Tab add and fill in the rest   Esc cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4280,11 +4280,31 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Repeats</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guests</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Video call</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Notes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>yes</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>no</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Could not read an event from %1; try Lunch tomorrow 12-1pm.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
