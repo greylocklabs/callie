@@ -248,6 +248,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Now: %1, until %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 %2 %3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>usage: callie search &lt;words&gt;</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3791,6 +3803,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Open the place in a map</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the event&apos;s page</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy its call&apos;s link, or its page&apos;s</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Join the call</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4213,6 +4237,22 @@
     </message>
     <message>
         <source>Nothing copied; y copies the selected event.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 has no place.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 has no page of its own.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 has no link to copy.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copied %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

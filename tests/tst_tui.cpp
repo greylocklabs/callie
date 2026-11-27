@@ -96,6 +96,7 @@ private Q_SLOTS:
     void fillsInANewEventsForm();
     void changesARepeatFromAnOccurrence();
     void callFieldIsTheEventsOwnCall();
+    void detailsOpenPlacesAndCopyLinks();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -1301,6 +1302,33 @@ void TestTui::fillsInANewEventsForm()
     m_state->press(u"Tab"_s);
     QVERIFY(m_state->messageIsError());
     QCOMPARE(m_state->mode(), TuiState::Mode::Browse);
+}
+
+void TestTui::detailsOpenPlacesAndCopyLinks()
+{
+    QSignalSpy opened(m_state.get(), &TuiState::openRequested);
+    QSignalSpy copied(m_state.get(), &TuiState::copyRequested);
+    // M opens the Dentist's place in a map.
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"M"_s);
+    QCOMPARE(opened.size(), 1);
+    QVERIFY2(opened.first().first().toUrl().toString().contains(u"Clinic"_s),
+             qPrintable(opened.first().first().toUrl().toString()));
+    // It has no call or page of its own, so O and c say so.
+    m_state->press(u"O"_s);
+    QVERIFY(m_state->messageIsError());
+    m_state->press(u"c"_s);
+    QVERIFY(m_state->messageIsError());
+    QVERIFY(copied.isEmpty());
+    // c copies a call's link.
+    m_state->press(u"Escape"_s);
+    QVERIFY(select(u"Vendor call"_s));
+    m_state->press(u"Enter"_s);
+    m_state->press(u"c"_s);
+    QCOMPARE(copied.size(), 1);
+    QCOMPARE(copied.first().first().toString(), u"https://zoom.us/j/5554443332"_s);
+    QVERIFY(!m_state->messageIsError());
 }
 
 QTEST_GUILESS_MAIN(TestTui)

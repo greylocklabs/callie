@@ -117,6 +117,8 @@ Q_SIGNALS:
     void changed();
     /// The user asked to open a call or a link.
     void openRequested(const QUrl &url);
+    /// The user asked to copy `text`.
+    void copyRequested(const QString &text);
 
 private:
     void step(int direction);

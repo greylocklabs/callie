@@ -3,6 +3,7 @@
 #include "Commands.h"
 
 #include "callie/KeyActions.h"
+#include "callie/Places.h"
 #include "callie/QueuedSource.h"
 #include "callie/QuickAdd.h"
 #include "callie/ReminderNotifier.h"
@@ -506,6 +507,32 @@ bool TuiState::pressDetails(const QString &key)
             return true;
         }
         confirm(*event, {});
+        return true;
+    }
+    if (id == u"openPlace") {
+        if (event->location.isEmpty()) {
+            say(tr("%1 has no place.").arg(event->summary), true);
+            return true;
+        }
+        Q_EMIT openRequested(places::mapUrl(m_settings.mapApp(), event->location));
+        return true;
+    }
+    if (id == u"openPage") {
+        if (event->webUrl.isEmpty()) {
+            say(tr("%1 has no page of its own.").arg(event->summary), true);
+            return true;
+        }
+        Q_EMIT openRequested(event->webUrl);
+        return true;
+    }
+    if (id == u"copyLink") {
+        const QUrl link = !event->joinUrl().isEmpty() ? event->joinUrl() : event->webUrl;
+        if (link.isEmpty()) {
+            say(tr("%1 has no link to copy.").arg(event->summary), true);
+            return true;
+        }
+        Q_EMIT copyRequested(link.toString());
+        say(tr("Copied %1.").arg(link.toString()));
         return true;
     }
     if (id == u"join") {

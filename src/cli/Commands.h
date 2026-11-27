@@ -64,6 +64,9 @@ public:
     /// The next `days` days, by day. With `json`, a JSON array whose ids are
     /// what the other commands take.
     int agenda(int days, bool json);
+    /// The timed event on now, or else the next in a week, in one line for a status bar, or as
+    /// JSON; nothing when there is none.
+    int next(bool json);
     /// Events with every word of `query`, a year either side, upcoming first.
     int search(const QString &query, bool json);
     /// Invitations not answered yet, in the next 90 days.

@@ -11,7 +11,10 @@
 #include <QLocale>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QStandardPaths>
 #include <QTimer>
+
+#include <cstdio>
 
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/loop.hpp>
@@ -691,6 +694,26 @@ Element render(const TuiState &state, const Look &look)
     return screen;
 }
 
+/// Puts `text` on the clipboard: through wl-copy or xclip when there is one, or else by asking
+/// the terminal, which most do for an OSC 52 sequence.
+void copyToClipboard(const QString &text)
+{
+    const std::pair<QString, QStringList> tools[] = {
+        {u"wl-copy"_s, {}}, {u"xclip"_s, {u"-selection"_s, u"clipboard"_s}}};
+    for (const auto &[tool, arguments] : tools) {
+        if (QStandardPaths::findExecutable(tool).isEmpty())
+            continue;
+        QProcess process;
+        process.start(tool, arguments);
+        process.write(text.toUtf8());
+        process.closeWriteChannel();
+        if (process.waitForFinished(2000) && process.exitCode() == 0)
+            return;
+    }
+    std::fputs(("\033]52;c;" + text.toUtf8().toBase64() + "\a").constData(), stdout);
+    std::fflush(stdout);
+}
+
 /// The name TuiState gives a key, or nothing for one it does not take.
 QString keyName(const ftxui::Event &event)
 {
@@ -771,6 +794,7 @@ int runTui(TuiState &state, const Settings &settings, const Palette &palette)
     QObject::connect(&state, &TuiState::openRequested, &tick, [](const QUrl &url) {
         QProcess::startDetached(u"xdg-open"_s, {url.toString()});
     });
+    QObject::connect(&state, &TuiState::copyRequested, &tick, &copyToClipboard);
     tick.start();
     return QCoreApplication::exec();
 }
