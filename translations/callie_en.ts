@@ -1663,6 +1663,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>M map</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>O page</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>c copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>e change   x delete</source>
         <translation type="unfinished"></translation>
     </message>

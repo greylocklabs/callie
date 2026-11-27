@@ -1311,6 +1311,8 @@ void TestTui::detailsOpenPlacesAndCopyLinks()
     // M opens the Dentist's place in a map.
     QVERIFY(select(u"Dentist"_s));
     m_state->press(u"Enter"_s);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 80, 24);
+    QVERIFY2(drawn.contains(u"M map"_s) && !drawn.contains(u"O page"_s), qPrintable(drawn));
     m_state->press(u"M"_s);
     QCOMPARE(opened.size(), 1);
     QVERIFY2(opened.first().first().toUrl().toString().contains(u"Clinic"_s),
