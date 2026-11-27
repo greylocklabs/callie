@@ -19,6 +19,8 @@
 #include "callie/MicrosoftSource.h"
 #include "callie/MicrosoftTokenProvider.h"
 #include "callie/QueuedSource.h"
+#include "callie/ReminderNotifier.h"
+#include "callie/ReminderScheduler.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
 #include "callie/Subscriptions.h"
@@ -27,6 +29,7 @@
 #include "callie/Zoom.h"
 #include "greylock/Issues.h"
 #include "greylock/LogFile.h"
+#include "greylock/Notifications.h"
 #include "greylock/Releases.h"
 #include "greylock/Translations.h"
 #include "greylock/UpdateCheck.h"
@@ -115,6 +118,8 @@ const QString kGoogle = QStringLiteral("google");
 /// The commands, for --help and for completion.
 const QList<std::pair<QString, QString>> kCommands = {
     {u"tui"_s, u"Your calendar in the terminal, in the app's theme; the default on a terminal"_s},
+    {u"reminders"_s,
+     u"Remind about events with desktop notifications until stopped, without the app open"_s},
     {u"agenda"_s, u"Upcoming events; --json for scripts, with ids. The default when piped"_s},
     {u"search"_s, u"Events with every word given"_s},
     {u"invites"_s, u"Invitations waiting for an answer"_s},
@@ -1054,6 +1059,37 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
         return commands.renameAccount(args.value(2), args.mid(3).join(u' '));
     if (command == u"agenda")
         return commands.agenda(parser.value(u"days"_s).toInt(), json);
+    if (command == u"reminders") {
+        if (!settings.notify()) {
+            err << QObject::tr("callie: reminders are off; turn them on in Settings, or with "
+                               "callie settings notify true")
+                << "\n";
+            return 1;
+        }
+        ReminderScheduler scheduler;
+        scheduler.setNow(now);
+        scheduler.setSource(backend->source.get());
+        greylock::FreedesktopNotifications notifications(QString(), u"x-gnome.calendar"_s);
+        ReminderNotifier reminders;
+        QObject::connect(&reminders, &ReminderNotifier::openRequested, &reminders,
+                         [] { QProcess::startDetached(u"callie-gui"_s, {}); });
+        QObject::connect(
+            &reminders, &ReminderNotifier::joinRequested, &reminders,
+            [](const QUrl &url) { QProcess::startDetached(u"xdg-open"_s, {url.toString()}); });
+        reminders.setup(&scheduler, &notifications, &settings, QObject::tr("Open in Callie"));
+        // Synced as the app syncs, so events added elsewhere remind too.
+        QTimer sync;
+        QObject::connect(&sync, &QTimer::timeout, backend->source.get(), &CalendarSource::refresh);
+        sync.start(std::chrono::minutes(15));
+        backend->source->refresh();
+        out << (reminders.isNotifying()
+                    ? QObject::tr("Reminding about events until stopped.")
+                    : QObject::tr("Callie or the terminal calendar is reminding for now; this "
+                                  "takes over when it stops."))
+            << "\n";
+        out.flush();
+        return QCoreApplication::exec();
+    }
     if (command == u"tui") {
 #ifdef CALLIE_HAVE_TUI
         // Changes show at once and can be taken back while held, as in the app.
@@ -1061,6 +1097,21 @@ int runEvents(QCoreApplication &app, const QString &command, const QStringList &
         QueuedSource queued(*backend->source, QString());
         queued.setNow(now);
         cli::TuiState state(queued, settings, now);
+        // Reminders come while the TUI is open, unless the app or `callie reminders` gives them.
+        ReminderScheduler scheduler;
+        scheduler.setNow(now);
+        scheduler.setSource(&queued);
+        greylock::FreedesktopNotifications notifications(QString(), u"x-gnome.calendar"_s);
+        ReminderNotifier reminders;
+        QObject::connect(&reminders, &ReminderNotifier::reminded, &state, &cli::TuiState::remind);
+        QObject::connect(&reminders, &ReminderNotifier::openRequested, &state,
+                         &cli::TuiState::showEvent);
+        QObject::connect(&reminders, &ReminderNotifier::joinRequested, &state, [](const QUrl &url) {
+            QProcess::startDetached(u"xdg-open"_s, {url.toString()});
+        });
+        if (!sample)
+            reminders.setup(&scheduler, &notifications, &settings,
+                            QObject::tr("Show in the terminal"));
         queued.refresh();
         const int code =
             cli::runTui(state, settings, greylock::cli::Palette::forTheme(themeFor(settings)));
@@ -1374,8 +1425,8 @@ int main(int argc, char *argv[])
     }
 
     static const QStringList kEventCommands = {
-        u"agenda"_s, u"search"_s,  u"invites"_s,   u"add"_s,      u"edit"_s,
-        u"delete"_s, u"respond"_s, u"duplicate"_s, u"contacts"_s, u"tui"_s};
+        u"agenda"_s,  u"search"_s,    u"invites"_s,  u"add"_s, u"edit"_s,     u"delete"_s,
+        u"respond"_s, u"duplicate"_s, u"contacts"_s, u"tui"_s, u"reminders"_s};
     if (kEventCommands.contains(command))
         return runEvents(app, command, args, parser, parser.isSet(sampleOption));
 

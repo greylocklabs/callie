@@ -95,6 +95,10 @@ public:
     bool press(const QString &key);
     /// Reads the events again, as after a sync.
     void reload();
+    /// Says a reminder for `event` came, in the footer.
+    void remind(const callie::Event &event);
+    /// Shows `event` on its day, as a click on its reminder asks.
+    void showEvent(const callie::Event &event);
 
 Q_SIGNALS:
     void changed();

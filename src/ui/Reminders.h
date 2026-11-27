@@ -1,9 +1,9 @@
 #pragma once
 
 #include "callie/Event.h"
+#include "callie/ReminderNotifier.h"
 
 #include <QDateTime>
-#include <QHash>
 #include <QObject>
 #include <QPointer>
 #include <QQmlEngine>
@@ -18,8 +18,9 @@ class ReminderScheduler;
 class Settings;
 class Times;
 
-/// Turns due reminders into desktop notifications and answers their buttons:
-/// open the event in Callie, join its call, or snooze for five minutes.
+/// The app's reminders: due reminders as desktop notifications, whose click shows the event in
+/// the window and whose Join opens its call. ReminderNotifier does the notifying, which the
+/// terminal calendar and `callie reminders` share.
 class Reminders : public QObject
 {
     Q_OBJECT
@@ -27,11 +28,7 @@ class Reminders : public QObject
     QML_SINGLETON
 
 public:
-    struct Text
-    {
-        QString title;
-        QString body;
-    };
+    using Text = ReminderNotifier::Text;
 
     static Reminders *instance();
     static Reminders *create(QQmlEngine *, QJSEngine *);
@@ -41,10 +38,12 @@ public:
                Settings *settings);
 
     /// What a notification about `event` says at `now`.
-    [[nodiscard]] static Text describe(const Event &event, const QDateTime &now,
-                                       const Times &times);
+    [[nodiscard]] static Text describe(const Event &event, const QDateTime &now, const Times &times)
+    {
+        return ReminderNotifier::describe(event, now, times);
+    }
 
-    static constexpr int kSnoozeMinutes = 5;
+    static constexpr int kSnoozeMinutes = ReminderNotifier::kSnoozeMinutes;
 
 Q_SIGNALS:
     /// Asks the window to show `day` (a local midnight) and the event there
@@ -54,14 +53,8 @@ Q_SIGNALS:
 private:
     explicit Reminders(QObject *parent);
 
-    void applySettings();
-    void notify(const Event &event);
-    void onAction(uint id, const QString &key);
-
-    QPointer<ReminderScheduler> m_scheduler;
-    QPointer<greylock::NotificationServer> m_server;
+    ReminderNotifier m_notifier;
     QPointer<Settings> m_settings;
-    QHash<uint, Event> m_shown;
 };
 
 } // namespace callie

@@ -1895,6 +1895,26 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>callie: reminders are off; turn them on in Settings, or with callie settings notify true</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open in Callie</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reminding about events until stopped.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Callie or the terminal calendar is reminding for now; this takes over when it stops.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show in the terminal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>callie: not sent: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3845,7 +3865,7 @@
     </message>
 </context>
 <context>
-    <name>callie::Reminders</name>
+    <name>callie::ReminderNotifier</name>
     <message>
         <source>(No title)</source>
         <translation type="unfinished"></translation>
@@ -3878,10 +3898,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open in Callie</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Join call</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3891,6 +3907,13 @@
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>callie::Reminders</name>
+    <message>
+        <source>Open in Callie</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4136,6 +4159,10 @@
     </message>
     <message>
         <source>Found for %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reminder: %1, %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

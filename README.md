@@ -173,6 +173,7 @@ callie settings                          # every setting; callie settings viMode
 callie sync                              # fetch changes from every account
 callie logs                              # log file paths; -f follows them, --open opens the folder
 callie status                            # last sync and errors per calendar, keyring and setup
+callie reminders                         # event reminders as notifications, until stopped
 callie doctor                            # details for a bug report; --report opens a new issue
 callie donate                            # support Callie on Ko-fi; --print only prints the link
 callie upgrade                           # install the latest release; --dry-run shows how first
@@ -194,6 +195,11 @@ between events, the leader then `d`, `w` or `a` for a view, `?` for the rest). E
 answer it with `y`, `m` or `n`, join its call with `o`, or delete it with `x`. `n` adds an event as
 `callie add` reads it, `/` searches, `i` lists invitations, `c` shows or hides calendars, and `u`
 takes back the last change while it is held. Piped, it prints the agenda as before.
+
+While it is open, it reminds about events with desktop notifications, as the app does. For
+reminders when neither is open, run `callie reminders`, for instance from a systemd user service or
+your desktop's autostart. Only one of the app, the terminal calendar and `callie reminders` reminds
+at a time, so none comes twice.
 
 On a terminal, the CLI takes its colors from the app's theme: today and links in its accent, a dot in
 each event's calendar color, and declined events struck through. `CALLIE_THEME` picks another

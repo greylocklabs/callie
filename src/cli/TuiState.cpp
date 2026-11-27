@@ -4,6 +4,7 @@
 
 #include "callie/KeyActions.h"
 #include "callie/QueuedSource.h"
+#include "callie/ReminderNotifier.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
 
@@ -547,6 +548,19 @@ void TuiState::showFound(const QString &title, QList<Event> events)
     }
     m_mode = Mode::Found;
     Q_EMIT changed();
+}
+
+void TuiState::remind(const Event &event)
+{
+    const ReminderNotifier::Text text =
+        ReminderNotifier::describe(event, m_now(), *m_settings.times());
+    say(tr("Reminder: %1, %2").arg(text.title, text.body.section(u'\n', 0, 0)));
+}
+
+void TuiState::showEvent(const Event &event)
+{
+    m_help = false;
+    jumpTo(event);
 }
 
 void TuiState::jumpTo(const Event &event)
