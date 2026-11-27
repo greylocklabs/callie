@@ -431,23 +431,29 @@ Element footer(const TuiState &state, const Look &look)
 Element help(const Look &look)
 {
     using namespace ftxui;
-    // From the keys' table the app reads too, so both list the same keys for what they share:
-    // the list's keys on the left, an event's details' on the right.
+    // From the keys' table the app reads too, so both list the same keys for what they share.
+    // The list's keys fill two columns, and an event's details' go under the second, to fit an
+    // 80 by 24 terminal.
     const QString leader = look.settings.leaderKey();
+    const auto row = [&](const QString &key, const QString &what) {
+        return hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
+                     label(what), text(" ")});
+    };
     Elements list, details;
-    details.push_back(label(QObject::tr("In an event's details")) | bold);
     for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
         const QString key = action.leader.isEmpty() ? action.vi : leader + u' ' + action.leader;
-        if (key.isEmpty())
-            continue;
-        (action.inCard ? details : list)
-            .push_back(
-                hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
-                      label(action.label), text(" ")}));
+        if (!key.isEmpty())
+            (action.inCard ? details : list).push_back(row(key, action.label));
     }
+    const auto half = list.begin() + (list.size() + 1) / 2;
+    Elements left(list.begin(), half);
+    Elements right(half, list.end());
+    right.push_back(text(""));
+    right.push_back(hbox({text(" "), label(QObject::tr("In an event's details")) | bold}));
+    right.insert(right.end(), details.begin(), details.end());
     return window(label(QObject::tr(" Keys ")) | bold,
-                  hbox({vbox(std::move(list)), separatorLight() | color(rgb(look.c.hairline)),
-                        vbox(std::move(details))})) |
+                  hbox({vbox(std::move(left)), separatorLight() | color(rgb(look.c.hairline)),
+                        vbox(std::move(right))})) |
            color(rgb(look.c.text)) | bgcolor(rgb(look.c.surface)) | clear_under | center;
 }
 

@@ -821,10 +821,12 @@ void TestTui::sharesTheAppsKeys()
     m_state->press(u"Escape"_s);
 
     // The help lists the table's keys, with that leader, the details' beside the list's.
+    // On a standard terminal, all of it fits.
     m_state->press(u"?"_s);
-    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 140, 40);
-    for (const QString &shown : {u": i"_s, u": w"_s, u"Next event"_s, u"Answer yes"_s,
-                                 u"Delete the event"_s, u"Move the event, keeping its length"_s})
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 80, 24);
+    for (const QString &shown :
+         {u": i"_s, u": w"_s, u"Next event"_s, u"Quit"_s, u"Duplicate the event"_s, u"Answer yes"_s,
+          u"Delete the event"_s, u"Change the event"_s})
         QVERIFY2(drawn.contains(shown), qPrintable(shown + u"\n"_s + drawn));
 }
 
