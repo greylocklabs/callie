@@ -36,8 +36,9 @@ public:
     /// Calendars the user hid, which never remind.
     void setHiddenCalendars(const QStringList &calendars);
     /// Starts or stops watching. Reminders that fall due while stopped are
-    /// skipped, not caught up on.
-    void setEnabled(bool enabled);
+    /// skipped, not caught up on. Starting, it says those of the last few
+    /// minutes, unless `catchUp` is false, as when another process said them.
+    void setEnabled(bool enabled, bool catchUp = true);
     [[nodiscard]] bool isEnabled() const { return m_enabled; }
 
     /// Reminds about `event` again in `minutes`.
