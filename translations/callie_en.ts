@@ -1709,83 +1709,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Earlier, later</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Today</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Next, previous event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>First, last event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Day view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Week view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Agenda view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Next view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The event&apos;s details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>New event, as callie add reads it</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Change the event: its title, place, times or calendar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Move the event, keeping its length</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copy the event, put a copy on the selected day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Duplicate the event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Search</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Invitations</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show or hide calendars</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Take back the last change</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Sync now</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Quit</source>
+        <source>In an event&apos;s details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3102,6 +3026,173 @@
     </message>
 </context>
 <context>
+    <name>callie</name>
+    <message>
+        <source>New event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search events</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Undo the last change</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy the open event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate the open event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Paste under the pointer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previous day, week or month</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next day, week or month</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to today</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Scroll down the day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Scroll up the day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to the start of the day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go to the end of the day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Day view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Week view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Month view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Agenda view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show invitations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Quit Callie</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previous event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>First event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Last event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next view</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The event&apos;s details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change the event: its title, place, times or calendar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move the event, keeping its length</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy the event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Put a copy on the selected day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Duplicate the event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show or hide calendars</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Quit</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Answer yes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Answer maybe</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Answer no</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Join the call</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete the event</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change the event</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>callie::AccountManager</name>
     <message>
         <source>could not store the token: %1</source>
@@ -3635,97 +3726,6 @@
     </message>
     <message>
         <source>Only %1 events went in: %2</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>callie::KeyRouter</name>
-    <message>
-        <source>New event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Search events</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Undo the last change</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Copy the open event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Duplicate the open event</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Paste under the pointer</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Previous day, week or month</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Next day, week or month</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Go to today</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Scroll down the day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Scroll up the day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Go to the start of the day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Go to the end of the day</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Day view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Week view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Month view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Agenda view</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show invitations</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Sync now</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Keyboard shortcuts</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Quit Callie</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

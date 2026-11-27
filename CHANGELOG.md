@@ -9,6 +9,9 @@ as changes land, and `make release` dates them; see [RELEASING.md](RELEASING.md)
 
 - In the terminal calendar, deleting asks first, and deleting or answering an event that repeats
   asks whether it is for this occurrence or all of them.
+- The terminal calendar and the app read their keys from one table, so what both do takes the
+  same keys: the app's leader keys work in the terminal, as leader then i for invitations and
+  leader then r to sync, and the terminal's help lists them all.
 
 ## 0.7.6 - 2026-11-26
 

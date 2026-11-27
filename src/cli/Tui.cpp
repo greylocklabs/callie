@@ -3,6 +3,7 @@
 #include "TuiState.h"
 #include "greylock/cli/Palette.h"
 
+#include "callie/KeyActions.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
 
@@ -430,36 +431,23 @@ Element footer(const TuiState &state, const Look &look)
 Element help(const Look &look)
 {
     using namespace ftxui;
+    // From the keys' table the app reads too, so both list the same keys for what they share:
+    // the list's keys on the left, an event's details' on the right.
     const QString leader = look.settings.leaderKey();
-    const std::pair<QString, QString> keys[] = {
-        {u"h  l"_s, QObject::tr("Earlier, later")},
-        {u"t"_s, QObject::tr("Today")},
-        {u"j  k"_s, QObject::tr("Next, previous event")},
-        {u"gg  G"_s, QObject::tr("First, last event")},
-        {leader + u" d"_s, QObject::tr("Day view")},
-        {leader + u" w"_s, QObject::tr("Week view")},
-        {leader + u" a"_s, QObject::tr("Agenda view")},
-        {u"Tab"_s, QObject::tr("Next view")},
-        {u"Enter"_s, QObject::tr("The event's details")},
-        {u"n"_s, QObject::tr("New event, as callie add reads it")},
-        {u"e"_s, QObject::tr("Change the event: its title, place, times or calendar")},
-        {u"m"_s, QObject::tr("Move the event, keeping its length")},
-        {u"y  p"_s, QObject::tr("Copy the event, put a copy on the selected day")},
-        {u"D"_s, QObject::tr("Duplicate the event")},
-        {u"/"_s, QObject::tr("Search")},
-        {u"i"_s, QObject::tr("Invitations")},
-        {u"c"_s, QObject::tr("Show or hide calendars")},
-        {u"u"_s, QObject::tr("Take back the last change")},
-        {u"r"_s, QObject::tr("Sync now")},
-        {u"q"_s, QObject::tr("Quit")},
-    };
-    Elements rows;
-    for (const auto &[key, what] : keys) {
-        rows.push_back(
-            hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
-                  label(what), text(" ")}));
+    Elements list, details;
+    details.push_back(label(QObject::tr("In an event's details")) | bold);
+    for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
+        const QString key = action.leader.isEmpty() ? action.vi : leader + u' ' + action.leader;
+        if (key.isEmpty())
+            continue;
+        (action.inCard ? details : list)
+            .push_back(
+                hbox({text(" "), label(key.leftJustified(8)) | bold | color(rgb(look.c.accent)),
+                      label(action.label), text(" ")}));
     }
-    return window(label(QObject::tr(" Keys ")) | bold, vbox(std::move(rows))) |
+    return window(label(QObject::tr(" Keys ")) | bold,
+                  hbox({vbox(std::move(list)), separatorLight() | color(rgb(look.c.hairline)),
+                        vbox(std::move(details))})) |
            color(rgb(look.c.text)) | bgcolor(rgb(look.c.surface)) | clear_under | center;
 }
 

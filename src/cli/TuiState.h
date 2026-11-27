@@ -106,6 +106,8 @@ private:
     void setView(View view);
     void selectFirstOf(QDate day);
     bool pressBrowsing(const QString &key);
+    /// Does the action `id` of the keys' table, as its keys do in the list.
+    bool run(const QString &id);
     bool pressDetails(const QString &key);
     bool pressTyping(const QString &key);
     bool pressFound(const QString &key);

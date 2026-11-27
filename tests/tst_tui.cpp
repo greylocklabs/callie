@@ -78,6 +78,7 @@ private Q_SLOTS:
     void aRepeatingEventIsDeletedOnceOrWhole();
     void aRepeatingInvitationIsAnsweredOnceOrWhole();
     void aOneOffEventIsDeletedOnceConfirmed();
+    void sharesTheAppsKeys();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -798,6 +799,33 @@ void TestTui::aOneOffEventIsDeletedOnceConfirmed()
     m_state->press(u"x"_s);
     m_state->press(u"y"_s);
     QVERIFY(!summaries().contains(u"Pottery"_s));
+}
+
+void TestTui::sharesTheAppsKeys()
+{
+    // The app's leader keys, with the leader Settings chooses: invitations after it, as in the
+    // app, and the view keys.
+    m_settings->setLeaderKey(u":"_s);
+    m_state->press(u":"_s);
+    QCOMPARE(m_state->pending(), u"leader"_s);
+    m_state->press(u"i"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Found);
+    QCOMPARE(m_state->foundTitle(), u"Invitations"_s);
+    m_state->press(u"Escape"_s);
+    m_state->press(u":"_s);
+    m_state->press(u"w"_s);
+    QCOMPARE(m_state->view(), TuiState::View::Week);
+    // i alone, as before, still lists them.
+    m_state->press(u"i"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Found);
+    m_state->press(u"Escape"_s);
+
+    // The help lists the table's keys, with that leader, the details' beside the list's.
+    m_state->press(u"?"_s);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 140, 40);
+    for (const QString &shown : {u": i"_s, u": w"_s, u"Next event"_s, u"Answer yes"_s,
+                                 u"Delete the event"_s, u"Move the event, keeping its length"_s})
+        QVERIFY2(drawn.contains(shown), qPrintable(shown + u"\n"_s + drawn));
 }
 
 QTEST_GUILESS_MAIN(TestTui)
