@@ -54,6 +54,8 @@ public:
     [[nodiscard]] const QList<Event> &events() const { return m_events; }
     /// The day `event` is listed under: its first day in the range.
     [[nodiscard]] QDate dayOf(const Event &event) const;
+    /// Minutes into that day `event` starts at: 0 when it began on a day before.
+    [[nodiscard]] int startMinute(const Event &event) const;
     /// The selected event's place in events(), or -1.
     [[nodiscard]] int selected() const { return m_selected; }
     [[nodiscard]] bool helpShown() const { return m_help; }

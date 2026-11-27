@@ -200,7 +200,7 @@ Element gridView(const TuiState &state, const Look &look)
     for (const Event &event : state.events()) {
         if (event.allDay)
             continue;
-        first = std::min(first, times.minutesIntoDay(event.start) / 60 * 60);
+        first = std::min(first, state.startMinute(event) / 60 * 60);
         const int end = state.dayOf(event) == times.date(event.end).date()
                             ? times.minutesIntoDay(event.end)
                             : 24 * 60;
@@ -230,7 +230,7 @@ Element gridView(const TuiState &state, const Look &look)
                                     sticker(event, event.summary, look) | flex}));
                 continue;
             }
-            const int from = (times.minutesIntoDay(event.start) - first) / 30;
+            const int from = (state.startMinute(event) - first) / 30;
             const int to =
                 times.date(event.end).date() == day
                     ? std::max(from + 1, (times.minutesIntoDay(event.end) - first + 29) / 30)

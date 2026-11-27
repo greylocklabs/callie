@@ -3,6 +3,7 @@
 #include "greylock/cli/Palette.h"
 
 #include "callie/QueuedSource.h"
+#include "callie/QuickAdd.h"
 #include "callie/SampleSource.h"
 #include "callie/Settings.h"
 
@@ -91,6 +92,7 @@ private Q_SLOTS:
     void setsTheAgendasLength();
     void showsDaysAsAnHourGrid();
     void movesWithinAndBetweenDaysInTheWeeksGrid();
+    void placesAnEventFromTheDayBeforeAtMidnight();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -1156,6 +1158,31 @@ void TestTui::movesWithinAndBetweenDaysInTheWeeksGrid()
     QCOMPARE(selected(), u"Focus: QML views"_s);
     m_state->press(u"H"_s);
     QCOMPARE(selected(), u"Dentist"_s);
+}
+
+void TestTui::placesAnEventFromTheDayBeforeAtMidnight()
+{
+    // From 22:00 the day before to 02:00 today, it is drawn from midnight, above eight.
+    EventDraft draft;
+    draft.calendarId = m_source->calendars().first().id;
+    draft.summary = u"Night shift"_s;
+    draft.start = QDateTime(QDate(2026, 10, 6), QTime(22, 0), QTimeZone::UTC);
+    draft.end = QDateTime(QDate(2026, 10, 7), QTime(2, 0), QTimeZone::UTC);
+    m_source->createEvent(draft, [](const Outcome &) {});
+    m_state->reload();
+    QVERIFY(summaries().contains(u"Night shift"_s));
+    m_settings->setTerminalGrid(true);
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 80);
+    const QStringList lines = drawn.split(u'\n');
+    const auto line = [&lines](const QString &words) {
+        for (int i = 0; i < lines.size(); ++i) {
+            if (lines.at(i).contains(words))
+                return i;
+        }
+        return -1;
+    };
+    QVERIFY2(line(u"Night shift"_s) >= 0, qPrintable(drawn));
+    QVERIFY(line(u"Night shift"_s) < line(m_settings->times()->hour(1)));
 }
 
 QTEST_GUILESS_MAIN(TestTui)
