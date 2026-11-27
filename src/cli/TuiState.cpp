@@ -91,7 +91,7 @@ void TuiState::stepDay(int direction)
     if (m_selected < 0)
         return;
     const Event &from = m_events.at(m_selected);
-    const int minutes = m_settings.times()->minutesIntoDay(from.start);
+    const int minutes = startMinute(from);
     const QDate last = rangeStart().addDays(rangeDays() - 1);
     for (QDate day = dayOf(from).addDays(direction); day >= rangeStart() && day <= last;
          day = day.addDays(direction)) {
@@ -99,11 +99,8 @@ void TuiState::stepDay(int direction)
         for (int i = 0; i < m_events.size(); ++i) {
             if (dayOf(m_events.at(i)) != day)
                 continue;
-            const int distance =
-                std::abs(m_settings.times()->minutesIntoDay(m_events.at(i).start) - minutes);
-            if (best < 0 ||
-                distance <
-                    std::abs(m_settings.times()->minutesIntoDay(m_events.at(best).start) - minutes))
+            const int distance = std::abs(startMinute(m_events.at(i)) - minutes);
+            if (best < 0 || distance < std::abs(startMinute(m_events.at(best)) - minutes))
                 best = i;
         }
         if (best >= 0) {
@@ -144,6 +141,12 @@ int TuiState::rangeDays() const
     }
     }
     return 1;
+}
+
+int TuiState::startMinute(const Event &event) const
+{
+    const Times &times = *m_settings.times();
+    return times.date(event.start).date() < dayOf(event) ? 0 : times.minutesIntoDay(event.start);
 }
 
 QDate TuiState::dayOf(const Event &event) const
