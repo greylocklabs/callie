@@ -80,6 +80,11 @@ private Q_SLOTS:
     void aOneOffEventIsDeletedOnceConfirmed();
     void sharesTheAppsKeys();
     void remindersShowInTheFooter();
+    void editsTheLineBeingTyped();
+    void recallsEarlierLines();
+    void searchesAsItIsTyped();
+    void completesCalendarNames();
+    void runsCommandsAfterAColon();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -848,6 +853,122 @@ void TestTui::remindersShowInTheFooter()
     m_state->showEvent(dentist);
     QCOMPARE(m_state->day(), QDate(2026, 10, 7));
     QCOMPARE(selected(), u"Dentist"_s);
+}
+
+void TestTui::editsTheLineBeingTyped()
+{
+    m_state->press(u"n"_s);
+    retype(u"Lunch tomorrow"_s);
+    // Home, and typing there; the cursor moves with the arrows, and Delete takes what is under it.
+    m_state->press(u"Home"_s);
+    QCOMPARE(m_state->cursor(), 0);
+    for (const QChar c : u"Big "_s)
+        m_state->press(QString(c));
+    QCOMPARE(m_state->input(), u"Big Lunch tomorrow"_s);
+    m_state->press(u"Right"_s);
+    m_state->press(u"Delete"_s);
+    QCOMPARE(m_state->input(), u"Big Lnch tomorrow"_s);
+    m_state->press(u"Left"_s);
+    m_state->press(u"Backspace"_s);
+    QCOMPARE(m_state->input(), u"BigLnch tomorrow"_s);
+    // Ctrl-W takes the word before the cursor, Ctrl-U the line before it, as in a shell.
+    m_state->press(u"Ctrl+E"_s);
+    m_state->press(u"Ctrl+W"_s);
+    QCOMPARE(m_state->input(), u"BigLnch "_s);
+    m_state->press(u"Ctrl+A"_s);
+    m_state->press(u"Ctrl+F"_s);
+    m_state->press(u"Ctrl+U"_s);
+    QCOMPARE(m_state->input(), u"igLnch "_s);
+    QCOMPARE(m_state->cursor(), 0);
+    m_state->press(u"Escape"_s);
+}
+
+void TestTui::recallsEarlierLines()
+{
+    m_state->press(u"/"_s);
+    retype(u"dentist"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"Escape"_s);
+    m_state->press(u"/"_s);
+    retype(u"lunch"_s);
+    m_state->press(u"Enter"_s);
+    m_state->press(u"Escape"_s);
+    // Up goes back through the searches, newest first; Down comes back to the line being typed.
+    m_state->press(u"/"_s);
+    retype(u"ret"_s);
+    m_state->press(u"Up"_s);
+    QCOMPARE(m_state->input(), u"lunch"_s);
+    m_state->press(u"Up"_s);
+    QCOMPARE(m_state->input(), u"dentist"_s);
+    m_state->press(u"Down"_s);
+    m_state->press(u"Down"_s);
+    QCOMPARE(m_state->input(), u"ret"_s);
+    m_state->press(u"Escape"_s);
+    // New events have their own.
+    m_state->press(u"n"_s);
+    m_state->press(u"Up"_s);
+    QCOMPARE(m_state->input(), QString());
+    m_state->press(u"Escape"_s);
+}
+
+void TestTui::searchesAsItIsTyped()
+{
+    m_state->press(u"/"_s);
+    for (const QChar c : u"dent"_s)
+        m_state->press(QString(c));
+    QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
+    QVERIFY(!m_state->found().isEmpty());
+    for (const Event &e : m_state->found())
+        QVERIFY(e.summary.contains(u"Dent"_s, Qt::CaseInsensitive));
+    const QString drawn = renderTui(*m_state, *m_settings, Palette::forTheme({}), 110, 30);
+    QVERIFY2(drawn.contains(u"Dentist"_s), qPrintable(drawn));
+    // Enter keeps them, to go to one.
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Found);
+}
+
+void TestTui::completesCalendarNames()
+{
+    QVERIFY(select(u"Dentist"_s));
+    m_state->press(u"e"_s);
+    while (m_state->field() != TuiState::Field::Calendar)
+        m_state->press(u"j"_s);
+    m_state->press(u"Enter"_s);
+    retype(u"wo"_s);
+    m_state->press(u"Tab"_s);
+    QCOMPARE(m_state->input(), u"Work"_s);
+    // Tab again goes on to the next that matches, and back round.
+    retype(u""_s);
+    m_state->press(u"Tab"_s);
+    const QString first = m_state->input();
+    m_state->press(u"Tab"_s);
+    QVERIFY(m_state->input() != first);
+    m_state->press(u"Escape"_s);
+}
+
+void TestTui::runsCommandsAfterAColon()
+{
+    m_state->press(u":"_s);
+    QCOMPARE(m_state->mode(), TuiState::Mode::Typing);
+    QCOMPARE(m_state->typing(), TuiState::Typing::Command);
+    retype(u"week"_s);
+    m_state->press(u"Enter"_s);
+    QCOMPARE(m_state->view(), TuiState::View::Week);
+    m_state->press(u":"_s);
+    retype(u"add Pottery today 6-8pm"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(summaries().contains(u"Pottery"_s));
+    m_state->press(u":"_s);
+    retype(u"dance"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(m_state->messageIsError());
+    // With : as the leader, Space opens the command line instead.
+    m_settings->setLeaderKey(u":"_s);
+    m_state->press(u" "_s);
+    QCOMPARE(m_state->typing(), TuiState::Typing::Command);
+    retype(u"q"_s);
+    m_state->press(u"Enter"_s);
+    QVERIFY(m_state->quitRequested());
 }
 
 QTEST_GUILESS_MAIN(TestTui)

@@ -194,7 +194,10 @@ week or the next two weeks, with the app's vi keys (`h` and `l` to move, `t` for
 between events, the leader then `d`, `w` or `a` for a view, `?` for the rest). Enter opens an event:
 answer it with `y`, `m` or `n`, join its call with `o`, or delete it with `x`. `n` adds an event as
 `callie add` reads it, `/` searches, `i` lists invitations, `c` shows or hides calendars, and `u`
-takes back the last change while it is held. Piped, it prints the agenda as before.
+takes back the last change while it is held. A line being typed edits as in a shell, with the
+arrows, Ctrl-A, Ctrl-E, Ctrl-W and Ctrl-U, and Up and Down bring back earlier ones; a search shows
+what it finds as it is typed. `:` runs a command, such as `:week`, `:today` or
+`:add Lunch fri 12-1pm`. Piped, it prints the agenda as before.
 
 While it is open, it reminds about events with desktop notifications, as the app does. For
 reminders when neither is open, run `callie reminders`, for instance from a systemd user service or

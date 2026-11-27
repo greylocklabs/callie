@@ -3,6 +3,7 @@
 #include "callie/CalendarSource.h"
 
 #include <QDate>
+#include <QHash>
 #include <QObject>
 #include <QPointer>
 #include <QUrl>
@@ -32,8 +33,8 @@ public:
     /// or a question before deleting or answering.
     enum class Mode { Browse, Details, Typing, Found, Calendars, Editing, Confirming };
     /// What a line being typed is for: a new event, a search, a field of the
-    /// event being changed, or where to move it.
-    enum class Typing { NewEvent, Search, Field, Move };
+    /// event being changed, where to move it, or a command.
+    enum class Typing { NewEvent, Search, Field, Move, Command };
     /// The fields of an event that can be changed, in the order they are listed.
     enum class Field { Title, Where, Starts, Ends, AllDay, Calendar };
     using Now = std::function<QDateTime()>;
@@ -56,8 +57,9 @@ public:
     [[nodiscard]] bool helpShown() const { return m_help; }
     [[nodiscard]] Mode mode() const { return m_mode; }
     [[nodiscard]] Typing typing() const { return m_typing; }
-    /// The line being typed.
+    /// The line being typed, and where in it the cursor is.
     [[nodiscard]] QString input() const { return m_input; }
+    [[nodiscard]] int cursor() const { return m_cursor; }
     /// What a search or the invitations found, and which is selected.
     [[nodiscard]] const QList<Event> &found() const { return m_found; }
     [[nodiscard]] QString foundTitle() const { return m_foundTitle; }
@@ -110,6 +112,14 @@ private:
     void setView(View view);
     void selectFirstOf(QDate day);
     bool pressBrowsing(const QString &key);
+    /// Starts typing a line for `typing`, holding `text` with the cursor at its end.
+    void startTyping(Typing typing, const QString &text = {});
+    /// Runs a command typed after `:`.
+    void runCommand(const QString &line);
+    /// The search typed so far, as its results, while it is typed.
+    void searchAsTyped();
+    /// The next calendar name that starts as the field does, for Tab.
+    void completeCalendar();
     /// Does the action `id` of the keys' table, as its keys do in the list.
     bool run(const QString &id);
     bool pressDetails(const QString &key);
@@ -149,6 +159,14 @@ private:
     Mode m_mode = Mode::Browse;
     Typing m_typing = Typing::NewEvent;
     QString m_input;
+    int m_cursor = 0;
+    /// Lines typed before, by what they were for, newest last; and which is shown, or -1 for the
+    /// line being typed, kept in m_draft while an older one is.
+    QHash<int, QStringList> m_history;
+    int m_historyAt = -1;
+    QString m_draft;
+    /// What Tab completes from, as typed before the first Tab.
+    std::optional<QString> m_completing;
     QList<Event> m_found;
     QString m_foundTitle;
     int m_foundSelected = -1;

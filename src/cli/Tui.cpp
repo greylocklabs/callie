@@ -391,6 +391,7 @@ QString keysFor(const TuiState &state)
         case TuiState::Typing::Search: return QObject::tr("Enter search   Esc cancel");
         case TuiState::Typing::Field: return QObject::tr("Enter save   Esc cancel");
         case TuiState::Typing::Move: return QObject::tr("Enter move   Esc cancel");
+        case TuiState::Typing::Command: return QObject::tr("Enter run   Esc cancel");
         }
         break;
     case TuiState::Mode::Found: return QObject::tr("Enter go to it   Esc back");
@@ -421,9 +422,15 @@ Element footer(const TuiState &state, const Look &look)
             prompt = QObject::tr("%1: ").arg(TuiState::fieldName(state.field()));
             break;
         case TuiState::Typing::Move: prompt = QObject::tr("Move to: "); break;
+        case TuiState::Typing::Command: prompt = u":"_s; break;
         }
-        left = hbox({label(prompt) | bold | color(rgb(look.c.accent)), label(state.input()),
-                     text("█") | color(rgb(look.c.accent))});
+        // The cursor on the character it is before, or after the line's end.
+        const QString line = state.input();
+        const int at = state.cursor();
+        const Element cursor = at < line.size() ? label(line.mid(at, 1)) | inverted
+                                                : text("█") | color(rgb(look.c.accent));
+        left = hbox({label(prompt) | bold | color(rgb(look.c.accent)), label(line.left(at)), cursor,
+                     label(line.mid(at + 1))});
     }
     return hbox({left, filler(), label(keysFor(state)) | color(rgb(look.c.textFaint))});
 }
@@ -441,7 +448,10 @@ Element help(const Look &look)
     };
     Elements list, details;
     for (const KeyAction &action : keyActionsFor(KeyAction::Where::Terminal)) {
-        const QString key = action.leader.isEmpty() ? action.vi : leader + u' ' + action.leader;
+        QString key = action.leader.isEmpty() ? action.vi : leader + u' ' + action.leader;
+        // The command line opens on Space when : is the leader.
+        if (action.id == u"commandLine" && leader == u":")
+            key = u"Space"_s;
         if (!key.isEmpty())
             (action.inCard ? details : list).push_back(row(key, action.label));
     }
@@ -466,9 +476,12 @@ Element render(const TuiState &state, const Look &look)
     // The details stay in view while a question about the event is asked.
     const bool details =
         state.mode() == TuiState::Mode::Details || state.mode() == TuiState::Mode::Confirming;
+    const bool found =
+        state.mode() == TuiState::Mode::Found ||
+        (state.mode() == TuiState::Mode::Typing && state.typing() == TuiState::Typing::Search);
     Element body = editing                                  ? editView(state, look)
                    : details                                ? detailsView(state, look)
-                   : state.mode() == TuiState::Mode::Found  ? foundView(state, look)
+                   : found                                  ? foundView(state, look)
                    : state.view() == TuiState::View::Week   ? weekView(state, look)
                    : state.view() == TuiState::View::Agenda ? agendaView(state, look)
                                                             : dayView(state, look);
@@ -507,6 +520,12 @@ QString keyName(const ftxui::Event &event)
         return u"Tab"_s;
     if (event == Event::Backspace)
         return u"Backspace"_s;
+    if (event == Event::Delete)
+        return u"Delete"_s;
+    // Ctrl and a letter comes as that letter's control character.
+    if (const std::string input = event.input();
+        input.size() == 1 && input[0] >= 1 && input[0] <= 26)
+        return u"Ctrl+"_s + QChar(u'A' + input[0] - 1);
     if (event.is_character())
         return QString::fromStdString(event.character());
     return {};

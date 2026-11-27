@@ -1677,6 +1677,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Enter run   Esc cancel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Enter go to it   Esc back</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3721,6 +3725,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Command line, such as :week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4155,6 +4163,10 @@
     </message>
     <message>
         <source>%1 has no call to join.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No command %1. There are day, week, agenda, today, add, search, invites, calendars, sync, undo, help and q.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
