@@ -420,7 +420,9 @@ bool TuiState::pressTyping(const QString &key)
     const bool tab = key == u"Tab";
     if (!tab)
         m_completing.reset();
-    QStringList &history = m_history[int(m_typing)];
+    // Each field keeps its own, apart from new events, searches and the rest.
+    QStringList &history =
+        m_history[m_typing == Typing::Field ? 100 + int(field()) : int(m_typing)];
 
     if (key == u"Escape") {
         // A field given up on goes back to the fields.
