@@ -59,6 +59,7 @@ void TestSettings::defaultsWithoutAFile()
     QVERIFY(settings.showDeclined());
     QVERIFY(settings.dimPast());
     QVERIFY(!settings.widenToday());
+    QVERIFY(!settings.terminalGrid());
     QVERIFY(settings.hiddenCalendars().isEmpty());
     QCOMPARE(settings.view(), u"week"_s);
     QVERIFY(settings.lastSeenVersion().isEmpty());
@@ -77,6 +78,7 @@ void TestSettings::choicesSurviveARestart()
         settings.setShowDeclined(false);
         settings.setDimPast(false);
         settings.setWidenToday(true);
+        settings.setTerminalGrid(true);
         settings.setCalendarVisible(u"google/me/work"_s, false);
         settings.setAccountCollapsed(u"me@example.com"_s, true);
         settings.setTheme(u"/home/me/.config/callie/themes/mine.toml"_s);
@@ -102,6 +104,7 @@ void TestSettings::choicesSurviveARestart()
     QVERIFY(!settings.showDeclined());
     QVERIFY(!settings.dimPast());
     QVERIFY(settings.widenToday());
+    QVERIFY(settings.terminalGrid());
     QCOMPARE(settings.hiddenCalendars(), QStringList{u"google/me/work"_s});
     QCOMPARE(settings.collapsedAccounts(), QStringList{u"me@example.com"_s});
     QCOMPARE(settings.theme(), u"/home/me/.config/callie/themes/mine.toml"_s);
@@ -437,6 +440,7 @@ void TestSettings::resetForgetsEverything()
 {
     Settings settings(path());
     settings.setWidenToday(true);
+    settings.setTerminalGrid(true);
     settings.setTimeZoneId(u"Asia/Tokyo"_s);
     settings.setTheme(u"/somewhere/mine.toml"_s);
     settings.setDefaultCalendar(u"google/me/work"_s);
@@ -445,6 +449,7 @@ void TestSettings::resetForgetsEverything()
     settings.setAccountPhoto(u"me@example.com"_s, QUrl(u"https://lh3/me"_s));
     settings.setCallCard(false);
     QSignalSpy widen(&settings, &Settings::widenTodayChanged);
+    QSignalSpy grid(&settings, &Settings::terminalGridChanged);
     QSignalSpy callCard(&settings, &Settings::callCardChanged);
     QSignalSpy photos(&settings, &Settings::accountPhotosChanged);
     QSignalSpy looks(&settings, &Settings::calendarLooksChanged);
@@ -458,6 +463,8 @@ void TestSettings::resetForgetsEverything()
     QVERIFY(settings.timeZoneId().isEmpty());
     QVERIFY(settings.theme().isEmpty());
     QCOMPARE(widen.size(), 1);
+    QVERIFY(!settings.terminalGrid());
+    QCOMPARE(grid.size(), 1);
     QVERIFY(settings.callCard());
     QCOMPARE(callCard.size(), 1);
     QCOMPARE(declined.size(), 0);
