@@ -94,6 +94,7 @@ private Q_SLOTS:
     void movesWithinAndBetweenDaysInTheWeeksGrid();
     void placesAnEventFromTheDayBeforeAtMidnight();
     void fillsInANewEventsForm();
+    void callFieldIsTheEventsOwnCall();
 
 private:
     [[nodiscard]] QStringList summaries() const;
@@ -563,6 +564,24 @@ void TestTui::callsOpen()
     m_state->press(u"o"_s);
     QCOMPARE(opened.size(), 1);
     QCOMPARE(opened.first().first().toUrl(), m_state->current()->joinUrl());
+}
+
+void TestTui::callFieldIsTheEventsOwnCall()
+{
+    // A call link pasted in the notes can be joined, but there is no call to switch off.
+    Event e;
+    e.calendarId = u"work"_s;
+    e.eventId = e.uid = u"sync"_s;
+    e.summary = u"Sync"_s;
+    e.start = kNow.addSecs(3600);
+    e.end = e.start.addSecs(3600);
+    e.description = u"Join at https://meet.google.com/abc-defg-hij"_s;
+    FixedSource source({e});
+    TuiState state(source, *m_settings, [] { return kNow; });
+    QVERIFY(!e.joinUrl().isEmpty());
+    QCOMPARE(state.fieldValue(e, TuiState::Field::Call), u"no"_s);
+    e.conferenceUrl = QUrl(u"https://meet.google.com/abc-defg-hij"_s);
+    QCOMPARE(state.fieldValue(e, TuiState::Field::Call), u"yes"_s);
 }
 
 void TestTui::onlyWebCallsOpen()

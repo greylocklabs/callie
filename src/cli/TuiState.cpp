@@ -9,6 +9,7 @@
 #include "callie/Repeat.h"
 #include "callie/Settings.h"
 #include "callie/Times.h"
+#include "callie/Zoom.h"
 
 #include <QHash>
 #include <QRegularExpression>
@@ -948,7 +949,7 @@ bool TuiState::pressEditing(const QString &key)
             if (field() == Field::AllDay)
                 options.allDay = !event->allDay;
             else
-                options.video = event->joinUrl().isEmpty();
+                options.video = !hasCall(*event);
             change(Commands::reference(*event), options);
             return true;
         }
@@ -1102,11 +1103,18 @@ QString TuiState::fieldValue(const Event &event, Field field) const
         }
         return guests.join(u", "_s);
     }
-    case Field::Call: return event.joinUrl().isEmpty() ? tr("no") : tr("yes");
+    case Field::Call: return hasCall(event) ? tr("yes") : tr("no");
     // Google's notes are HTML; they are typed as their text.
     case Field::Notes: return QTextDocumentFragment::fromHtml(event.description).toPlainText();
     }
     return {};
+}
+
+bool TuiState::hasCall(const Event &event) const
+{
+    const bool zoom =
+        m_settings.videoCallService() == u"zoom" && !m_settings.zoomAccounts().isEmpty();
+    return event.conferenceUrl.isValid() || (zoom && Zoom::hasMeeting(event.location));
 }
 
 void TuiState::addAndOpen(const QString &text)
