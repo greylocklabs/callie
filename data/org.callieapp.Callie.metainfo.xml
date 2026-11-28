@@ -42,6 +42,22 @@
   </categories>
 
   <releases>
+    <release version="0.7.7" date="2026-11-27">
+      <description>
+        <ul>
+          <li>Reminders come without the app: the terminal calendar notifies while it is open, and callie reminders runs on its own, as from a systemd user service. Only one of them and the app reminds at a time, so none comes twice.</li>
+          <li>The terminal calendar's typed lines edit as in a shell, with the arrows, Ctrl-A, Ctrl-E, Ctrl-W and Ctrl-U, and Up and Down bring back earlier ones. A search shows what it finds as it is typed, Tab completes a calendar's name, and : runs a command such as :week or :add.</li>
+          <li>The terminal calendar goes to a day with gd or :go, repeats a move given a count, as 3l, moves half a screen with Ctrl-D and Ctrl-U, and shows an agenda of any length with :agenda 30.</li>
+          <li>The terminal calendar has a month view: the month's weeks, each day with its first events and how many more it has, opened with the leader then m, as in the app, or :month.</li>
+          <li>The terminal calendar can show days and weeks as an hour grid, with each event at its time and a line at the current time, switched with the leader then g or :grid and kept in Settings. In the week's grid, j and k stay within a day, and H and L go to the day before or after.</li>
+          <li>In the terminal calendar, Tab on a new event's line adds it and opens its fields, which now take its repeat, guests, video call and notes too, as well as its title, place, times and calendar.</li>
+          <li>An event's details in the terminal calendar open its place in a map with M and its page with O, and copy its call's link, or its page's, with c.</li>
+          <li>callie next prints the event on now, or the next, in one line for a status bar such as waybar, polybar or tmux, or as JSON with --json.</li>
+          <li>In the terminal calendar, deleting asks first, and deleting or answering an event that repeats asks whether it is for this occurrence or all of them.</li>
+          <li>The terminal calendar and the app read their keys from one table, so what both do takes the same keys: the app's leader keys work in the terminal, as leader then i for invitations and leader then r to sync, and the terminal's help lists them all.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.7.6" date="2026-11-26">
       <description>
         <ul>
